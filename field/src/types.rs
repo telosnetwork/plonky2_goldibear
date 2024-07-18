@@ -562,6 +562,64 @@ pub trait PrimeField64: PrimeField + Field64 {
     }
 }
 
+pub trait Field32: Field {
+    const ORDER: u32;
+
+    /// Returns `n` as an element of this field. Assumes that `0 <= n < Self::ORDER`.
+    // TODO: Move to `Field`.
+    // TODO: Should probably be unsafe.
+    #[inline]
+    fn from_canonical_i32(n: i32) -> Self {
+        Self::from_canonical_u32(n as u32)
+    }
+
+    #[inline]
+    // TODO: Move to `Field`.
+    fn add_one(&self) -> Self {
+        unsafe { self.add_canonical_u32(1) }
+    }
+
+    #[inline]
+    // TODO: Move to `Field`.
+    fn sub_one(&self) -> Self {
+        unsafe { self.sub_canonical_u32(1) }
+    }
+
+    /// # Safety
+    /// Equivalent to *self + Self::from_canonical_u64(rhs), but may be cheaper. The caller must
+    /// ensure that 0 <= rhs < Self::ORDER. The function may return incorrect results if this
+    /// precondition is not met. It is marked unsafe for this reason.
+    // TODO: Move to `Field`.
+    #[inline]
+    unsafe fn add_canonical_u32(&self, rhs: u32) -> Self {
+        // Default implementation.
+        *self + Self::from_canonical_u32(rhs)
+    }
+
+    /// # Safety
+    /// Equivalent to *self - Self::from_canonical_u64(rhs), but may be cheaper. The caller must
+    /// ensure that 0 <= rhs < Self::ORDER. The function may return incorrect results if this
+    /// precondition is not met. It is marked unsafe for this reason.
+    // TODO: Move to `Field`.
+    #[inline]
+    unsafe fn sub_canonical_u32(&self, rhs: u32) -> Self {
+        // Default implementation.
+        *self - Self::from_canonical_u32(rhs)
+    }
+}
+
+/// A finite field of prime order less than 2^64.
+pub trait PrimeField32: PrimeField + crate::types::Field32 {
+    fn to_canonical_u32(&self) -> u32;
+
+    fn to_noncanonical_u32(&self) -> u32;
+
+    #[inline(always)]
+    fn to_canonical(&self) -> Self {
+        Self::from_canonical_u32(self.to_canonical_u32())
+    }
+}
+
 /// An iterator over the powers of a certain base element `b`: `b^0, b^1, b^2, ...`.
 #[derive(Clone, Debug)]
 pub struct Powers<F: Field> {
