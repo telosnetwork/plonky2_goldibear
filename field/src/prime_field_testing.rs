@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
+use p3_field::PrimeField64;
 
-use crate::types::PrimeField64;
 
 /// Generates a series of non-negative integers less than `modulus` which cover a range of
 /// interesting test values.

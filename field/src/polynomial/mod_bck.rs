@@ -1,5 +1,3 @@
-pub(crate) mod division;
-
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::max;
@@ -8,13 +6,15 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
-use plonky2_util::log2_strict;
+use p3_field::ExtensionField as FieldExtension;
+use p3_field::Field;
 use serde::{Deserialize, Serialize};
 
-use crate::fft::{fft, fft_with_options, ifft, FftRootTable};
-use p3_field::{ExtensionField as FieldExtension, TwoAdicField};
-use p3_field::Field;
+use plonky2_util::log2_strict;
 
+use crate::fft::{fft, fft_with_options, FftRootTable, ifft};
+
+pub(crate) mod division;
 
 /// A polynomial in point-value form.
 ///
@@ -25,7 +25,7 @@ pub struct PolynomialValues<F: Field> {
     pub values: Vec<F>,
 }
 
-impl<F: TwoAdicField> PolynomialValues<F> {
+impl<F: Field, FE: FieldExtension<F>> PolynomialValues<F> {
     pub fn new(values: Vec<F>) -> Self {
         // Check that a subgroup exists of this size, which should be a power of two.
         debug_assert!(log2_strict(values.len()) <= F::TWO_ADICITY);
@@ -56,12 +56,12 @@ impl<F: TwoAdicField> PolynomialValues<F> {
         self.values.len()
     }
 
-    pub fn ifft(self) -> PolynomialCoeffs<F> {
+    pub fn ifft(self) -> PolynomialCoeffs<F, FE> {
         ifft(self)
     }
 
     /// Returns the polynomial whose evaluation on the coset `shift*H` is `self`.
-    pub fn coset_ifft(self, shift: F) -> PolynomialCoeffs<F> {
+    pub fn coset_ifft(self, shift: F) -> PolynomialCoeffs<F, FE> {
         let mut shifted_coeffs = self.ifft();
         shifted_coeffs
             .coeffs
@@ -85,8 +85,7 @@ impl<F: TwoAdicField> PolynomialValues<F> {
     /// Low-degree extend `Self` (seen as evaluations over the subgroup) onto a coset.
     pub fn lde_onto_coset(self, rate_bits: usize) -> Self {
         let coeffs = ifft(self).lde(rate_bits);
-        let coset_shift = F::generator();
-        coeffs.coset_fft_with_options(coset_shift, Some(rate_bits), None)
+        coeffs.coset_fft_with_options(F::coset_shift(), Some(rate_bits), None)
     }
 
     pub fn degree(&self) -> usize {
@@ -106,7 +105,7 @@ impl<F: TwoAdicField> PolynomialValues<F> {
     }
 }
 
-impl<F: TwoAdicField> From<Vec<F>> for PolynomialValues<F> {
+impl<F: Field, FE: FieldExtension<F>> From<Vec<F>> for PolynomialValues<F> {
     fn from(values: Vec<F>) -> Self {
         Self::new(values)
     }
@@ -115,11 +114,12 @@ impl<F: TwoAdicField> From<Vec<F>> for PolynomialValues<F> {
 /// A polynomial in coefficient form.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(bound = "")]
-pub struct PolynomialCoeffs<F: Field> {
+pub struct PolynomialCoeffs<F: Field, FE: FieldExtension<F>> {
+    //phantom: PhantomData<FE>,
     pub coeffs: Vec<F>,
 }
 
-impl<F: TwoAdicField> PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> PolynomialCoeffs<F, FE> {
     pub fn new(coeffs: Vec<F>) -> Self {
         PolynomialCoeffs { coeffs }
     }
@@ -171,29 +171,23 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
             .fold(acc, |acc, (&x, &c)| acc + c * x)
     }
 
-    pub fn eval_base<FB>(&self, x: FB) -> F
-    where
-        FB: Field,
-        F: FieldExtension<FB>,
+    pub fn eval_base(&self, x: F) -> FE
     {
         self.coeffs
             .iter()
             .rev()
-            .fold(F::zero(), |acc, &c| (acc * x) + c)
+            .fold(F::zero(), |acc, &c| acc.scalar_mul(x) + c)
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
-    pub fn eval_base_with_powers<FB>(&self, powers: &[FB]) -> F
-    where
-        FB: Field,
-        F: FieldExtension<FB>,
+    pub fn eval_base_with_powers(&self, powers: &[F]) -> FE
     {
         debug_assert_eq!(self.coeffs.len(), powers.len() + 1);
         let acc = self.coeffs[0];
         self.coeffs[1..]
             .iter()
             .zip(powers)
-            .fold(acc, |acc, (&x, &c)| acc + (x * c))
+            .fold(acc, |acc, (&x, &c)| acc + x.scalar_mul(c))
     }
 
     pub fn lde_multiple(polys: Vec<&Self>, rate_bits: usize) -> Vec<Self> {
@@ -245,7 +239,7 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
     pub fn degree_plus_one(&self) -> usize {
         (0usize..self.len())
             .rev()
-            .find(|&i| !self.coeffs[i].is_zero())
+            .find(|&i| self.coeffs[i].is_nonzero())
             .map_or(0, |i| i + 1)
     }
 
@@ -254,7 +248,7 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
         self.coeffs
             .iter()
             .rev()
-            .find(|x| !x.is_zero())
+            .find(|x| x.is_nonzero())
             .map_or(F::zero(), |x| *x)
     }
 
@@ -296,18 +290,18 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
         modified_poly.fft_with_options(zero_factor, root_table)
     }
 
-    pub fn to_extension<FE: FieldExtension<F> + TwoAdicField>(&self) -> PolynomialCoeffs<FE>
+    pub fn to_extension<const D: usize>(&self) -> PolynomialCoeffs<F, FE>
     {
         PolynomialCoeffs::new(self.coeffs.iter().map(|&c| c.into()).collect())
     }
 
-    pub fn mul_extension<FE: FieldExtension<F> + TwoAdicField>(&self, rhs: FE) -> PolynomialCoeffs<FE>
+    pub fn mul_extension<const D: usize>(&self, rhs: FE) -> PolynomialCoeffs<F, FE>
     {
-        PolynomialCoeffs::new(self.coeffs.iter().map(|&c| rhs * c).collect())
+        PolynomialCoeffs::new(self.coeffs.iter().map(|&c| rhs.scalar_mul(c)).collect())
     }
 }
 
-impl<F: Field> PartialEq for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> PartialEq for PolynomialCoeffs<F, FE> {
     fn eq(&self, other: &Self) -> bool {
         let max_terms = self.coeffs.len().max(other.coeffs.len());
         for i in 0..max_terms {
@@ -321,16 +315,16 @@ impl<F: Field> PartialEq for PolynomialCoeffs<F> {
     }
 }
 
-impl<F: Field> Eq for PolynomialCoeffs<F> {}
+impl<F: Field, FE: FieldExtension<F>> Eq for PolynomialCoeffs<F, FE> {}
 
-impl<F: TwoAdicField> From<Vec<F>> for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> From<Vec<F>> for PolynomialCoeffs<F, FE> {
     fn from(coeffs: Vec<F>) -> Self {
         Self::new(coeffs)
     }
 }
 
-impl<F: TwoAdicField> Add for &PolynomialCoeffs<F> {
-    type Output = PolynomialCoeffs<F>;
+impl<F: Field, FE: FieldExtension<F>> Add for &PolynomialCoeffs<F, FE> {
+    type Output = PolynomialCoeffs<F,FE>;
 
     fn add(self, rhs: Self) -> Self::Output {
         let len = max(self.len(), rhs.len());
@@ -341,14 +335,14 @@ impl<F: TwoAdicField> Add for &PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> Sum for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> Sum for PolynomialCoeffs<F, FE> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::empty(), |acc, p| &acc + &p)
     }
 }
 
-impl<F: TwoAdicField> Sub for &PolynomialCoeffs<F> {
-    type Output = PolynomialCoeffs<F>;
+impl<F: Field, FE: FieldExtension<F>> Sub for &PolynomialCoeffs<F, FE> {
+    type Output = PolynomialCoeffs<F, FE>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         let len = max(self.len(), rhs.len());
@@ -360,7 +354,7 @@ impl<F: TwoAdicField> Sub for &PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> AddAssign for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> AddAssign for PolynomialCoeffs<F, FE> {
     fn add_assign(&mut self, rhs: Self) {
         let len = max(self.len(), rhs.len());
         self.coeffs.resize(len, F::zero());
@@ -370,7 +364,7 @@ impl<F: TwoAdicField> AddAssign for PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> AddAssign<&Self> for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> AddAssign<&Self> for PolynomialCoeffs<F, FE> {
     fn add_assign(&mut self, rhs: &Self) {
         let len = max(self.len(), rhs.len());
         self.coeffs.resize(len, F::zero());
@@ -380,7 +374,7 @@ impl<F: TwoAdicField> AddAssign<&Self> for PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> SubAssign for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> SubAssign for PolynomialCoeffs<F, FE> {
     fn sub_assign(&mut self, rhs: Self) {
         let len = max(self.len(), rhs.len());
         self.coeffs.resize(len, F::zero());
@@ -390,7 +384,7 @@ impl<F: TwoAdicField> SubAssign for PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> SubAssign<&Self> for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> SubAssign<&Self> for PolynomialCoeffs<F, FE> {
     fn sub_assign(&mut self, rhs: &Self) {
         let len = max(self.len(), rhs.len());
         self.coeffs.resize(len, F::zero());
@@ -400,8 +394,8 @@ impl<F: TwoAdicField> SubAssign<&Self> for PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> Mul<F> for &PolynomialCoeffs<F> {
-    type Output = PolynomialCoeffs<F>;
+impl<F: Field, FE: FieldExtension<F>> Mul<F> for &PolynomialCoeffs<F, FE> {
+    type Output = PolynomialCoeffs<F, FE>;
 
     fn mul(self, rhs: F) -> Self::Output {
         let coeffs = self.coeffs.iter().map(|&x| rhs * x).collect();
@@ -409,14 +403,14 @@ impl<F: TwoAdicField> Mul<F> for &PolynomialCoeffs<F> {
     }
 }
 
-impl<F: TwoAdicField> MulAssign<F> for PolynomialCoeffs<F> {
+impl<F: Field, FE: FieldExtension<F>> MulAssign<F> for PolynomialCoeffs<F, FE> {
     fn mul_assign(&mut self, rhs: F) {
         self.coeffs.iter_mut().for_each(|x| *x *= rhs);
     }
 }
 
-impl<F: TwoAdicField> Mul for &PolynomialCoeffs<F> {
-    type Output = PolynomialCoeffs<F>;
+impl<F: Field, FE: FieldExtension<F>> Mul for &PolynomialCoeffs<F, FE> {
+    type Output = PolynomialCoeffs<F, FE>;
 
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn mul(self, rhs: Self) -> Self::Output {
@@ -439,37 +433,37 @@ impl<F: TwoAdicField> Mul for &PolynomialCoeffs<F> {
 #[cfg(test)]
 mod tests {
     use p3_goldilocks::Goldilocks;
-    extern crate std;
-    use std::time::Instant;
-    use p3_field::AbstractField;
-
-    use rand::rngs::OsRng;
     use rand::Rng;
+    use rand::rngs::OsRng;
+
+    use std::time::Instant;
+
+    use crate::types::Sample;
 
     use super::*;
-    use crate::types::Sample;
 
     #[test]
     fn test_trimmed() {
         type F = Goldilocks;
+        type FE = Goldilocks;
 
         assert_eq!(
-            PolynomialCoeffs::<F> { coeffs: vec![] }.trimmed(),
-            PolynomialCoeffs::<F> { coeffs: vec![] }
+            PolynomialCoeffs::<F, FE> { coeffs: vec![] }.trimmed(),
+            PolynomialCoeffs::<F, FE> { coeffs: vec![] }
         );
         assert_eq!(
-            PolynomialCoeffs::<F> {
+            PolynomialCoeffs::<F, FE> {
                 coeffs: vec![F::zero()]
             }
             .trimmed(),
-            PolynomialCoeffs::<F> { coeffs: vec![] }
+            PolynomialCoeffs::<F, FE> { coeffs: vec![] }
         );
         assert_eq!(
-            PolynomialCoeffs::<F> {
+            PolynomialCoeffs::<F, FE> {
                 coeffs: vec![F::one(), F::two(), F::zero(), F::zero()]
             }
             .trimmed(),
-            PolynomialCoeffs::<F> {
+            PolynomialCoeffs::<F, FE> {
                 coeffs: vec![F::one(), F::two()]
             }
         );
@@ -620,49 +614,50 @@ mod tests {
         let denom = PolynomialCoeffs::new(vec![-a, F::one()]);
         let now = Instant::now();
         xn_minus_one.div_rem(&denom);
-        std::println!("Division time: {:?}", now.elapsed());
+        println!("Division time: {:?}", now.elapsed());
         let now = Instant::now();
         xn_minus_one.div_rem_long_division(&denom);
-        std::println!("Division time: {:?}", now.elapsed());
+        println!("Division time: {:?}", now.elapsed());
     }
 
     #[test]
     fn eq() {
         type F = Goldilocks;
+        type FE = Goldilocks;
         assert_eq!(
-            PolynomialCoeffs::<F>::new(vec![]),
+            PolynomialCoeffs::<F, FE>::new(vec![]),
             PolynomialCoeffs::new(vec![])
         );
         assert_eq!(
-            PolynomialCoeffs::<F>::new(vec![F::zero()]),
+            PolynomialCoeffs::<F, FE>::new(vec![F::zero()]),
             PolynomialCoeffs::new(vec![F::zero()])
         );
         assert_eq!(
-            PolynomialCoeffs::<F>::new(vec![]),
+            PolynomialCoeffs::<F, FE>::new(vec![]),
             PolynomialCoeffs::new(vec![F::zero()])
         );
         assert_eq!(
-            PolynomialCoeffs::<F>::new(vec![F::zero()]),
+            PolynomialCoeffs::<F, FE>::new(vec![F::zero()]),
             PolynomialCoeffs::new(vec![])
         );
         assert_eq!(
-            PolynomialCoeffs::<F>::new(vec![F::zero()]),
+            PolynomialCoeffs::<F, FE>::new(vec![F::zero()]),
             PolynomialCoeffs::new(vec![F::zero(), F::zero()])
         );
         assert_eq!(
-            PolynomialCoeffs::<F>::new(vec![F::one()]),
+            PolynomialCoeffs::<F, FE>::new(vec![F::one()]),
             PolynomialCoeffs::new(vec![F::one(), F::zero()])
         );
         assert_ne!(
-            PolynomialCoeffs::<F>::new(vec![]),
+            PolynomialCoeffs::<F, FE>::new(vec![]),
             PolynomialCoeffs::new(vec![F::one()])
         );
         assert_ne!(
-            PolynomialCoeffs::<F>::new(vec![F::zero()]),
+            PolynomialCoeffs::<F, FE>::new(vec![F::zero()]),
             PolynomialCoeffs::new(vec![F::zero(), F::one()])
         );
         assert_ne!(
-            PolynomialCoeffs::<F>::new(vec![F::zero()]),
+            PolynomialCoeffs::<F, FE>::new(vec![F::zero()]),
             PolynomialCoeffs::new(vec![F::one(), F::zero()])
         );
     }

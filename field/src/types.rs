@@ -1,5 +1,8 @@
 use alloc::vec::Vec;
-use p3_field::{TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64, TwoAdicField};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_goldilocks::Goldilocks;
+use rand::RngCore;
 
 use rand::rngs::OsRng;
 
@@ -36,4 +39,27 @@ pub trait Sample: Sized {
     }
 }
 
+impl Sample for Goldilocks {
+    fn sample<R>(rng: &mut R) -> Self
+    where
+        R: RngCore + ?Sized
+    {
+        use rand::Rng;
+        Self::from_canonical_u64(rng.gen_range(0..Self::ORDER_U64))
+    }
+}
 
+impl<F:AbstractField+Sample+BinomiallyExtendable<4>> Sample for BinomialExtensionField<F,4> {
+    #[inline]
+    fn sample<R>(rng: &mut R) -> Self
+    where
+        R: rand::RngCore + ?Sized,
+    {
+        <Self as AbstractExtensionField<F>>::from_base_slice(&[
+            F::sample(rng),
+            F::sample(rng),
+            F::sample(rng),
+            F::sample(rng),
+        ])
+    }
+}

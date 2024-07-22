@@ -1,7 +1,6 @@
 use alloc::vec::Vec;
 
 use num::bigint::BigUint;
-
 use p3_field::Field;
 
 /// Finds a set of shifts that result in unique cosets for the multiplicative subgroup of size
@@ -25,26 +24,32 @@ pub fn get_unique_coset_shifts<F: Field>(subgroup_size: usize, num_shifts: usize
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+    use p3_goldilocks::Goldilocks;
+    extern crate std;
     use std::collections::HashSet;
+    use p3_field::TwoAdicField;
 
     use crate::cosets::get_unique_coset_shifts;
-    use p3_field::Field;
-    use p3_goldilocks::Goldilocks;
 
+    fn cyclic_subgroup_coset_known_order<F:TwoAdicField>(generator: F, shift: F, order: usize) -> Vec<F> {
+        let subgroup: Vec<F> = generator.powers().take(order).collect();
+        subgroup.into_iter().map(|x| x * shift).collect()
+    }
     #[test]
     fn distinct_cosets() {
         type F = Goldilocks;
         const SUBGROUP_BITS: usize = 5;
         const NUM_SHIFTS: usize = 50;
 
-        let generator = F::primitive_root_of_unity(SUBGROUP_BITS);
+        let generator = F::two_adic_generator(SUBGROUP_BITS);
         let subgroup_size = 1 << SUBGROUP_BITS;
 
         let shifts = get_unique_coset_shifts::<F>(subgroup_size, NUM_SHIFTS);
 
         let mut union = HashSet::new();
         for shift in shifts {
-            let coset = F::cyclic_subgroup_coset_known_order(generator, shift, subgroup_size);
+            let coset = cyclic_subgroup_coset_known_order(generator, shift, subgroup_size);
             assert!(
                 coset.into_iter().all(|x| union.insert(x)),
                 "Duplicate element!"

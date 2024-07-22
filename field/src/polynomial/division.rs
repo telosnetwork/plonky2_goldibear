@@ -134,17 +134,19 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+    use p3_field::AbstractField;
+    use p3_field::extension::BinomialExtensionField;
+    use p3_goldilocks::Goldilocks;
     use rand::rngs::OsRng;
     use rand::Rng;
 
-    use crate::extension::quartic::QuarticExtension;
-    use crate::goldilocks_field::GoldilocksField;
     use crate::polynomial::PolynomialCoeffs;
-    use crate::types::{Field, Sample};
+    use crate::types::{Sample};
 
     #[test]
     fn test_division_by_linear() {
-        type F = QuarticExtension<GoldilocksField>;
+        type F = BinomialExtensionField<Goldilocks, 4>;
         let n = OsRng.gen_range(1..1000);
         let poly = PolynomialCoeffs::new(F::rand_vec(n));
         let z = F::rand();

@@ -81,15 +81,15 @@ pub fn interpolate2<F: Field>(points: [(F, F); 2], x: F) -> F {
 
 #[cfg(test)]
 mod tests {
+    use p3_field::extension::BinomialExtensionField;
+    use p3_goldilocks::Goldilocks;
     use super::*;
-    use crate::extension::quartic::QuarticExtension;
-    use crate::goldilocks_field::GoldilocksField;
     use crate::polynomial::PolynomialCoeffs;
-    use crate::types::{Field, Sample};
+    use crate::types::{Sample, two_adic_subgroup};
 
     #[test]
     fn interpolant_random() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
 
         for deg in 0..10 {
             let domain = F::rand_vec(deg);
@@ -103,11 +103,11 @@ mod tests {
 
     #[test]
     fn interpolant_random_roots_of_unity() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
 
         for deg_log in 0..4 {
             let deg = 1 << deg_log;
-            let domain = F::two_adic_subgroup(deg_log);
+            let domain = two_adic_subgroup::<F>(deg_log);
             let coeffs = F::rand_vec(deg);
             let coeffs = PolynomialCoeffs { coeffs };
 
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn interpolant_random_overspecified() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
 
         for deg in 0..10 {
             let points = deg + 5;
@@ -131,13 +131,13 @@ mod tests {
         }
     }
 
-    fn eval_naive<F: Field>(coeffs: &PolynomialCoeffs<F>, domain: &[F]) -> Vec<(F, F)> {
+    fn eval_naive<F: TwoAdicField>(coeffs: &PolynomialCoeffs<F>, domain: &[F]) -> Vec<(F, F)> {
         domain.iter().map(|&x| (x, coeffs.eval(x))).collect()
     }
 
     #[test]
     fn test_interpolate2() {
-        type F = QuarticExtension<GoldilocksField>;
+        type F = BinomialExtensionField<Goldilocks,2>;
         let points = [(F::rand(), F::rand()), (F::rand(), F::rand())];
         let x = F::rand();
 

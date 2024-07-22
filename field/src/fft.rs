@@ -211,7 +211,7 @@ pub(crate) fn fft_classic<F: Field>(values: &mut [F], r: usize, root_table: &Fft
 mod tests {
     use alloc::vec::Vec;
 
-    use p3_field::{AbstractField, Field};
+    use p3_field::{AbstractField, Field, TwoAdicField};
     use p3_goldilocks::Goldilocks;
 
     use plonky2_util::{log2_ceil, log2_strict};
@@ -219,6 +219,7 @@ mod tests {
     use crate::fft::{fft, fft_with_options, ifft};
 
     use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
+    use crate::types::two_adic_subgroup;
 
     #[test]
     fn fft_and_ifft() {
@@ -256,7 +257,7 @@ mod tests {
         }
     }
 
-    fn evaluate_naive<F: Field>(coefficients: &PolynomialCoeffs<F>) -> PolynomialValues<F> {
+    fn evaluate_naive<F: TwoAdicField>(coefficients: &PolynomialCoeffs<F>) -> PolynomialValues<F> {
         let degree = coefficients.len();
         let degree_padded = 1 << log2_ceil(degree);
 
@@ -264,13 +265,13 @@ mod tests {
         evaluate_naive_power_of_2(&coefficients_padded)
     }
 
-    fn evaluate_naive_power_of_2<F: Field>(
+    fn evaluate_naive_power_of_2<F: TwoAdicField>(
         coefficients: &PolynomialCoeffs<F>,
     ) -> PolynomialValues<F> {
         let degree = coefficients.len();
         let degree_log = log2_strict(degree);
 
-        let subgroup = F::two_adic_subgroup(degree_log);
+        let subgroup = two_adic_subgroup::<F>(degree_log);
 
         let values = subgroup
             .into_iter()
@@ -279,7 +280,7 @@ mod tests {
         PolynomialValues::new(values)
     }
 
-    fn evaluate_at_naive<F: Field>(coefficients: &PolynomialCoeffs<F>, point: F) -> F {
+    fn evaluate_at_naive<F: TwoAdicField>(coefficients: &PolynomialCoeffs<F>, point: F) -> F {
         let mut sum = F::zero();
         let mut point_power = F::one();
         for &c in &coefficients.coeffs {

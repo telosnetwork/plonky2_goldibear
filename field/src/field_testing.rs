@@ -1,6 +1,6 @@
-use crate::extension::{Extendable, Frobenius};
+use p3_field::extension::BinomiallyExtendable;
 use crate::ops::Square;
-use crate::types::{Field, Sample};
+use crate::types::{Sample};
 
 #[macro_export]
 macro_rules! test_field_arithmetic {
@@ -117,7 +117,7 @@ macro_rules! test_field_arithmetic {
 }
 
 #[allow(clippy::eq_op)]
-pub(crate) fn test_add_neg_sub_mul<BF: Extendable<D>, const D: usize>() {
+pub(crate) fn test_add_neg_sub_mul<BF: BinomiallyExtendable<D>, const D: usize>() {
     let x = BF::Extension::rand();
     let y = BF::Extension::rand();
     let z = BF::Extension::rand();
@@ -133,7 +133,7 @@ pub(crate) fn test_add_neg_sub_mul<BF: Extendable<D>, const D: usize>() {
     assert_eq!(x * (y + z), x * y + x * z);
 }
 
-pub(crate) fn test_inv_div<BF: Extendable<D>, const D: usize>() {
+pub(crate) fn test_inv_div<BF: BinomiallyExtendable<D>, const D: usize>() {
     let x = BF::Extension::rand();
     let y = BF::Extension::rand();
     let z = BF::Extension::rand();
@@ -145,7 +145,7 @@ pub(crate) fn test_inv_div<BF: Extendable<D>, const D: usize>() {
     assert_eq!((x * y) / z, x * (y / z));
 }
 
-pub(crate) fn test_frobenius<BF: Extendable<D>, const D: usize>() {
+pub(crate) fn test_frobenius<BF: BinomiallyExtendable<D>, const D: usize>() {
     let x = BF::Extension::rand();
     assert_eq!(x.exp_biguint(&BF::order()), x.frobenius());
     for count in 2..D {
@@ -156,7 +156,7 @@ pub(crate) fn test_frobenius<BF: Extendable<D>, const D: usize>() {
     }
 }
 
-pub(crate) fn test_field_order<BF: Extendable<D>, const D: usize>() {
+pub(crate) fn test_field_order<BF: BinomiallyExtendable<D>, const D: usize>() {
     let x = BF::Extension::rand();
     assert_eq!(
         x.exp_biguint(&(BF::Extension::order() - 1u8)),
@@ -164,7 +164,7 @@ pub(crate) fn test_field_order<BF: Extendable<D>, const D: usize>() {
     );
 }
 
-pub(crate) fn test_power_of_two_gen<BF: Extendable<D>, const D: usize>() {
+pub(crate) fn test_power_of_two_gen<BF: BinomiallyExtendable<D>, const D: usize>() {
     assert_eq!(
         BF::Extension::MULTIPLICATIVE_GROUP_GENERATOR
             .exp_biguint(&(BF::Extension::order() >> BF::Extension::TWO_ADICITY)),
