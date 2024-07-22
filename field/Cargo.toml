@@ -21,8 +21,8 @@ unroll = { workspace = true }
 
 # Local dependencies
 plonky2_util = { version = "0.2.0", path = "../util", default-features = false }
-p3-field = { path = "../../Plonky3/field" }
-p3-goldilocks = { path = "../../Plonky3/goldilocks" }
+p3_field = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-field", branch = "main"}
+p3_goldilocks = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-goldilocks", branch = "main"}
 
 # Display math equations properly in documentation
 [package.metadata.docs.rs]
