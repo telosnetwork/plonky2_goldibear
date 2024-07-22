@@ -315,7 +315,7 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
 
             // Assert that each bit wire value is indeed boolean.
             for &b in &bits {
-                yield_constr.one(b * (b - F::ONE));
+                yield_constr.one(b * (b - F::one()));
             }
 
             // Assert that the binary decomposition was correct.

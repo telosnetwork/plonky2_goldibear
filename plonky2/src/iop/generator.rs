@@ -349,8 +349,8 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Non
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
         let to_test_value = witness.get_target(self.to_test);
 
-        let dummy_value = if to_test_value == F::ZERO {
-            F::ONE
+        let dummy_value = if to_test_value == F::zero() {
+            F::one()
         } else {
             to_test_value.inverse()
         };

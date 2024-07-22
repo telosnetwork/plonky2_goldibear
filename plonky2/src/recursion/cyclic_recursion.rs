@@ -310,7 +310,7 @@ mod tests {
         let cyclic_circuit_data = builder.build::<C>();
 
         let mut pw = PartialWitness::new();
-        let initial_hash = [F::ZERO, F::ONE, F::TWO, F::from_canonical_usize(3)];
+        let initial_hash = [F::zero(), F::one(), F::two(), F::from_canonical_usize(3)];
         let initial_hash_pis = initial_hash.into_iter().enumerate().collect();
         pw.set_bool_target(condition, false);
         pw.set_proof_with_pis_target::<C, D>(

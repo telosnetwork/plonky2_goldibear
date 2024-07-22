@@ -134,9 +134,9 @@ impl<F: Field> Column<F> {
     /// Returns the representation of a single column in the current row.
     pub fn single(c: usize) -> Self {
         Self {
-            linear_combination: vec![(c, F::ONE)],
+            linear_combination: vec![(c, F::one())],
             next_row_linear_combination: vec![],
-            constant: F::ZERO,
+            constant: F::zero(),
         }
     }
 
@@ -151,8 +151,8 @@ impl<F: Field> Column<F> {
     pub fn single_next_row(c: usize) -> Self {
         Self {
             linear_combination: vec![],
-            next_row_linear_combination: vec![(c, F::ONE)],
-            constant: F::ZERO,
+            next_row_linear_combination: vec![(c, F::one())],
+            constant: F::zero(),
         }
     }
 
@@ -174,12 +174,12 @@ impl<F: Field> Column<F> {
 
     /// Returns a linear combination corresponding to 0.
     pub fn zero() -> Self {
-        Self::constant(F::ZERO)
+        Self::constant(F::zero())
     }
 
     /// Returns a linear combination corresponding to 1.
     pub fn one() -> Self {
-        Self::constant(F::ONE)
+        Self::constant(F::one())
     }
 
     /// Given an iterator of `(usize, F)` and a constant, returns the association linear combination of columns for the current row.
@@ -242,13 +242,13 @@ impl<F: Field> Column<F> {
 
     /// Returns a linear combination of columns, with no additional constant.
     pub fn linear_combination<I: IntoIterator<Item = (usize, F)>>(iter: I) -> Self {
-        Self::linear_combination_with_constant(iter, F::ZERO)
+        Self::linear_combination_with_constant(iter, F::zero())
     }
 
     /// Given an iterator of columns (c_0, ..., c_n) containing bits in little endian order:
     /// returns the representation of c_0 + 2 * c_1 + ... + 2^n * c_n.
     pub fn le_bits<I: IntoIterator<Item = impl Borrow<usize>>>(cs: I) -> Self {
-        Self::linear_combination(cs.into_iter().map(|c| *c.borrow()).zip(F::TWO.powers()))
+        Self::linear_combination(cs.into_iter().map(|c| *c.borrow()).zip(F::two().powers()))
     }
 
     /// Given an iterator of columns (c_0, ..., c_n) containing bits in little endian order:
@@ -259,7 +259,7 @@ impl<F: Field> Column<F> {
         constant: F,
     ) -> Self {
         Self::linear_combination_with_constant(
-            cs.into_iter().map(|c| *c.borrow()).zip(F::TWO.powers()),
+            cs.into_iter().map(|c| *c.borrow()).zip(F::two().powers()),
             constant,
         )
     }
@@ -276,7 +276,7 @@ impl<F: Field> Column<F> {
 
     /// Given an iterator of columns, returns the representation of their sum.
     pub fn sum<I: IntoIterator<Item = impl Borrow<usize>>>(cs: I) -> Self {
-        Self::linear_combination(cs.into_iter().map(|c| *c.borrow()).zip(repeat(F::ONE)))
+        Self::linear_combination(cs.into_iter().map(|c| *c.borrow()).zip(repeat(F::one())))
     }
 
     /// Given the column values for the current row, returns the evaluation of the linear combination.
@@ -360,7 +360,7 @@ impl<F: Field> Column<F> {
             })
             .collect::<Vec<_>>();
         let constant = builder.constant_extension(F::Extension::from_basefield(self.constant));
-        builder.inner_product_extension(F::ONE, constant, pairs)
+        builder.inner_product_extension(F::one(), constant, pairs)
     }
 
     /// Circuit version of `eval_with_next`:
@@ -392,7 +392,7 @@ impl<F: Field> Column<F> {
         });
         pairs.extend(next_row_pairs);
         let constant = builder.constant_extension(F::Extension::from_basefield(self.constant));
-        builder.inner_product_extension(F::ONE, constant, pairs)
+        builder.inner_product_extension(F::one(), constant, pairs)
     }
 }
 
@@ -593,7 +593,7 @@ pub(crate) fn lookup_helper_columns<F: Field>(
         .collect::<Vec<Vec<Column<F>>>>();
 
     let grand_challenge = GrandProductChallenge {
-        beta: F::ONE,
+        beta: F::one(),
         gamma: challenge,
     };
 
@@ -634,7 +634,7 @@ pub(crate) fn lookup_helper_columns<F: Field>(
     // into the h_k(x) polynomials.
     let frequencies = &lookup.frequencies_column.eval_all_rows(trace_poly_values);
     let mut z = Vec::with_capacity(frequencies.len());
-    z.push(F::ZERO);
+    z.push(F::zero());
     for i in 0..frequencies.len() - 1 {
         let x = helper_columns[..num_helper_columns - 1]
             .iter()
@@ -793,8 +793,8 @@ pub(crate) fn get_helper_cols<F: Field>(
                     filter_col.push(f);
                     f
                 } else {
-                    filter_col.push(F::ONE);
-                    F::ONE
+                    filter_col.push(F::one());
+                    F::one()
                 };
                 if f.is_one() {
                     let evals = first_col
@@ -803,9 +803,9 @@ pub(crate) fn get_helper_cols<F: Field>(
                         .collect::<Vec<F>>();
                     challenge.combine(evals.iter())
                 } else {
-                    assert_eq!(f, F::ZERO, "Non-binary filter?");
+                    assert_eq!(f, F::zero(), "Non-binary filter?");
                     // Dummy value. Cannot be zero since it will be batch-inverted.
-                    F::ONE
+                    F::one()
                 }
             })
             .collect::<Vec<F>>();
@@ -813,7 +813,7 @@ pub(crate) fn get_helper_cols<F: Field>(
         let mut acc = F::batch_multiplicative_inverse(&first_combined);
         for d in 0..degree {
             if filter_col[d].is_zero() {
-                acc[d] = F::ZERO;
+                acc[d] = F::zero();
             }
         }
 
@@ -826,8 +826,8 @@ pub(crate) fn get_helper_cols<F: Field>(
                         filter_col.push(f);
                         f
                     } else {
-                        filter_col.push(F::ONE);
-                        F::ONE
+                        filter_col.push(F::one());
+                        F::one()
                     };
                     if f.is_one() {
                         let evals = col
@@ -836,9 +836,9 @@ pub(crate) fn get_helper_cols<F: Field>(
                             .collect::<Vec<F>>();
                         challenge.combine(evals.iter())
                     } else {
-                        assert_eq!(f, F::ZERO, "Non-binary filter?");
+                        assert_eq!(f, F::zero(), "Non-binary filter?");
                         // Dummy value. Cannot be zero since it will be batch-inverted.
-                        F::ONE
+                        F::one()
                     }
                 })
                 .collect::<Vec<F>>();
@@ -847,7 +847,7 @@ pub(crate) fn get_helper_cols<F: Field>(
 
             for d in 0..degree {
                 if filter_col[d].is_zero() {
-                    combined[d] = F::ZERO;
+                    combined[d] = F::zero();
                 }
             }
 
@@ -894,7 +894,7 @@ pub(crate) fn eval_packed_lookups_generic<F, FE, P, S, const D: usize, const D2:
         let num_helper_columns = lookup.num_helper_columns(degree);
         for &challenge in &lookup_vars.challenges {
             let grand_challenge = GrandProductChallenge {
-                beta: F::ONE,
+                beta: F::one(),
                 gamma: challenge,
             };
             let lookup_columns = lookup

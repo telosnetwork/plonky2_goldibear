@@ -118,8 +118,8 @@ mod tests {
     #[test]
     fn test_partial_products() {
         type F = GoldilocksField;
-        let denominators = vec![F::ONE; 6];
-        let z_x = F::ONE;
+        let denominators = vec![F::one(); 6];
+        let z_x = F::one();
         let v = field_vec(&[1, 2, 3, 4, 5, 6]);
         let z_gx = F::from_canonical_u64(720);
         let quotient_chunks_prods = quotient_chunk_products(&v, 2);

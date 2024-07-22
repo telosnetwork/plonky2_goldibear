@@ -1,21 +1,22 @@
 use alloc::vec::Vec;
 use core::cmp::{max, min};
 
-use plonky2_util::{log2_strict, reverse_index_bits_in_place};
+use p3_field::{Field, TwoAdicField};
 use unroll::unroll_for_loops;
+
+use plonky2_util::{log2_strict, reverse_index_bits_in_place};
 
 use crate::packable::Packable;
 use crate::packed::PackedField;
 use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::types::Field;
 
 pub type FftRootTable<F> = Vec<Vec<F>>;
 
-pub fn fft_root_table<F: Field>(n: usize) -> FftRootTable<F> {
+pub fn fft_root_table<F: TwoAdicField>(n: usize) -> FftRootTable<F> {
     let lg_n = log2_strict(n);
     // bases[i] = g^2^i, for i = 0, ..., lg_n - 1
     let mut bases = Vec::with_capacity(lg_n);
-    let mut base = F::primitive_root_of_unity(lg_n);
+    let mut base = F::two_adic_generator(lg_n);
     bases.push(base);
     for _ in 1..lg_n {
         base = base.square(); // base = g^2^_
@@ -33,7 +34,7 @@ pub fn fft_root_table<F: Field>(n: usize) -> FftRootTable<F> {
 }
 
 #[inline]
-fn fft_dispatch<F: Field>(
+fn fft_dispatch<F: TwoAdicField>(
     input: &mut [F],
     zero_factor: Option<usize>,
     root_table: Option<&FftRootTable<F>>,
@@ -49,12 +50,12 @@ fn fft_dispatch<F: Field>(
 }
 
 #[inline]
-pub fn fft<F: Field>(poly: PolynomialCoeffs<F>) -> PolynomialValues<F> {
+pub fn fft<F: TwoAdicField>(poly: PolynomialCoeffs<F>) -> PolynomialValues<F> {
     fft_with_options(poly, None, None)
 }
 
 #[inline]
-pub fn fft_with_options<F: Field>(
+pub fn fft_with_options<F: TwoAdicField>(
     poly: PolynomialCoeffs<F>,
     zero_factor: Option<usize>,
     root_table: Option<&FftRootTable<F>>,
@@ -65,18 +66,19 @@ pub fn fft_with_options<F: Field>(
 }
 
 #[inline]
-pub fn ifft<F: Field>(poly: PolynomialValues<F>) -> PolynomialCoeffs<F> {
+pub fn ifft<F: TwoAdicField>(poly: PolynomialValues<F>) -> PolynomialCoeffs<F> {
     ifft_with_options(poly, None, None)
 }
 
-pub fn ifft_with_options<F: Field>(
+pub fn ifft_with_options<F: TwoAdicField>(
     poly: PolynomialValues<F>,
     zero_factor: Option<usize>,
     root_table: Option<&FftRootTable<F>>,
 ) -> PolynomialCoeffs<F> {
     let n = poly.len();
     let lg_n = log2_strict(n);
-    let n_inv = F::inverse_2exp(lg_n);
+    //TODO verify performance impact of naive implementation F::two().inverse().exp_u64(lg_n as u64);
+    let n_inv = F::two().inverse().exp_u64(lg_n as u64);
 
     let PolynomialValues { values: mut buffer } = poly;
     fft_dispatch(&mut buffer, zero_factor, root_table);
@@ -209,16 +211,18 @@ pub(crate) fn fft_classic<F: Field>(values: &mut [F], r: usize, root_table: &Fft
 mod tests {
     use alloc::vec::Vec;
 
+    use p3_field::{AbstractField, Field};
+    use p3_goldilocks::Goldilocks;
+
     use plonky2_util::{log2_ceil, log2_strict};
 
     use crate::fft::{fft, fft_with_options, ifft};
-    use crate::goldilocks_field::GoldilocksField;
+
     use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
-    use crate::types::Field;
 
     #[test]
     fn fft_and_ifft() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         let degree = 200usize;
         let degree_padded = degree.next_power_of_two();
 
@@ -226,7 +230,7 @@ mod tests {
         // "random", the last degree_padded-degree of them are zero.
         let coeffs = (0..degree)
             .map(|i| F::from_canonical_usize(i * 1337 % 100))
-            .chain(core::iter::repeat(F::ZERO).take(degree_padded - degree))
+            .chain(core::iter::repeat(F::zero()).take(degree_padded - degree))
             .collect::<Vec<_>>();
         assert_eq!(coeffs.len(), degree_padded);
         let coefficients = PolynomialCoeffs { coeffs };
@@ -239,7 +243,7 @@ mod tests {
             assert_eq!(interpolated_coefficients.coeffs[i], coefficients.coeffs[i]);
         }
         for i in degree..degree_padded {
-            assert_eq!(interpolated_coefficients.coeffs[i], F::ZERO);
+            assert_eq!(interpolated_coefficients.coeffs[i], F::zero());
         }
 
         for r in 0..4 {
@@ -276,8 +280,8 @@ mod tests {
     }
 
     fn evaluate_at_naive<F: Field>(coefficients: &PolynomialCoeffs<F>, point: F) -> F {
-        let mut sum = F::ZERO;
-        let mut point_power = F::ONE;
+        let mut sum = F::zero();
+        let mut point_power = F::one();
         for &c in &coefficients.coeffs {
             sum += c * point_power;
             point_power *= point;

@@ -59,11 +59,11 @@
 //!     /// Generate the trace using `x0, x1, 0` as initial state values.
 //!     fn generate_trace(&self, x0: F, x1: F) -> Vec<PolynomialValues<F>> {
 //!         let mut trace_rows = (0..self.num_rows)
-//!             .scan([x0, x1, F::ZERO], |acc, _| {
+//!             .scan([x0, x1, F::zero()], |acc, _| {
 //!                 let tmp = *acc;
 //!                 acc[0] = tmp[1];
 //!                 acc[1] = tmp[0] + tmp[1];
-//!                 acc[2] = tmp[2] + F::ONE;
+//!                 acc[2] = tmp[2] + F::one();
 //!                 Some(tmp)
 //!             })
 //!             .collect::<Vec<_>>();
@@ -194,11 +194,11 @@
 //! #     /// Generate the trace using `x0, x1, 0` as initial state values.
 //! #     fn generate_trace(&self, x0: F, x1: F) -> Vec<PolynomialValues<F>> {
 //! #         let mut trace_rows = (0..self.num_rows)
-//! #             .scan([x0, x1, F::ZERO], |acc, _| {
+//! #             .scan([x0, x1, F::zero()], |acc, _| {
 //! #                 let tmp = *acc;
 //! #                 acc[0] = tmp[1];
 //! #                 acc[1] = tmp[0] + tmp[1];
-//! #                 acc[2] = tmp[2] + F::ONE;
+//! #                 acc[2] = tmp[2] + F::one();
 //! #                 Some(tmp)
 //! #             })
 //! #             .collect::<Vec<_>>();

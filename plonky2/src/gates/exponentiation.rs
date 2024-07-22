@@ -281,9 +281,9 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
             .collect::<Vec<_>>();
         let mut intermediate_values = Vec::with_capacity(num_power_bits);
 
-        let mut current_intermediate_value = F::ONE;
+        let mut current_intermediate_value = F::one();
         for i in 0..num_power_bits {
-            if power_bits[num_power_bits - i - 1] == F::ONE {
+            if power_bits[num_power_bits - i - 1] == F::one() {
                 current_intermediate_value *= base;
             }
             intermediate_values.push(current_intermediate_value);
@@ -391,7 +391,7 @@ mod tests {
             v.extend(power_bits_f);
 
             let mut intermediate_values = Vec::new();
-            let mut current_intermediate_value = F::ONE;
+            let mut current_intermediate_value = F::one();
             for i in 0..num_power_bits {
                 if power_bits[num_power_bits - i - 1] == 1 {
                     current_intermediate_value *= base;
@@ -408,7 +408,7 @@ mod tests {
 
         let mut rng = OsRng;
 
-        let base = F::TWO;
+        let base = F::two();
         let power = rng.gen::<usize>() % (1 << MAX_POWER_BITS);
         let num_power_bits = log2_ceil(power + 1);
         let gate = ExponentiationGate::<F, D> {

@@ -30,7 +30,7 @@ pub struct Challenger<F: RichField, H: Hasher<F>> {
 impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn new() -> Challenger<F, H> {
         Challenger {
-            sponge_state: H::Permutation::new(core::iter::repeat(F::ZERO)),
+            sponge_state: H::Permutation::new(core::iter::repeat(F::zero())),
             input_buffer: Vec::with_capacity(H::Permutation::RATE),
             output_buffer: Vec::with_capacity(H::Permutation::RATE),
         }
@@ -110,7 +110,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     where
         F: RichField + Extendable<D>,
     {
-        let mut arr = [F::ZERO; D];
+        let mut arr = [F::zero(); D];
         arr.copy_from_slice(&self.get_n_challenges(D));
         F::Extension::from_basefield_array(arr)
     }

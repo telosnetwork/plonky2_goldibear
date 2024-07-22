@@ -919,12 +919,12 @@ pub(crate) fn eval_cross_table_lookup_checks_circuit<
 
             let combined = builder.mul_sub_extension(combin1, *local_z, f1);
             let combined = builder.mul_extension(combined, combin0);
-            let constr = builder.arithmetic_extension(F::NEG_ONE, F::ONE, f0, combin1, combined);
+            let constr = builder.arithmetic_extension(F::NEG_ONE, F::one(), f0, combin1, combined);
             consumer.constraint_last_row(builder, constr);
 
             let combined = builder.mul_sub_extension(combin1, z_diff, f1);
             let combined = builder.mul_extension(combined, combin0);
-            let constr = builder.arithmetic_extension(F::NEG_ONE, F::ONE, f0, combin1, combined);
+            let constr = builder.arithmetic_extension(F::NEG_ONE, F::one(), f0, combin1, combined);
             consumer.constraint_last_row(builder, constr);
         } else {
             let combin0 = challenges.combine_circuit(builder, &evals[0]);
@@ -1124,7 +1124,7 @@ pub mod debug_utils {
             let filter = if let Some(combin) = &table.filter {
                 combin.eval_table(trace, i)
             } else {
-                F::ONE
+                F::one()
             };
             if filter.is_one() {
                 let row = table
@@ -1134,7 +1134,7 @@ pub mod debug_utils {
                     .collect::<Vec<_>>();
                 multiset.entry(row).or_default().push((table.table, i));
             } else {
-                assert_eq!(filter, F::ZERO, "Non-binary filter?")
+                assert_eq!(filter, F::zero(), "Non-binary filter?")
             }
         }
     }

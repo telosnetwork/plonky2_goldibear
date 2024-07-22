@@ -540,8 +540,8 @@ mod tests {
         builder.register_public_input(output_final);
 
         let mut pw = PartialWitness::new();
-        pw.set_target(initial_a, F::ONE);
-        pw.set_target(initial_b, F::TWO);
+        pw.set_target(initial_a, F::one());
+        pw.set_target(initial_b, F::two());
 
         let data = builder.build::<C>();
         let proof = data.prove(pw)?;

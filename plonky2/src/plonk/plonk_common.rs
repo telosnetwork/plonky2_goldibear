@@ -51,7 +51,7 @@ pub const fn salt_size(salted: bool) -> usize {
 /// Evaluate the polynomial which vanishes on any multiplicative subgroup of a given order `n`.
 pub(crate) fn eval_zero_poly<F: Field>(n: usize, x: F) -> F {
     // Z(x) = x^n - 1
-    x.exp_u64(n as u64) - F::ONE
+    x.exp_u64(n as u64) - F::one()
 }
 
 /// Evaluate the Lagrange basis `L_0` with `L_0(1) = 1`, and `L_0(x) = 0` for other members of the
@@ -60,12 +60,12 @@ pub(crate) fn eval_l_0<F: Field>(n: usize, x: F) -> F {
     if x.is_one() {
         // The code below would divide by zero, since we have (x - 1) in both the numerator and
         // denominator.
-        return F::ONE;
+        return F::one();
     }
 
     // L_0(x) = (x^n - 1) / (n * (x - 1))
     //        = Z(x) / (n * (x - 1))
-    eval_zero_poly(n, x) / (F::from_canonical_usize(n) * (x - F::ONE))
+    eval_zero_poly(n, x) / (F::from_canonical_usize(n) * (x - F::one()))
 }
 
 /// Evaluates the Lagrange basis L_0(x), which has L_0(1) = 1 and vanishes at all other points in
@@ -105,7 +105,7 @@ pub(crate) fn reduce_with_powers_multi<
     terms: T,
     alphas: &[F],
 ) -> Vec<F> {
-    let mut cumul = vec![F::ZERO; alphas.len()];
+    let mut cumul = vec![F::zero(); alphas.len()];
     for &term in terms.into_iter().rev() {
         cumul
             .iter_mut()

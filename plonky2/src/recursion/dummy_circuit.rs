@@ -190,7 +190,7 @@ where
                     commit_phase_merkle_caps: vec![],
                     query_round_proofs: vec![],
                     final_poly: PolynomialCoeffs { coeffs: vec![] },
-                    pow_witness: F::ZERO,
+                    pow_witness: F::zero(),
                 },
             },
             public_inputs: vec![],

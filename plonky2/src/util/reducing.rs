@@ -54,7 +54,7 @@ impl<F: Field> ReducingFactor<F> {
 
     pub fn reduce(&mut self, iter: impl DoubleEndedIterator<Item = impl Borrow<F>>) -> F {
         iter.rev()
-            .fold(F::ZERO, |acc, x| self.mul(acc) + *x.borrow())
+            .fold(F::zero(), |acc, x| self.mul(acc) + *x.borrow())
     }
 
     pub fn reduce_ext<FE, P, const D: usize>(

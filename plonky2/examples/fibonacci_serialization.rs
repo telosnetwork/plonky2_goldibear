@@ -37,8 +37,8 @@ fn main() -> Result<()> {
 
     // Provide initial values.
     let mut pw = PartialWitness::new();
-    pw.set_target(initial_a, F::ZERO);
-    pw.set_target(initial_b, F::ONE);
+    pw.set_target(initial_a, F::zero());
+    pw.set_target(initial_b, F::one());
 
     let data = builder.build::<C>();
 

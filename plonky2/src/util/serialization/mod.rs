@@ -179,7 +179,7 @@ pub trait Read {
     where
         F: Field64 + Extendable<D>,
     {
-        let mut arr = [F::ZERO; D];
+        let mut arr = [F::zero(); D];
         for a in arr.iter_mut() {
             *a = self.read_field()?;
         }

@@ -217,7 +217,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for PoseidonGate<F
         }
 
         // Compute the possibly-swapped input layer.
-        let mut state = [F::ZERO; SPONGE_WIDTH];
+        let mut state = [F::zero(); SPONGE_WIDTH];
         for i in 0..4 {
             let delta_i = vars.local_wires[Self::wire_delta(i)];
             let input_lhs = Self::wire_input(i);
@@ -450,14 +450,14 @@ impl<F: RichField + Extendable<D> + Poseidon, const D: usize> SimpleGenerator<F,
             .collect::<Vec<_>>();
 
         let swap_value = witness.get_wire(local_wire(PoseidonGate::<F, D>::WIRE_SWAP));
-        debug_assert!(swap_value == F::ZERO || swap_value == F::ONE);
+        debug_assert!(swap_value == F::zero() || swap_value == F::one());
 
         for i in 0..4 {
             let delta_i = swap_value * (state[i + 4] - state[i]);
             out_buffer.set_wire(local_wire(PoseidonGate::<F, D>::wire_delta(i)), delta_i);
         }
 
-        if swap_value == F::ONE {
+        if swap_value == F::one() {
             for i in 0..4 {
                 state.swap(i, 4 + i);
             }
@@ -594,7 +594,7 @@ mod tests {
                 row,
                 column: Gate::WIRE_SWAP,
             },
-            F::ZERO,
+            F::zero(),
         );
         for i in 0..SPONGE_WIDTH {
             inputs.set_wire(

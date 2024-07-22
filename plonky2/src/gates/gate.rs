@@ -109,7 +109,7 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
     }
 
     fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
-        let mut res = vec![F::ZERO; vars_base.len() * self.num_constraints()];
+        let mut res = vec![F::zero(); vars_base.len() * self.num_constraints()];
         for (i, vars_base_one) in vars_base.iter().enumerate() {
             self.eval_unfiltered_base_one(
                 vars_base_one,
@@ -239,7 +239,7 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
 
     /// Number of operations performed by the gate.
     fn num_ops(&self) -> usize {
-        self.generators(0, &vec![F::ZERO; self.num_constants()])
+        self.generators(0, &vec![F::zero(); self.num_constants()])
             .len()
     }
 

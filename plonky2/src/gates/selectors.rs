@@ -54,7 +54,7 @@ pub(crate) fn selectors_lookup<F: RichField + Extendable<D>, const D: usize>(
     let n = instances.len();
     let mut lookup_selectors = Vec::with_capacity(LookupSelectors::StartEnd as usize);
     for _ in 0..LookupSelectors::StartEnd as usize {
-        lookup_selectors.push(PolynomialValues::<F>::new(vec![F::ZERO; n]));
+        lookup_selectors.push(PolynomialValues::<F>::new(vec![F::zero(); n]));
     }
 
     for &LookupWire {
@@ -64,13 +64,13 @@ pub(crate) fn selectors_lookup<F: RichField + Extendable<D>, const D: usize>(
     } in lookup_rows
     {
         for row in last_lut_row..first_lut_row + 1 {
-            lookup_selectors[LookupSelectors::TransSre as usize].values[row] = F::ONE;
+            lookup_selectors[LookupSelectors::TransSre as usize].values[row] = F::one();
         }
         for row in last_lu_row..last_lut_row {
-            lookup_selectors[LookupSelectors::TransLdc as usize].values[row] = F::ONE;
+            lookup_selectors[LookupSelectors::TransLdc as usize].values[row] = F::one();
         }
-        lookup_selectors[LookupSelectors::InitSre as usize].values[first_lut_row + 1] = F::ONE;
-        lookup_selectors[LookupSelectors::LastLdc as usize].values[last_lu_row] = F::ONE;
+        lookup_selectors[LookupSelectors::InitSre as usize].values[first_lut_row + 1] = F::one();
+        lookup_selectors[LookupSelectors::LastLdc as usize].values[last_lu_row] = F::one();
     }
     lookup_selectors
 }
@@ -89,8 +89,8 @@ pub(crate) fn selector_ends_lookups<F: RichField + Extendable<D>, const D: usize
         first_lut_gate: _,
     } in lookup_rows
     {
-        let mut lookup_ends = PolynomialValues::<F>::new(vec![F::ZERO; n]);
-        lookup_ends.values[last_lut_row] = F::ONE;
+        let mut lookup_ends = PolynomialValues::<F>::new(vec![F::zero(); n]);
+        lookup_ends.values[last_lut_row] = F::one();
         lookups_ends.push(lookup_ends);
     }
     lookups_ends

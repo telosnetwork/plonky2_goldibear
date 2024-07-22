@@ -168,7 +168,7 @@ mod tests {
 
         let config = StarkConfig::standard_fast_config();
         let num_rows = 1 << 5;
-        let public_inputs = [F::ZERO, F::ONE, fibonacci(num_rows - 1, F::ZERO, F::ONE)];
+        let public_inputs = [F::zero(), F::one(), fibonacci(num_rows - 1, F::zero(), F::one())];
 
         let stark = S::new(num_rows);
         let trace = stark.generate_trace(public_inputs[0], public_inputs[1]);
@@ -217,7 +217,7 @@ mod tests {
 
         let config = StarkConfig::standard_fast_config();
         let num_rows = 1 << 5;
-        let public_inputs = [F::ZERO, F::ONE, fibonacci(num_rows - 1, F::ZERO, F::ONE)];
+        let public_inputs = [F::zero(), F::one(), fibonacci(num_rows - 1, F::zero(), F::one())];
 
         // Test first STARK
         let stark = S::new(num_rows);

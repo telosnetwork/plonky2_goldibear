@@ -26,7 +26,7 @@ pub struct HashOut<F: Field> {
 
 impl<F: Field> HashOut<F> {
     pub const ZERO: Self = Self {
-        elements: [F::ZERO; NUM_HASH_OUT_ELTS],
+        elements: [F::zero(); NUM_HASH_OUT_ELTS],
     };
 
     // TODO: Switch to a TryFrom impl.
@@ -38,7 +38,7 @@ impl<F: Field> HashOut<F> {
     }
 
     pub fn from_partial(elements_in: &[F]) -> Self {
-        let mut elements = [F::ZERO; NUM_HASH_OUT_ELTS];
+        let mut elements = [F::zero(); NUM_HASH_OUT_ELTS];
         elements[0..elements_in.len()].copy_from_slice(elements_in);
         Self { elements }
     }

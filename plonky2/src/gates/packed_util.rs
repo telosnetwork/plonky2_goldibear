@@ -19,7 +19,7 @@ pub trait PackedEvaluableBase<F: RichField + Extendable<D>, const D: usize>: Gat
     /// Evaluates entire batch of points. Returns a matrix of constraints. Constraint `j` for point
     /// `i` is at `index j * batch_size + i`.
     fn eval_unfiltered_base_batch_packed(&self, vars_batch: EvaluationVarsBaseBatch<F>) -> Vec<F> {
-        let mut res = vec![F::ZERO; vars_batch.len() * self.num_constraints()];
+        let mut res = vec![F::zero(); vars_batch.len() * self.num_constraints()];
         let (vars_packed_iter, vars_leftovers_iter) = vars_batch.pack::<<F as Packable>::Packing>();
         let leftovers_start = vars_batch.len() - vars_leftovers_iter.len();
         for (i, vars_packed) in vars_packed_iter.enumerate() {

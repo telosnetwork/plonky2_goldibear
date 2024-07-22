@@ -338,7 +338,7 @@ impl<'a, F: Field> PartitionWitness<'a, F> {
     }
 
     pub fn full_witness(self) -> MatrixWitness<F> {
-        let mut wire_values = vec![vec![F::ZERO; self.degree]; self.num_wires];
+        let mut wire_values = vec![vec![F::zero(); self.degree]; self.num_wires];
         for i in 0..self.degree {
             for j in 0..self.num_wires {
                 let t = Target::Wire(Wire { row: i, column: j });

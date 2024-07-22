@@ -4,9 +4,9 @@ use alloc::vec::Vec;
 use plonky2_util::log2_ceil;
 
 use crate::polynomial::PolynomialCoeffs;
-use crate::types::Field;
+use p3_field::{TwoAdicField};
 
-impl<F: Field> PolynomialCoeffs<F> {
+impl<F: TwoAdicField> PolynomialCoeffs<F> {
     /// Polynomial division.
     /// Returns `(q, r)`, the quotient and remainder of the polynomial division of `a` by `b`.
     pub fn div_rem(&self, b: &Self) -> (Self, Self) {
@@ -77,7 +77,7 @@ impl<F: Field> PolynomialCoeffs<F> {
             .coeffs
             .iter()
             .rev()
-            .scan(F::ZERO, |acc, &c| {
+            .scan(F::zero(), |acc, &c| {
                 *acc = *acc * z + c;
                 Some(*acc)
             })
@@ -90,7 +90,7 @@ impl<F: Field> PolynomialCoeffs<F> {
     /// Computes the inverse of `self` modulo `x^n`.
     pub fn inv_mod_xn(&self, n: usize) -> Self {
         assert!(n > 0, "`n` needs to be nonzero");
-        assert!(self.coeffs[0].is_nonzero(), "Inverse doesn't exist.");
+        assert!(!self.coeffs[0].is_zero(), "Inverse doesn't exist.");
 
         // If polynomial is constant, return the inverse of the constant.
         if self.degree_plus_one() == 1 {
@@ -153,7 +153,7 @@ mod tests {
         let quotient = poly.divide_by_linear(z);
         assert_eq!(
             poly,
-            &(&quotient * &vec![-z, F::ONE].into()) + &vec![ev].into() // `quotient * (X-z) + ev`
+            &(&quotient * &vec![-z, F::one()].into()) + &vec![ev].into() // `quotient * (X-z) + ev`
         );
     }
 }

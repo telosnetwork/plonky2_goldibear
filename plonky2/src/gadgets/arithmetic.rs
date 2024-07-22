@@ -119,19 +119,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let addend_const = self.target_as_constant(addend);
 
         let first_term_zero =
-            const_0 == F::ZERO || multiplicand_0 == zero || multiplicand_1 == zero;
-        let second_term_zero = const_1 == F::ZERO || addend == zero;
+            const_0 == F::zero() || multiplicand_0 == zero || multiplicand_1 == zero;
+        let second_term_zero = const_1 == F::zero() || addend == zero;
 
         // If both terms are constant, return their (constant) sum.
         let first_term_const = if first_term_zero {
-            Some(F::ZERO)
+            Some(F::zero())
         } else if let (Some(x), Some(y)) = (mul_0_const, mul_1_const) {
             Some(x * y * const_0)
         } else {
             None
         };
         let second_term_const = if second_term_zero {
-            Some(F::ZERO)
+            Some(F::zero())
         } else {
             addend_const.map(|x| x * const_1)
         };
@@ -161,7 +161,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes `x * y + z`.
     pub fn mul_add(&mut self, x: Target, y: Target, z: Target) -> Target {
-        self.arithmetic(F::ONE, F::ONE, x, y, z)
+        self.arithmetic(F::one(), F::one(), x, y, z)
     }
 
     /// Computes `x + C`.
@@ -184,14 +184,14 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes `x * y - z`.
     pub fn mul_sub(&mut self, x: Target, y: Target, z: Target) -> Target {
-        self.arithmetic(F::ONE, F::NEG_ONE, x, y, z)
+        self.arithmetic(F::one(), F::NEG_ONE, x, y, z)
     }
 
     /// Computes `x + y`.
     pub fn add(&mut self, x: Target, y: Target) -> Target {
         let one = self.one();
         // x + y = 1 * x * 1 + 1 * y
-        self.arithmetic(F::ONE, F::ONE, x, one, y)
+        self.arithmetic(F::one(), F::one(), x, one, y)
     }
 
     /// Adds `n` `Target`s.
@@ -208,13 +208,13 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn sub(&mut self, x: Target, y: Target) -> Target {
         let one = self.one();
         // x - y = 1 * x * 1 + (-1) * y
-        self.arithmetic(F::ONE, F::NEG_ONE, x, one, y)
+        self.arithmetic(F::one(), F::NEG_ONE, x, one, y)
     }
 
     /// Computes `x * y`.
     pub fn mul(&mut self, x: Target, y: Target) -> Target {
         // x * y = 1 * x * y + 0 * x
-        self.arithmetic(F::ONE, F::ZERO, x, y, x)
+        self.arithmetic(F::one(), F::zero(), x, y, x)
     }
 
     /// Multiply `n` `Target`s.
@@ -296,8 +296,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             //     product *= 1 + bit (base^pow - 1)
             //     product = (base^pow - 1) product bit + product
             product = self.arithmetic(
-                base.exp_u64(pow as u64) - F::ONE,
-                F::ONE,
+                base.exp_u64(pow as u64) - F::one(),
+                F::one(),
                 product,
                 bit.target,
                 product,
@@ -347,7 +347,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes the logical OR through the arithmetic expression: `b1 + b2 - b1 * b2`.
     pub fn or(&mut self, b1: BoolTarget, b2: BoolTarget) -> BoolTarget {
-        let res_minus_b2 = self.arithmetic(-F::ONE, F::ONE, b1.target, b2.target, b1.target);
+        let res_minus_b2 = self.arithmetic(-F::one(), F::one(), b1.target, b2.target, b1.target);
         BoolTarget::new_unsafe(self.add(res_minus_b2, b2.target))
     }
 
@@ -401,7 +401,7 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Equ
         let x = witness.get_target(self.x);
         let y = witness.get_target(self.y);
 
-        let inv = if x != y { (x - y).inverse() } else { F::ZERO };
+        let inv = if x != y { (x - y).inverse() } else { F::zero() };
 
         out_buffer.set_bool_target(self.equal, x == y);
         out_buffer.set_target(self.inv, inv);

@@ -125,8 +125,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let addend_const = self.target_as_constant_ext(addend);
 
         let first_term_zero =
-            const_0 == F::ZERO || multiplicand_0 == zero || multiplicand_1 == zero;
-        let second_term_zero = const_1 == F::ZERO || addend == zero;
+            const_0 == F::zero() || multiplicand_0 == zero || multiplicand_1 == zero;
+        let second_term_zero = const_1 == F::zero() || addend == zero;
 
         // If both terms are constant, return their (constant) sum.
         let first_term_const = if first_term_zero {
@@ -174,7 +174,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         d: ExtensionTarget<D>,
         e: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.inner_product_extension(F::ONE, e, vec![(a, b), (c, d)])
+        self.inner_product_extension(F::one(), e, vec![(a, b), (c, d)])
     }
 
     /// Returns `sum_{(a,b) in vecs} constant * a * b`.
@@ -186,7 +186,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     ) -> ExtensionTarget<D> {
         let mut acc = starting_acc;
         for (a, b) in pairs {
-            acc = self.arithmetic_extension(constant, F::ONE, a, b, acc);
+            acc = self.arithmetic_extension(constant, F::one(), a, b, acc);
         }
         acc
     }
@@ -197,7 +197,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let one = self.one_extension();
-        self.arithmetic_extension(F::ONE, F::ONE, one, a, b)
+        self.arithmetic_extension(F::one(), F::one(), one, a, b)
     }
 
     pub fn add_ext_algebra(
@@ -230,7 +230,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let one = self.one_extension();
-        self.arithmetic_extension(F::ONE, F::NEG_ONE, one, a, b)
+        self.arithmetic_extension(F::one(), F::NEG_ONE, one, a, b)
     }
 
     pub fn sub_ext_algebra(
@@ -251,7 +251,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         multiplicand_1: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let zero = self.zero_extension();
-        self.arithmetic_extension(const_0, F::ZERO, multiplicand_0, multiplicand_1, zero)
+        self.arithmetic_extension(const_0, F::zero(), multiplicand_0, multiplicand_1, zero)
     }
 
     pub fn mul_extension(
@@ -259,7 +259,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         multiplicand_0: ExtensionTarget<D>,
         multiplicand_1: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.mul_extension_with_const(F::ONE, multiplicand_0, multiplicand_1)
+        self.mul_extension_with_const(F::one(), multiplicand_0, multiplicand_1)
     }
 
     /// Computes `x^2`.
@@ -295,7 +295,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             .zip(c.0)
             .map(|((pairs_w, pairs), ci)| {
                 let acc = self.inner_product_extension(F::Extension::W, ci, pairs_w);
-                self.inner_product_extension(F::ONE, acc, pairs)
+                self.inner_product_extension(F::one(), acc, pairs)
             })
             .collect::<Vec<_>>();
 
@@ -332,7 +332,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.arithmetic_extension(F::ONE, F::ONE, a, b, c)
+        self.arithmetic_extension(F::one(), F::one(), a, b, c)
     }
 
     /// Like `add_const`, but for `ExtensionTarget`s.
@@ -366,7 +366,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let a_ext = self.convert_to_ext(a);
-        self.arithmetic_extension(F::ONE, F::ONE, a_ext, b, c)
+        self.arithmetic_extension(F::one(), F::one(), a_ext, b, c)
     }
 
     /// Like `mul_sub`, but for `ExtensionTarget`s.
@@ -376,7 +376,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.arithmetic_extension(F::ONE, F::NEG_ONE, a, b, c)
+        self.arithmetic_extension(F::one(), F::NEG_ONE, a, b, c)
     }
 
     /// Like `mul_sub`, but for `ExtensionTarget`s.
@@ -387,7 +387,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let a_ext = self.convert_to_ext(a);
-        self.arithmetic_extension(F::ONE, F::NEG_ONE, a_ext, b, c)
+        self.arithmetic_extension(F::one(), F::NEG_ONE, a_ext, b, c)
     }
 
     /// Returns `a * b`, where `b` is in the extension field and `a` is in the base field.

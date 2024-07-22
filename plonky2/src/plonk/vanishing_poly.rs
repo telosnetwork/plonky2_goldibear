@@ -40,7 +40,7 @@ pub(crate) fn get_lut_poly<F: RichField + Extendable<D>, const D: usize>(
     for (input, output) in common_data.luts[lut_index].iter() {
         coeffs.push(F::from_canonical_u16(*input) + b * F::from_canonical_u16(*output));
     }
-    coeffs.append(&mut vec![F::ZERO; degree - n]);
+    coeffs.append(&mut vec![F::zero(); degree - n]);
     coeffs.reverse();
     PolynomialCoeffs::new(coeffs)
 }
@@ -605,7 +605,7 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
                     if j != i {
                         deltas[LookupChallenges::ChallengeAlpha as usize] - current_looked_combos[j]
                     } else {
-                        F::ONE
+                        F::one()
                     }
                 })
                 .product()
@@ -619,7 +619,7 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
                         deltas[LookupChallenges::ChallengeAlpha as usize]
                             - current_looking_combos[j]
                     } else {
-                        F::ONE
+                        F::one()
                     }
                 })
                 .product()
@@ -627,12 +627,12 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
 
         // Compute sum_i(prod_{j!=i}(alpha - combo_j)) for LDC.
         let lu_sum_prods = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
-            .fold(F::ZERO, |acc, i| acc + lu_prod_i(i));
+            .fold(F::zero(), |acc, i| acc + lu_prod_i(i));
 
         // Compute sum_i(mul_i.prod_{j!=i}(alpha - combo_j)) for Sum.
         let lut_sum_prods_with_mul = (poly * lut_degree
             ..min((poly + 1) * lut_degree, num_lut_slots))
-            .fold(F::ZERO, |acc, i| {
+            .fold(F::zero(), |acc, i| {
                 acc + vars.local_wires[LookupTableGate::wire_ith_multiplicity(i)] * lut_prod_i(i)
             });
 
@@ -697,7 +697,7 @@ pub fn evaluate_gate_constraints_base_batch<F: RichField + Extendable<D>, const 
     common_data: &CommonCircuitData<F, D>,
     vars_batch: EvaluationVarsBaseBatch<F>,
 ) -> Vec<F> {
-    let mut constraints_batch = vec![F::ZERO; common_data.num_gate_constraints * vars_batch.len()];
+    let mut constraints_batch = vec![F::zero(); common_data.num_gate_constraints * vars_batch.len()];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
         let gate_constraints_batch = gate.0.eval_filtered_base_batch(
@@ -771,7 +771,7 @@ pub(crate) fn get_lut_poly_circuit<F: RichField + Extendable<D>, const D: usize>
     coeffs
         .iter()
         .rev()
-        .fold(builder.constant(F::ZERO), |acc, &c| {
+        .fold(builder.constant(F::zero()), |acc, &c| {
             let temp = builder.mul(acc, delta);
             builder.add(temp, c)
         })

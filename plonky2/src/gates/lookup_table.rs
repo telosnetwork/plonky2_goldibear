@@ -222,8 +222,8 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Loo
             out_buffer.set_target(slot_output_target, F::from_canonical_usize(output as usize));
         } else {
             // Pad with zeros.
-            out_buffer.set_target(slot_input_target, F::ZERO);
-            out_buffer.set_target(slot_output_target, F::ZERO);
+            out_buffer.set_target(slot_input_target, F::zero());
+            out_buffer.set_target(slot_output_target, F::zero());
         }
     }
 

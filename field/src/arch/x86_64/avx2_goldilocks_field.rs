@@ -502,7 +502,7 @@ mod tests {
     use crate::goldilocks_field::GoldilocksField;
     use crate::ops::Square;
     use crate::packed::PackedField;
-    use crate::types::Field;
+    use p3_field::Field;
 
     fn test_vals_a() -> [GoldilocksField; 4] {
         [

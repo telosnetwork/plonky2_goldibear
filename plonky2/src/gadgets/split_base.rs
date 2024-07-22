@@ -103,7 +103,7 @@ impl<F: RichField + Extendable<D>, const B: usize, const D: usize> SimpleGenerat
             .iter()
             .map(|&t| witness.get_bool_target(t))
             .rev()
-            .fold(F::ZERO, |acc, limb| {
+            .fold(F::zero(), |acc, limb| {
                 acc * F::from_canonical_usize(B) + F::from_bool(limb)
             });
 

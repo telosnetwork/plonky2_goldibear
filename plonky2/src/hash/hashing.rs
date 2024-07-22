@@ -102,7 +102,7 @@ pub fn compress<F: Field, P: PlonkyPermutation<F>>(x: HashOut<F>, y: HashOut<F>)
     debug_assert_eq!(y.elements.len(), NUM_HASH_OUT_ELTS);
     debug_assert!(P::RATE >= NUM_HASH_OUT_ELTS);
 
-    let mut perm = P::new(core::iter::repeat(F::ZERO));
+    let mut perm = P::new(core::iter::repeat(F::zero()));
     perm.set_from_slice(&x.elements, 0);
     perm.set_from_slice(&y.elements, NUM_HASH_OUT_ELTS);
 
@@ -119,7 +119,7 @@ pub fn hash_n_to_m_no_pad<F: RichField, P: PlonkyPermutation<F>>(
     inputs: &[F],
     num_outputs: usize,
 ) -> Vec<F> {
-    let mut perm = P::new(core::iter::repeat(F::ZERO));
+    let mut perm = P::new(core::iter::repeat(F::zero()));
 
     // Absorb all input chunks.
     for input_chunk in inputs.chunks(P::RATE) {

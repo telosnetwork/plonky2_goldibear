@@ -54,8 +54,8 @@ macro_rules! test_field_arithmetic {
             fn negation() {
                 type F = $field;
 
-                for x in [F::ZERO, F::ONE, F::TWO, F::NEG_ONE] {
-                    assert_eq!(x + -x, F::ZERO);
+                for x in [F::zero(), F::one(), F::two(), F::NEG_ONE] {
+                    assert_eq!(x + -x, F::zero());
                 }
             }
 
@@ -63,17 +63,17 @@ macro_rules! test_field_arithmetic {
             fn exponentiation() {
                 type F = $field;
 
-                assert_eq!(F::ZERO.exp_u64(0), <F>::ONE);
-                assert_eq!(F::ONE.exp_u64(0), <F>::ONE);
-                assert_eq!(F::TWO.exp_u64(0), <F>::ONE);
+                assert_eq!(F::zero().exp_u64(0), <F>::ONE);
+                assert_eq!(F::one().exp_u64(0), <F>::ONE);
+                assert_eq!(F::two().exp_u64(0), <F>::ONE);
 
-                assert_eq!(F::ZERO.exp_u64(1), <F>::ZERO);
-                assert_eq!(F::ONE.exp_u64(1), <F>::ONE);
-                assert_eq!(F::TWO.exp_u64(1), <F>::TWO);
+                assert_eq!(F::zero().exp_u64(1), <F>::ZERO);
+                assert_eq!(F::one().exp_u64(1), <F>::ONE);
+                assert_eq!(F::two().exp_u64(1), <F>::TWO);
 
-                assert_eq!(F::ZERO.kth_root_u64(1), <F>::ZERO);
-                assert_eq!(F::ONE.kth_root_u64(1), <F>::ONE);
-                assert_eq!(F::TWO.kth_root_u64(1), <F>::TWO);
+                assert_eq!(F::zero().kth_root_u64(1), <F>::ZERO);
+                assert_eq!(F::one().kth_root_u64(1), <F>::ONE);
+                assert_eq!(F::two().kth_root_u64(1), <F>::TWO);
 
                 for power in 1..10 {
                     if F::is_monomial_permutation_u64(power) {

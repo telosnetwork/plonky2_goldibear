@@ -205,7 +205,7 @@ pub trait Poseidon: PrimeField64 {
         v: &[F; SPONGE_WIDTH],
     ) -> F {
         debug_assert!(r < SPONGE_WIDTH);
-        let mut res = F::ZERO;
+        let mut res = F::zero();
 
         for i in 0..SPONGE_WIDTH {
             res += v[(i + r) % SPONGE_WIDTH] * F::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
@@ -293,7 +293,7 @@ pub trait Poseidon: PrimeField64 {
     fn mds_layer_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
         state: &[F; SPONGE_WIDTH],
     ) -> [F; SPONGE_WIDTH] {
-        let mut result = [F::ZERO; SPONGE_WIDTH];
+        let mut result = [F::zero(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
             result[r] = Self::mds_row_shf_field(r, state);
@@ -415,7 +415,7 @@ pub trait Poseidon: PrimeField64 {
     fn mds_partial_layer_init<F: FieldExtension<D, BaseField = Self>, const D: usize>(
         state: &[F; SPONGE_WIDTH],
     ) -> [F; SPONGE_WIDTH] {
-        let mut result = [F::ZERO; SPONGE_WIDTH];
+        let mut result = [F::zero(); SPONGE_WIDTH];
 
         // Initial matrix has first row/column = [1, 0, ..., 0];
 
@@ -555,7 +555,7 @@ pub trait Poseidon: PrimeField64 {
         }
 
         // result = [d] concat [state[0] * v + state[shift up by 1]]
-        let mut result = [F::ZERO; SPONGE_WIDTH];
+        let mut result = [F::zero(); SPONGE_WIDTH];
         result[0] = d;
         for i in 1..SPONGE_WIDTH {
             let t = F::from_canonical_u64(Self::FAST_PARTIAL_ROUND_VS[r][i - 1]);
@@ -929,7 +929,7 @@ pub(crate) mod test_helpers {
         F: Poseidon,
     {
         for (input_, expected_output_) in test_vectors.into_iter() {
-            let mut input = [F::ZERO; SPONGE_WIDTH];
+            let mut input = [F::zero(); SPONGE_WIDTH];
             for i in 0..SPONGE_WIDTH {
                 input[i] = F::from_canonical_u64(input_[i]);
             }
@@ -945,7 +945,7 @@ pub(crate) mod test_helpers {
     where
         F: Poseidon,
     {
-        let mut input = [F::ZERO; SPONGE_WIDTH];
+        let mut input = [F::zero(); SPONGE_WIDTH];
         for i in 0..SPONGE_WIDTH {
             input[i] = F::from_canonical_u64(i as u64);
         }

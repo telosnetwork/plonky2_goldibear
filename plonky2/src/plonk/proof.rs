@@ -543,7 +543,7 @@ mod tests {
         let lut_index = builder.add_lookup_table_from_pairs(table);
 
         // Build dummy circuit with a lookup to get a valid proof.
-        let x = F::TWO;
+        let x = F::two();
         let out = builder.constant(F::from_canonical_usize(26));
 
         let xt = builder.constant(x);

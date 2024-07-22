@@ -109,7 +109,7 @@ impl<F: RichField + Extendable<D>, const D: usize, const B: usize> Gate<F, D> fo
                     //      = acc x + (-i) acc
                     // Since -i is constant, we can do this in one arithmetic_extension call.
                     let neg_i = -F::from_canonical_usize(i);
-                    acc = builder.arithmetic_extension(F::ONE, neg_i, acc, limb, acc)
+                    acc = builder.arithmetic_extension(F::one(), neg_i, acc, limb, acc)
                 });
                 acc
             });

@@ -4,17 +4,20 @@ use plonky2_util::log2_ceil;
 
 use crate::fft::ifft;
 use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::types::Field;
+use p3_field::{batch_multiplicative_inverse, Field, TwoAdicField};
 
 /// Computes the unique degree < n interpolant of an arbitrary list of n (point, value) pairs.
 ///
 /// Note that the implementation assumes that `F` is two-adic, in particular that
 /// `2^{F::TWO_ADICITY} >= points.len()`. This leads to a simple FFT-based implementation.
-pub fn interpolant<F: Field>(points: &[(F, F)]) -> PolynomialCoeffs<F> {
+pub fn interpolant<F: TwoAdicField>(points: &[(F, F)]) -> PolynomialCoeffs<F> {
     let n = points.len();
     let n_log = log2_ceil(n);
 
-    let subgroup = F::two_adic_subgroup(n_log);
+    //WAS: let subgroup = F::two_adic_subgroup(n_log);
+    let generator = F::two_adic_generator(n_log);
+    let subgroup: Vec<F> = generator.powers().take(1 << n_log).collect();
+
     let barycentric_weights = barycentric_weights(points);
     let subgroup_evals = subgroup
         .into_iter()
@@ -52,7 +55,8 @@ pub fn interpolate<F: Field>(points: &[(F, F)], x: F, barycentric_weights: &[F])
 
 pub fn barycentric_weights<F: Field>(points: &[(F, F)]) -> Vec<F> {
     let n = points.len();
-    F::batch_multiplicative_inverse(
+
+    batch_multiplicative_inverse(
         &(0..n)
             .map(|i| {
                 (0..n)

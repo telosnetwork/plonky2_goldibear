@@ -38,10 +38,10 @@ impl<F: RichField + Extendable<D>, const D: usize> PermutationStark<F, D> {
     /// Generate the trace using `x0, x0+1, 1` as initial state values.
     fn generate_trace(&self, x0: F) -> Vec<PolynomialValues<F>> {
         let mut trace_rows = (0..self.num_rows)
-            .scan([x0, x0 + F::ONE, F::ONE], |acc, _| {
+            .scan([x0, x0 + F::one(), F::one()], |acc, _| {
                 let tmp = *acc;
-                acc[0] = tmp[0] + F::ONE;
-                acc[1] = tmp[1] + F::ONE;
+                acc[0] = tmp[0] + F::one();
+                acc[1] = tmp[1] + F::one();
                 // acc[2] (i.e. frequency column) remains unchanged, as we're permuting a strictly monotonous sequence.
                 Some(tmp)
             })
@@ -131,7 +131,7 @@ mod tests {
         let config = StarkConfig::standard_fast_config();
         let num_rows = 1 << 5;
 
-        let public_input = F::ZERO;
+        let public_input = F::zero();
 
         let stark = S::new(num_rows);
         let trace = stark.generate_trace(public_input);
@@ -180,7 +180,7 @@ mod tests {
 
         let config = StarkConfig::standard_fast_config();
         let num_rows = 1 << 5;
-        let public_input = F::ZERO;
+        let public_input = F::zero();
 
         let stark = S::new(num_rows);
         let trace = stark.generate_trace(public_input);

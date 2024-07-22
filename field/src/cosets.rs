@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use num::bigint::BigUint;
 
-use crate::types::Field;
+use p3_field::Field;
 
 /// Finds a set of shifts that result in unique cosets for the multiplicative subgroup of size
 /// `2^subgroup_bits`.
@@ -17,7 +17,7 @@ pub fn get_unique_coset_shifts<F: Field>(subgroup_size: usize, num_shifts: usize
     // Let g be a generator of the entire multiplicative group. Let n be the order of the subgroup.
     // The subgroup can be written as <g^(|F*| / n)>. We can use g^0, ..., g^(num_shifts - 1) as our
     // shifts, since g^i <g^(|F*| / n)> are distinct cosets provided i < |F*| / n, which we checked.
-    F::MULTIPLICATIVE_GROUP_GENERATOR
+    F::generator()
         .powers()
         .take(num_shifts)
         .collect()
@@ -28,12 +28,12 @@ mod tests {
     use std::collections::HashSet;
 
     use crate::cosets::get_unique_coset_shifts;
-    use crate::goldilocks_field::GoldilocksField;
-    use crate::types::Field;
+    use p3_field::Field;
+    use p3_goldilocks::Goldilocks;
 
     #[test]
     fn distinct_cosets() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         const SUBGROUP_BITS: usize = 5;
         const NUM_SHIFTS: usize = 50;
 

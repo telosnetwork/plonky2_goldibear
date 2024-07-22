@@ -81,7 +81,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CosetInterpolationGate<F, D> 
         let barycentric_weights = barycentric_weights(
             &F::two_adic_subgroup(subgroup_bits)
                 .into_iter()
-                .map(|x| (x, F::ZERO))
+                .map(|x| (x, F::zero()))
                 .collect::<Vec<_>>(),
         );
 
@@ -808,7 +808,7 @@ mod tests {
             let shifted_eval_point =
                 <FF as FieldExtension<2>>::scalar_mul(&eval_point, shift.inverse());
             let weights =
-                barycentric_weights(&domain.iter().map(|&x| (x, F::ZERO)).collect::<Vec<_>>());
+                barycentric_weights(&domain.iter().map(|&x| (x, F::zero())).collect::<Vec<_>>());
             let (intermediate_eval, intermediate_prod) = partial_interpolate::<_, D>(
                 &domain[..3],
                 &values.values[..3],

@@ -293,7 +293,7 @@ impl<F: RichField + Extendable<D>, const D: usize> StarkOpeningSet<F, D> {
                 .collect::<Vec<_>>()
         };
 
-        let auxiliary_first = auxiliary_polys_commitment.map(|c| eval_commitment_base(F::ONE, c));
+        let auxiliary_first = auxiliary_polys_commitment.map(|c| eval_commitment_base(F::one(), c));
         // `g * zeta`.
         let zeta_next = zeta.scalar_mul(g);
         Self {

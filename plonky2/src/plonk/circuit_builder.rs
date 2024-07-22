@@ -108,8 +108,8 @@ pub struct LookupWire {
 ///
 /// // Build a circuit for the statement: "I know the 100th term
 /// // of the Fibonacci sequence, starting from 0 and 1".
-/// let initial_a = builder.constant(F::ZERO);
-/// let initial_b = builder.constant(F::ONE);
+/// let initial_a = builder.constant(F::zero());
+/// let initial_b = builder.constant(F::one());
 /// let mut prev_target = initial_a;
 /// let mut cur_target = initial_b;
 /// for _ in 0..99 {
@@ -450,7 +450,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             constants.len() <= gate_type.num_constants(),
             "Too many constants."
         );
-        constants.resize(gate_type.num_constants(), F::ZERO);
+        constants.resize(gate_type.num_constants(), F::zero());
 
         let row = self.gate_instances.len();
 
@@ -460,7 +460,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
                     row,
                     constant_index,
                     wire_index,
-                    constant: F::ZERO, // Placeholder; will be replaced later.
+                    constant: F::zero(), // Placeholder; will be replaced later.
                 },
             ));
 
@@ -569,17 +569,17 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Returns a routable target with a value of 0.
     pub fn zero(&mut self) -> Target {
-        self.constant(F::ZERO)
+        self.constant(F::zero())
     }
 
     /// Returns a routable target with a value of 1.
     pub fn one(&mut self) -> Target {
-        self.constant(F::ONE)
+        self.constant(F::one())
     }
 
     /// Returns a routable target with a value of 2.
     pub fn two(&mut self) -> Target {
-        self.constant(F::TWO)
+        self.constant(F::two())
     }
 
     /// Returns a routable target with a value of `order() - 1`.
@@ -952,7 +952,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
                 .iter()
                 .map(|g| {
                     let mut consts = g.constants.clone();
-                    consts.resize(max_constants, F::ZERO);
+                    consts.resize(max_constants, F::zero());
                     consts
                 })
                 .collect::<Vec<_>>(),

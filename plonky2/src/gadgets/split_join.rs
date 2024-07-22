@@ -43,7 +43,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         }
 
         let zero = self.zero();
-        let base = F::TWO.exp_u64(gate_type.num_limbs as u64);
+        let base = F::two().exp_u64(gate_type.num_limbs as u64);
         let mut acc = zero;
         for &gate in gates.iter().rev() {
             let sum = Target::wire(gate, BaseSumGate::<2>::WIRE_SUM);
