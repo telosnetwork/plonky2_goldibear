@@ -449,6 +449,8 @@ mod tests {
     use super::*;
     use crate::types::Sample;
 
+    use p3_field::cyclic_subgroup_coset_known_order;
+
     #[test]
     fn test_trimmed() {
         type F = Goldilocks;
@@ -485,8 +487,8 @@ mod tests {
         let shift = F::rand();
         let coset_evals = poly.coset_fft(shift).values;
 
-        let generator = F::primitive_root_of_unity(k);
-        let naive_coset_evals = F::cyclic_subgroup_coset_known_order(generator, shift, n)
+        let generator = F::two_adic_generator(k);
+        let naive_coset_evals = cyclic_subgroup_coset_known_order::<F>(generator, shift, n)
             .into_iter()
             .map(|x| poly.eval(x))
             .collect::<Vec<_>>();
@@ -506,8 +508,8 @@ mod tests {
         let shift = F::rand();
         let coeffs = evals.clone().coset_ifft(shift);
 
-        let generator = F::primitive_root_of_unity(k);
-        let naive_coset_evals = F::cyclic_subgroup_coset_known_order(generator, shift, n)
+        let generator = F::two_adic_generator(k);
+        let naive_coset_evals = cyclic_subgroup_coset_known_order::<F>(generator, shift, n)
             .into_iter()
             .map(|x| coeffs.eval(x))
             .collect::<Vec<_>>();
@@ -608,11 +610,11 @@ mod tests {
         let mut rng = OsRng;
         let l = 14;
         let n = 1 << l;
-        let g = F::primitive_root_of_unity(l);
+        let g = F::two_adic_generator(l);
         let xn_minus_one = {
             let mut xn_min_one_vec = vec![F::zero(); n + 1];
             xn_min_one_vec[n] = F::one();
-            xn_min_one_vec[0] = F::NEG_ONE;
+            xn_min_one_vec[0] = - F::one();
             PolynomialCoeffs::new(xn_min_one_vec)
         };
 

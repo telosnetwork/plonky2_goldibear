@@ -45,6 +45,7 @@ where
     const WIDTH: usize;
     fn zeros() -> Self;
     fn ones() -> Self;
+    fn twos() -> Self;
 
     fn from_slice(slice: &[Self::Scalar]) -> &Self;
     fn from_slice_mut(slice: &mut [Self::Scalar]) -> &mut Self;
@@ -104,6 +105,7 @@ unsafe impl<F: Field> PackedField for F {
     const WIDTH: usize = 1;
     fn zeros() -> Self {F::zero()}
     fn ones() -> Self {F::one()}
+    fn twos() -> Self {F::two()}
 
     fn from_slice(slice: &[Self::Scalar]) -> &Self {
         &slice[0]

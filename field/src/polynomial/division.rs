@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_division_by_linear() {
-        type F = BinomialExtensionField<Goldilocks, 4>;
+        type F = BinomialExtensionField<Goldilocks, 2>;
         let n = OsRng.gen_range(1..1000);
         let poly = PolynomialCoeffs::new(F::rand_vec(n));
         let z = F::rand();

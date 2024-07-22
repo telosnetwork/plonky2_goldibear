@@ -49,17 +49,12 @@ impl Sample for Goldilocks {
     }
 }
 
-impl<F:AbstractField+Sample+BinomiallyExtendable<4>> Sample for BinomialExtensionField<F,4> {
+impl<const D: usize, F:AbstractField + Sample+BinomiallyExtendable<D>> Sample for BinomialExtensionField<F,D> {
     #[inline]
     fn sample<R>(rng: &mut R) -> Self
     where
         R: rand::RngCore + ?Sized,
     {
-        <Self as AbstractExtensionField<F>>::from_base_slice(&[
-            F::sample(rng),
-            F::sample(rng),
-            F::sample(rng),
-            F::sample(rng),
-        ])
+        <Self as AbstractExtensionField<F>>::from_base_slice(&(0..D).map(|_| F::rand()).collect::<Vec<_>>())
     }
 }

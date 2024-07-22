@@ -1,6 +1,14 @@
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::{AbstractField, Field};
+
 use crate::ops::Square;
-use crate::types::{Sample};
+use crate::packed::PackedField;
+use crate::types::Sample;
+
+use p3_field::extension::HasFrobenius;
+use p3_field::extension::HasTwoAdicBionmialExtension;
+use p3_field::TwoAdicField;
+use p3_field::AbstractExtensionField;
 
 #[macro_export]
 macro_rules! test_field_arithmetic {
@@ -117,14 +125,17 @@ macro_rules! test_field_arithmetic {
 }
 
 #[allow(clippy::eq_op)]
-pub(crate) fn test_add_neg_sub_mul<BF: BinomiallyExtendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
-    let y = BF::Extension::rand();
-    let z = BF::Extension::rand();
-    assert_eq!(x + (-x), BF::Extension::ZERO);
-    assert_eq!(-x, BF::Extension::ZERO - x);
-    assert_eq!(x + x, x * BF::Extension::TWO);
-    assert_eq!(x * (-x), -x.square());
+pub(crate) fn test_add_neg_sub_mul<
+    AF: AbstractField + BinomiallyExtendable<D> + Sample,
+    const D: usize,
+>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
+    let y = BinomialExtensionField::<AF, D>::rand();
+    let z = BinomialExtensionField::<AF, D>::rand();
+    assert_eq!(x + (-x), BinomialExtensionField::<AF, D>::zeros());
+    assert_eq!(-x, BinomialExtensionField::<AF, D>::zeros() - x);
+    assert_eq!(x + x, x * BinomialExtensionField::<AF, D>::twos());
+    assert_eq!(x * (-x), -AbstractField::square(&x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
     assert_eq!(x * (y * z), (x * y) * z);
@@ -133,21 +144,27 @@ pub(crate) fn test_add_neg_sub_mul<BF: BinomiallyExtendable<D>, const D: usize>(
     assert_eq!(x * (y + z), x * y + x * z);
 }
 
-pub(crate) fn test_inv_div<BF: BinomiallyExtendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
-    let y = BF::Extension::rand();
-    let z = BF::Extension::rand();
-    assert_eq!(x * x.inverse(), BF::Extension::ONE);
-    assert_eq!(x.inverse() * x, BF::Extension::ONE);
-    assert_eq!(x.square().inverse(), x.inverse().square());
+pub(crate) fn test_inv_div<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: usize>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
+    let y = BinomialExtensionField::<AF, D>::rand();
+    let z = BinomialExtensionField::<AF, D>::rand();
+    assert_eq!(x * x.inverse(), BinomialExtensionField::<AF, D>::ones());
+    assert_eq!(x.inverse() * x, BinomialExtensionField::<AF, D>::ones());
+    assert_eq!(
+        AbstractField::square(&x).inverse(),
+        AbstractField::square(&x.inverse())
+    );
     assert_eq!((x / y) * y, x);
     assert_eq!(x / (y * z), (x / y) / z);
     assert_eq!((x * y) / z, x * (y / z));
 }
 
-pub(crate) fn test_frobenius<BF: BinomiallyExtendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
-    assert_eq!(x.exp_biguint(&BF::order()), x.frobenius());
+pub(crate) fn test_frobenius<
+    AF: AbstractField + BinomiallyExtendable<D> + Sample,
+    const D: usize,
+>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
+    assert_eq!(exp_biguint(x, &AF::order()), x.frobenius());
     for count in 2..D {
         assert_eq!(
             x.repeated_frobenius(count),
@@ -156,24 +173,38 @@ pub(crate) fn test_frobenius<BF: BinomiallyExtendable<D>, const D: usize>() {
     }
 }
 
-pub(crate) fn test_field_order<BF: BinomiallyExtendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
+fn exp_biguint<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: usize>(
+    x: BinomialExtensionField<AF, D>,
+    power: &num::BigUint,
+) -> BinomialExtensionField<AF, D> {
+    let mut result = BinomialExtensionField::<AF, D>::ones();
+    for &digit in power.to_u64_digits().iter().rev() {
+        result = result.exp_power_of_2(64);
+        result *= x.exp_u64(digit);
+    }
+    result
+}
+
+pub(crate) fn test_field_order<
+    AF: AbstractField + BinomiallyExtendable<D> + Sample,
+    const D: usize,
+>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(
-        x.exp_biguint(&(BF::Extension::order() - 1u8)),
-        BF::Extension::ONE
+        exp_biguint::<AF, D>(x, &(AF::order() - 1u8)),
+        BinomialExtensionField::<AF, D>::ones()
     );
 }
 
-pub(crate) fn test_power_of_two_gen<BF: BinomiallyExtendable<D>, const D: usize>() {
+pub(crate) fn test_power_of_two_gen<AF: AbstractField + TwoAdicField + HasTwoAdicBionmialExtension<D> + Sample, const D: usize>() {
     assert_eq!(
-        BF::Extension::MULTIPLICATIVE_GROUP_GENERATOR
-            .exp_biguint(&(BF::Extension::order() >> BF::Extension::TWO_ADICITY)),
-        BF::Extension::POWER_OF_TWO_GENERATOR,
-    );
+        exp_biguint(BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_generator())
+            , &(BinomialExtensionField::<AF, D>::order() >> BinomialExtensionField::<AF, D>::TWO_ADICITY)),
+            <BinomialExtensionField<AF,D> as TwoAdicField>::ext_two_adic_generator());
     assert_eq!(
-        BF::Extension::POWER_OF_TWO_GENERATOR
-            .exp_u64(1 << (BF::Extension::TWO_ADICITY - BF::TWO_ADICITY)),
-        BF::POWER_OF_TWO_GENERATOR.into()
+        BinomialExtensionField::<AF, D>::ext_two_adic_generator()
+            .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
+        AF::two_adic_generator(AF::TWO_ADICITY)
     );
 }
 

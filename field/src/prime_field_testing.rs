@@ -25,7 +25,7 @@ where
     UnaryOp: Fn(F) -> F,
     ExpectedOp: Fn(u64) -> u64,
 {
-    let inputs = test_inputs(F::ORDER);
+    let inputs = test_inputs(F::ORDER_U64);
     let expected: Vec<_> = inputs.iter().map(|&x| expected_op(x)).collect();
     let output: Vec<_> = inputs
         .iter()
