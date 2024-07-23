@@ -335,7 +335,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use plonky2::field::goldilocks_field::GoldilocksField;
+    use plonky2::field::goldilocks_field::Goldilocks;
     use plonky2::field::polynomial::PolynomialValues;
     use plonky2::field::types::Sample;
 
@@ -343,7 +343,7 @@ mod tests {
 
     #[test]
     fn test_eval_l_0_and_l_last() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         let log_n = 5;
         let n = 1 << log_n;
 

@@ -4,7 +4,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use plonky2::field::extension::quadratic::QuadraticExtension;
 use plonky2::field::extension::quartic::QuarticExtension;
 use plonky2::field::extension::quintic::QuinticExtension;
-use plonky2::field::goldilocks_field::GoldilocksField;
+use plonky2::field::goldilocks_field::Goldilocks;
 use plonky2::field::types::Field;
 use tynm::type_name;
 
@@ -172,10 +172,10 @@ pub(crate) fn bench_field<F: Field>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_field::<GoldilocksField>(c);
-    bench_field::<QuadraticExtension<GoldilocksField>>(c);
-    bench_field::<QuarticExtension<GoldilocksField>>(c);
-    bench_field::<QuinticExtension<GoldilocksField>>(c);
+    bench_field::<Goldilocks>(c);
+    bench_field::<QuadraticExtension<Goldilocks>>(c);
+    bench_field::<QuarticExtension<Goldilocks>>(c);
+    bench_field::<QuinticExtension<Goldilocks>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

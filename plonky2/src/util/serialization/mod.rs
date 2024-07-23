@@ -21,7 +21,6 @@ use hashbrown::HashMap;
 
 use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::field::types::{Field64, PrimeField64};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, CompressedFriQueryRounds, FriInitialTreeProof, FriInitialTreeProofTarget,
@@ -155,7 +154,7 @@ pub trait Read {
     #[inline]
     fn read_field<F>(&mut self) -> IoResult<F>
     where
-        F: Field64,
+        F: PrimeField64,
     {
         let mut buf = [0; size_of::<u64>()];
         self.read_exact(&mut buf)?;
@@ -166,7 +165,7 @@ pub trait Read {
     #[inline]
     fn read_field_vec<F>(&mut self, length: usize) -> IoResult<Vec<F>>
     where
-        F: Field64,
+        F: PrimeField64,
     {
         (0..length)
             .map(|_| self.read_field())
@@ -177,7 +176,7 @@ pub trait Read {
     #[inline]
     fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<F::Extension>
     where
-        F: Field64 + BinomiallyExtendable<D>,
+        F: PrimeField64 + BinomiallyExtendable<D>,
     {
         let mut arr = [F::zero(); D];
         for a in arr.iter_mut() {

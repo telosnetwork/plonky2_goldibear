@@ -98,13 +98,13 @@ impl StarkConfig {
 
 #[cfg(test)]
 mod tests {
-    use plonky2::field::goldilocks_field::GoldilocksField;
+    use plonky2::field::goldilocks_field::Goldilocks;
 
     use super::*;
 
     #[test]
     fn test_valid_config() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         const D: usize = 2;
 
         let config = StarkConfig::standard_fast_config();
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_invalid_config() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         const D: usize = 2;
 
         let too_few_queries_config = StarkConfig::new(

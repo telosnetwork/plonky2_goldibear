@@ -9,7 +9,6 @@ use core::marker::PhantomData;
 use core::ops::Range;
 use p3_field::extension::BinomiallyExtendable;
 
-use crate::field::extension::algebra::ExtensionAlgebra;
 use crate::field::interpolation::barycentric_weights;
 use p3_field::Field;
 use crate::gates::gate::Gate;
@@ -218,7 +217,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Cose
             &values[..self.degree()],
             &weights[..self.degree()],
             shifted_evaluation_point,
-            ExtensionAlgebra::ZERO,
+            ExtensionAlgebra::zero(),
             ExtensionAlgebra::one(),
         );
 

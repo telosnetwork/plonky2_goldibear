@@ -8,7 +8,6 @@ use plonky2_util::ceil_div_usize;
 use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
 use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use p3_field::Field;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;

@@ -8,8 +8,6 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use crate::field::extension::algebra::ExtensionAlgebra;
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use p3_field::Field;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;

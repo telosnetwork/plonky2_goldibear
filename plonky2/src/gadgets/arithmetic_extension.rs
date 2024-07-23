@@ -597,7 +597,6 @@ pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + BinomiallyExten
 mod tests {
     use anyhow::Result;
 
-    use crate::field::extension::algebra::ExtensionAlgebra;
     use crate::field::types::Sample;
     use crate::iop::ext_target::ExtensionAlgebraTarget;
     use crate::iop::witness::{PartialWitness, WitnessWrite};

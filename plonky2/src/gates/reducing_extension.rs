@@ -7,7 +7,6 @@ use alloc::{
 };
 use core::ops::Range;
 
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -240,14 +239,14 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
 mod tests {
     use anyhow::Result;
 
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::reducing_extension::ReducingExtensionGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(ReducingExtensionGate::new(22));
+        test_low_degree::<Goldilocks, _, 4>(ReducingExtensionGate::new(22));
     }
 
     #[test]

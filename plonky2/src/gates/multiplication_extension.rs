@@ -6,7 +6,6 @@ use alloc::{
 };
 use core::ops::Range;
 
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -213,14 +212,14 @@ mod tests {
     use anyhow::Result;
 
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
         let gate = MulExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<GoldilocksField, _, 4>(gate);
+        test_low_degree::<Goldilocks, _, 4>(gate);
     }
 
     #[test]

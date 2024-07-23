@@ -4,9 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use p3_field::extension::BinomiallyExtendable;
 use core::ops::Range;
 
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -242,7 +242,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
 mod tests {
     use anyhow::Result;
 
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;
@@ -252,7 +252,7 @@ mod tests {
     fn low_degree() {
         let gate =
             ArithmeticExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<GoldilocksField, _, 4>(gate);
+        test_low_degree::<Goldilocks, _, 4>(gate);
     }
 
     #[test]

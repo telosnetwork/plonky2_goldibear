@@ -1,7 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use plonky2::field::goldilocks_field::GoldilocksField;
+use plonky2::field::goldilocks_field::Goldilocks;
 use plonky2::field::types::Sample;
 use plonky2::hash::hash_types::{BytesHash, RichField};
 use plonky2::hash::keccak::KeccakHash;
@@ -33,8 +33,8 @@ pub(crate) fn bench_poseidon<F: Poseidon>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_poseidon::<GoldilocksField>(c);
-    bench_keccak::<GoldilocksField>(c);
+    bench_poseidon::<Goldilocks>(c);
+    bench_keccak::<Goldilocks>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

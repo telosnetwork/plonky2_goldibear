@@ -133,7 +133,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase
 mod tests {
     use anyhow::Result;
 
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::constant::ConstantGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;
@@ -143,7 +143,7 @@ mod tests {
     fn low_degree() {
         let num_consts = CircuitConfig::standard_recursion_config().num_constants;
         let gate = ConstantGate { num_consts };
-        test_low_degree::<GoldilocksField, _, 2>(gate)
+        test_low_degree::<Goldilocks, _, 2>(gate)
     }
 
     #[test]

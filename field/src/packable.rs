@@ -24,8 +24,8 @@ impl<F: Field> Packable for F {
         target_feature = "avx512vl"
     ))
 ))]
-impl Packable for crate::goldilocks_field::GoldilocksField {
-    type Packing = crate::arch::x86_64::avx2_goldilocks_field::Avx2GoldilocksField;
+impl Packable for crate::goldilocks_field::Goldilocks {
+    type Packing = crate::arch::x86_64::avx2_goldilocks_field::Avx2Goldilocks;
 }
 
 #[cfg(all(
@@ -36,6 +36,6 @@ impl Packable for crate::goldilocks_field::GoldilocksField {
     target_feature = "avx512f",
     target_feature = "avx512vl"
 ))]
-impl Packable for crate::goldilocks_field::GoldilocksField {
-    type Packing = crate::arch::x86_64::avx512_goldilocks_field::Avx512GoldilocksField;
+impl Packable for crate::goldilocks_field::Goldilocks {
+    type Packing = crate::arch::x86_64::avx512_goldilocks_field::Avx512Goldilocks;
 }

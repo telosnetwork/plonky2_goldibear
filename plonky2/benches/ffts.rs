@@ -1,7 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use plonky2::field::goldilocks_field::GoldilocksField;
+use plonky2::field::goldilocks_field::Goldilocks;
 use plonky2::field::polynomial::PolynomialCoeffs;
 use plonky2::field::types::Field;
 use tynm::type_name;
@@ -38,8 +38,8 @@ pub(crate) fn bench_ldes<F: Field>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_ffts::<GoldilocksField>(c);
-    bench_ldes::<GoldilocksField>(c);
+    bench_ffts::<Goldilocks>(c);
+    bench_ldes::<Goldilocks>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

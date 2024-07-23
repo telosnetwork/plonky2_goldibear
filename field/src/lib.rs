@@ -10,7 +10,7 @@ extern crate alloc;
 
 pub mod batch_util;
 pub mod cosets;
-// pub mod extension_algebra;
+pub mod extension_algebra;
 pub mod fft;
 pub mod interpolation;
 pub mod ops;

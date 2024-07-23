@@ -2,8 +2,6 @@
 
 use core::ops::Range;
 
-use crate::field::extension::algebra::ExtensionAlgebra;
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::field::packed::PackedField;
 use p3_field::Field;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};

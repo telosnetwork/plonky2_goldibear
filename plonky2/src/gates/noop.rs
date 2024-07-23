@@ -71,14 +71,14 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Noop
 
 #[cfg(test)]
 mod tests {
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::noop::NoopGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(NoopGate)
+        test_low_degree::<Goldilocks, _, 4>(NoopGate)
     }
 
     #[test]

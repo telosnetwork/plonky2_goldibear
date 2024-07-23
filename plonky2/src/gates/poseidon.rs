@@ -537,7 +537,7 @@ impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> SimpleGe
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2_field::goldilocks_field::GoldilocksField;
+    use plonky2_field::goldilocks_field::Goldilocks;
 
     use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn wire_indices() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         type Gate = PoseidonGate<F, 4>;
 
         assert_eq!(Gate::wire_input(0), 0);
@@ -621,7 +621,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         let gate = PoseidonGate::<F, 4>::new();
         test_low_degree(gate)
     }

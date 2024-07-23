@@ -419,7 +419,7 @@ mod tests {
     use rand::Rng;
 
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;
@@ -427,7 +427,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(RandomAccessGate::new(4, 4, 1));
+        test_low_degree::<Goldilocks, _, 4>(RandomAccessGate::new(4, 4, 1));
     }
 
     #[test]

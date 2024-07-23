@@ -248,8 +248,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;
@@ -258,7 +257,7 @@ mod tests {
     #[test]
     fn low_degree() {
         let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<GoldilocksField, _, 4>(gate);
+        test_low_degree::<Goldilocks, _, 4>(gate);
     }
 
     #[test]

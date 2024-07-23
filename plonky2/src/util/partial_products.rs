@@ -113,11 +113,11 @@ mod tests {
     use alloc::vec;
 
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
 
     #[test]
     fn test_partial_products() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         let denominators = vec![F::one(); 6];
         let z_x = F::one();
         let v = field_vec(&[1, 2, 3, 4, 5, 6]);

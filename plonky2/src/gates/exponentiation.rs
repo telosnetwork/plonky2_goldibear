@@ -318,7 +318,7 @@ mod tests {
     use rand::Rng;
 
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;
@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn wire_indices() {
-        let gate = ExponentiationGate::<GoldilocksField, 4> {
+        let gate = ExponentiationGate::<Goldilocks, 4> {
             num_power_bits: 5,
             _phantom: PhantomData,
         };
@@ -350,7 +350,7 @@ mod tests {
             ..CircuitConfig::standard_recursion_config()
         };
 
-        test_low_degree::<GoldilocksField, _, 4>(ExponentiationGate::new_from_config(&config));
+        test_low_degree::<Goldilocks, _, 4>(ExponentiationGate::new_from_config(&config));
     }
 
     #[test]

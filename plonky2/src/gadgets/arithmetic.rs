@@ -424,7 +424,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
 
 /// Represents a base arithmetic operation in the circuit. Used to memoize results.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct BaseArithmeticOperation<F: Field64> {
+pub(crate) struct BaseArithmeticOperation<F: PrimeField64> {
     const_0: F,
     const_1: F,
     multiplicand_0: Target,

@@ -13,9 +13,7 @@ use core::fmt::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::field::extension::quadratic::QuadraticExtension;
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
-use crate::field::goldilocks_field::GoldilocksField;
+use p3_goldilocks::Goldilocks;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
@@ -109,7 +107,7 @@ pub trait GenericConfig<const D: usize>:
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize)]
 pub struct PoseidonGoldilocksConfig;
 impl GenericConfig<2> for PoseidonGoldilocksConfig {
-    type F = GoldilocksField;
+    type F = Goldilocks;
     type FE = QuadraticExtension<Self::F>;
     type Hasher = PoseidonHash;
     type InnerHasher = PoseidonHash;
@@ -119,7 +117,7 @@ impl GenericConfig<2> for PoseidonGoldilocksConfig {
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct KeccakGoldilocksConfig;
 impl GenericConfig<2> for KeccakGoldilocksConfig {
-    type F = GoldilocksField;
+    type F = Goldilocks;
     type FE = QuadraticExtension<Self::F>;
     type Hasher = KeccakHash<25>;
     type InnerHasher = PoseidonHash;

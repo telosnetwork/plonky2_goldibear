@@ -1,7 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use plonky2::field::goldilocks_field::GoldilocksField;
+use plonky2::field::goldilocks_field::Goldilocks;
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::keccak::KeccakHash;
 use plonky2::hash::merkle_tree::MerkleTree;
@@ -29,8 +29,8 @@ pub(crate) fn bench_merkle_tree<F: RichField, H: Hasher<F>>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_merkle_tree::<GoldilocksField, PoseidonHash>(c);
-    bench_merkle_tree::<GoldilocksField, KeccakHash<25>>(c);
+    bench_merkle_tree::<Goldilocks, PoseidonHash>(c);
+    bench_merkle_tree::<Goldilocks, KeccakHash<25>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

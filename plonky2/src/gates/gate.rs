@@ -11,7 +11,6 @@ use hashbrown::HashMap;
 use serde::{Serialize, Serializer};
 
 use crate::field::batch_util::batch_multiply_inplace;
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use p3_field::Field;
 use crate::gates::selectors::UNUSED_SELECTOR;
 use crate::gates::util::StridedConstraintConsumer;

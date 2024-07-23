@@ -7,7 +7,7 @@ use core::mem::transmute;
 use static_assertions::const_assert;
 use unroll::unroll_for_loops;
 
-use crate::field::goldilocks_field::GoldilocksField;
+use p3_goldilocks::Goldilocks;
 use crate::hash::poseidon::Poseidon;
 use crate::util::branch_hint;
 
@@ -43,8 +43,8 @@ const fn check_mds_matrix() -> bool {
     let wanted_matrix_circ = [17, 15, 41, 16, 2, 28, 13, 13, 39, 18, 34, 20];
     let wanted_matrix_diag = [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     while i < WIDTH {
-        if <GoldilocksField as Poseidon>::MDS_MATRIX_CIRC[i] != wanted_matrix_circ[i]
-            || <GoldilocksField as Poseidon>::MDS_MATRIX_DIAG[i] != wanted_matrix_diag[i]
+        if <Goldilocks as Poseidon>::MDS_MATRIX_CIRC[i] != wanted_matrix_circ[i]
+            || <Goldilocks as Poseidon>::MDS_MATRIX_DIAG[i] != wanted_matrix_diag[i]
         {
             return false;
         }
@@ -56,13 +56,13 @@ const_assert!(check_mds_matrix());
 
 /// Ensure that the first WIDTH round constants are in canonical* form. This is required because
 /// the first constant layer does not handle double overflow.
-/// *: round_const == GoldilocksField::ORDER is safe.
+/// *: round_const == Goldilocks::ORDER is safe.
 /*
 #[allow(dead_code)]
 const fn check_round_const_bounds_init() -> bool {
     let mut i = 0;
     while i < WIDTH {
-        if ALL_ROUND_CONSTANTS[i] > GoldilocksField::ORDER {
+        if ALL_ROUND_CONSTANTS[i] > Goldilocks::ORDER {
             return false;
         }
         i += 1;
@@ -909,18 +909,18 @@ unsafe fn partial_rounds(
 */
 
 #[inline(always)]
-fn unwrap_state(state: [GoldilocksField; 12]) -> [u64; 12] {
+fn unwrap_state(state: [Goldilocks; 12]) -> [u64; 12] {
     state.map(|s| s.0)
 }
 
 #[inline(always)]
-fn wrap_state(state: [u64; 12]) -> [GoldilocksField; 12] {
-    state.map(GoldilocksField)
+fn wrap_state(state: [u64; 12]) -> [Goldilocks; 12] {
+    state.map(Goldilocks)
 }
 
 /*
 #[inline(always)]
-pub unsafe fn poseidon(state: [GoldilocksField; 12]) -> [GoldilocksField; 12] {
+pub unsafe fn poseidon(state: [Goldilocks; 12]) -> [Goldilocks; 12] {
     let state = unwrap_state(state);
     let state = const_layer_full(state, ALL_ROUND_CONSTANTS[0..WIDTH].try_into().unwrap());
     let state = full_rounds(
@@ -942,12 +942,12 @@ pub unsafe fn poseidon(state: [GoldilocksField; 12]) -> [GoldilocksField; 12] {
 */
 
 #[inline(always)]
-pub unsafe fn sbox_layer(state: &mut [GoldilocksField; WIDTH]) {
+pub unsafe fn sbox_layer(state: &mut [Goldilocks; WIDTH]) {
     *state = wrap_state(sbox_layer_full(unwrap_state(*state)));
 }
 
 #[inline(always)]
-pub unsafe fn mds_layer(state: &[GoldilocksField; WIDTH]) -> [GoldilocksField; WIDTH] {
+pub unsafe fn mds_layer(state: &[Goldilocks; WIDTH]) -> [Goldilocks; WIDTH] {
     let state = unwrap_state(*state);
     let state = mds_layer_full(state);
     wrap_state(state)
