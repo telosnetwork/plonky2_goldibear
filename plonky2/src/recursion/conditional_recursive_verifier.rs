@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::fri::proof::{
     FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget, FriQueryStepTarget,
 };
@@ -18,7 +18,7 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{OpeningSetTarget, ProofTarget, ProofWithPublicInputsTarget};
 use crate::with_context;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
     pub fn conditionally_verify_proof<C: GenericConfig<D, F = F>>(

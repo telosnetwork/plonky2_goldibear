@@ -14,7 +14,7 @@ use itertools::Itertools;
 use keccak_hash::keccak;
 use plonky2_util::ceil_div_usize;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -83,7 +83,7 @@ impl LookupTableGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for LookupTableGate {
     fn id(&self) -> String {
         // Custom implementation to not have the entire lookup table
         format!(
@@ -180,7 +180,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGat
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for LookupTableGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D> for LookupTableGate {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         _vars: EvaluationVarsBasePacked<P>,
@@ -198,7 +198,7 @@ pub struct LookupTableGenerator {
     last_lut_row: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for LookupTableGenerator {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for LookupTableGenerator {
     fn id(&self) -> String {
         "LookupTableGenerator".to_string()
     }

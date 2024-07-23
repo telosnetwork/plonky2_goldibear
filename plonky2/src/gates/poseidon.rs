@@ -7,8 +7,8 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::Field;
 use crate::gates::gate::Gate;
 use crate::gates::poseidon_mds::PoseidonMdsGate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -31,9 +31,9 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// It has a flag which can be used to swap the first four inputs with the next four, for ordering
 /// sibling digests.
 #[derive(Debug, Default)]
-pub struct PoseidonGate<F: RichField + Extendable<D>, const D: usize>(PhantomData<F>);
+pub struct PoseidonGate<F: RichField + BinomiallyExtendable<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + Extendable<D>, const D: usize> PoseidonGate<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PoseidonGate<F, D> {
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -99,7 +99,7 @@ impl<F: RichField + Extendable<D>, const D: usize> PoseidonGate<F, D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -419,12 +419,12 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for PoseidonGate<F
 }
 
 #[derive(Debug, Default)]
-pub struct PoseidonGenerator<F: RichField + Extendable<D> + Poseidon, const D: usize> {
+pub struct PoseidonGenerator<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> {
     row: usize,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
     for PoseidonGenerator<F, D>
 {
     fn id(&self) -> String {

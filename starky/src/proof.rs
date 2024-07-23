@@ -6,7 +6,7 @@
 use alloc::{vec, vec::Vec};
 
 use itertools::Itertools;
-use plonky2::field::extension::{Extendable, FieldExtension};
+use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::fri::oracle::PolynomialBatch;
 use plonky2::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -27,7 +27,7 @@ use crate::lookup::GrandProductChallengeSet;
 
 /// Merkle caps and openings that form the proof of a single STARK.
 #[derive(Debug, Clone)]
-pub struct StarkProof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct StarkProof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
     /// Merkle cap of LDEs of trace values.
     pub trace_cap: MerkleCap<F, C::Hasher>,
     /// Optional merkle cap of LDEs of permutation Z values, if any.
@@ -40,7 +40,7 @@ pub struct StarkProof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, 
     pub opening_proof: FriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> StarkProof<F, C, D> {
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> StarkProof<F, C, D> {
     /// Recover the length of the trace from a STARK proof and a STARK config.
     pub fn recover_degree_bits(&self, config: &StarkConfig) -> usize {
         let initial_merkle_proof = &self.opening_proof.query_round_proofs[0]
@@ -124,7 +124,7 @@ impl<const D: usize> StarkProofTarget<D> {
 /// Merkle caps and openings that form the proof of a single STARK, along with its public inputs.
 #[derive(Debug, Clone)]
 pub struct StarkProofWithPublicInputs<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -147,7 +147,7 @@ pub struct StarkProofWithPublicInputsTarget<const D: usize> {
 /// A compressed proof format of a single STARK.
 #[derive(Debug, Clone)]
 pub struct CompressedStarkProof<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -162,7 +162,7 @@ pub struct CompressedStarkProof<
 /// A compressed [`StarkProof`] format of a single STARK with its public inputs.
 #[derive(Debug, Clone)]
 pub struct CompressedStarkProofWithPublicInputs<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -177,7 +177,7 @@ pub struct CompressedStarkProofWithPublicInputs<
 #[derive(Debug, Clone)]
 pub struct StarkProofWithMetadata<F, C, const D: usize>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
 {
     /// Initial Fiat-Shamir state.
@@ -190,7 +190,7 @@ where
 /// along with Cross-Table Lookup (CTL) challenges to assert consistency of common variables across tables.
 #[derive(Debug, Clone)]
 pub struct MultiProof<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
     const N: usize,
@@ -201,7 +201,7 @@ pub struct MultiProof<
     pub ctl_challenges: GrandProductChallengeSet<F>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize, const N: usize>
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize, const N: usize>
     MultiProof<F, C, D, N>
 {
     /// Returns the degree (i.e. the trace length) of each STARK proof,
@@ -213,7 +213,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize, c
 
 /// Randomness used for a STARK proof.
 #[derive(Debug)]
-pub struct StarkProofChallenges<F: RichField + Extendable<D>, const D: usize> {
+pub struct StarkProofChallenges<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     /// Optional randomness used in any permutation argument.
     pub lookup_challenge_set: Option<GrandProductChallengeSet<F>>,
     /// Random values used to combine STARK constraints.
@@ -239,7 +239,7 @@ pub struct StarkProofChallengesTarget<const D: usize> {
 
 /// Randomness for all STARK proofs contained in a [`MultiProof`]`.
 #[derive(Debug)]
-pub struct MultiProofChallenges<F: RichField + Extendable<D>, const D: usize, const N: usize> {
+pub struct MultiProofChallenges<F: RichField + BinomiallyExtendable<D>, const D: usize, const N: usize> {
     /// Randomness used in each STARK proof.
     pub stark_challenges: [StarkProofChallenges<F, D>; N],
     /// Randomness used for cross-table lookups. It is shared by all STARKs.
@@ -248,7 +248,7 @@ pub struct MultiProofChallenges<F: RichField + Extendable<D>, const D: usize, co
 
 /// Purported values of each polynomial at the challenge point.
 #[derive(Debug, Clone)]
-pub struct StarkOpeningSet<F: RichField + Extendable<D>, const D: usize> {
+pub struct StarkOpeningSet<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     /// Openings of trace polynomials at `zeta`.
     pub local_values: Vec<F::Extension>,
     /// Openings of trace polynomials at `g * zeta`.
@@ -263,7 +263,7 @@ pub struct StarkOpeningSet<F: RichField + Extendable<D>, const D: usize> {
     pub quotient_polys: Option<Vec<F::Extension>>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> StarkOpeningSet<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> StarkOpeningSet<F, D> {
     /// Returns a `StarkOpeningSet` given all the polynomial commitments, the number
     /// of permutation `Z`polynomials, the evaluation point and a generator `g`.
     ///

@@ -9,9 +9,9 @@ use core::marker::PhantomData;
 
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::field::packed::PackedField;
-use crate::field::types::Field;
+use p3_field::Field;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -31,7 +31,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for checking that a particular element of a list matches a given value.
 #[derive(Copy, Clone, Debug, Default)]
-pub struct RandomAccessGate<F: RichField + Extendable<D>, const D: usize> {
+pub struct RandomAccessGate<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     /// Number of bits in the index (log2 of the list size).
     pub bits: usize,
 
@@ -44,7 +44,7 @@ pub struct RandomAccessGate<F: RichField + Extendable<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> RandomAccessGate<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> RandomAccessGate<F, D> {
     const fn new(num_copies: usize, bits: usize, num_extra_constants: usize) -> Self {
         Self {
             bits,
@@ -121,7 +121,7 @@ impl<F: RichField + Extendable<D>, const D: usize> RandomAccessGate<F, D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D> {
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -295,7 +295,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGa
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D>
     for RandomAccessGate<F, D>
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
@@ -343,13 +343,13 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct RandomAccessGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct RandomAccessGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     row: usize,
     gate: RandomAccessGate<F, D>,
     copy: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
     for RandomAccessGenerator<F, D>
 {
     fn id(&self) -> String {

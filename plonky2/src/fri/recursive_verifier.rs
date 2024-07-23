@@ -3,7 +3,7 @@ use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
@@ -22,7 +22,7 @@ use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::with_context;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
     fn compute_evaluation(
@@ -464,7 +464,7 @@ struct PrecomputedReducedOpeningsTarget<const D: usize> {
 }
 
 impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
-    fn from_os_and_alpha<F: RichField + Extendable<D>>(
+    fn from_os_and_alpha<F: RichField + BinomiallyExtendable<D>>(
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
         builder: &mut CircuitBuilder<F, D>,

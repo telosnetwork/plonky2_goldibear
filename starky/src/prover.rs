@@ -6,7 +6,7 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
-use plonky2::field::extension::Extendable;
+use plonky2::field::extension::BinomiallyExtendable;
 use plonky2::field::packable::Packable;
 use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::{PolynomialCoeffs, PolynomialValues};
@@ -42,7 +42,7 @@ pub fn prove<F, C, S, const D: usize>(
     timing: &mut TimingTree,
 ) -> Result<StarkProofWithPublicInputs<F, C, D>>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {
@@ -105,7 +105,7 @@ pub fn prove_with_commitment<F, C, S, const D: usize>(
     timing: &mut TimingTree,
 ) -> Result<StarkProofWithPublicInputs<F, C, D>>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {
@@ -355,7 +355,7 @@ fn compute_quotient_polys<'a, F, P, C, S, const D: usize>(
     config: &StarkConfig,
 ) -> Option<Vec<PolynomialCoeffs<F>>>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     P: PackedField<Scalar = F>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
@@ -547,7 +547,7 @@ fn check_constraints<'a, F, C, S, const D: usize>(
     num_lookup_columns: usize,
     num_ctl_helper_cols: &[usize],
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {

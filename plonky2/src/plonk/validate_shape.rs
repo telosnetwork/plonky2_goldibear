@@ -1,6 +1,6 @@
 use anyhow::ensure;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::plonk::config::GenericConfig;
@@ -11,7 +11,7 @@ pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
 ) -> anyhow::Result<()>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
 {
     let ProofWithPublicInputs {
@@ -31,7 +31,7 @@ fn validate_proof_shape<F, C, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
 ) -> anyhow::Result<()>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
 {
     let config = &common_data.config;

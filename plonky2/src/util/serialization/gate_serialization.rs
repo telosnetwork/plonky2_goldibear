@@ -5,14 +5,14 @@ use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use std::vec::Vec; // For macros below
 
-use plonky2_field::extension::Extendable;
+use plonky2_field::extension::BinomiallyExtendable;
 
 use crate::gates::gate::GateRef;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult};
 
-pub trait GateSerializer<F: RichField + Extendable<D>, const D: usize> {
+pub trait GateSerializer<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     fn read_gate(
         &self,
         buf: &mut Buffer,
@@ -93,7 +93,7 @@ macro_rules! impl_gate_serializer {
 }
 
 pub mod default {
-    use plonky2_field::extension::Extendable;
+    use plonky2_field::extension::BinomiallyExtendable;
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
@@ -124,7 +124,7 @@ pub mod default {
     /// the `GateSerializer` trait. This can be easily done through the `impl_gate_serializer` macro.
     #[derive(Debug)]
     pub struct DefaultGateSerializer;
-    impl<F: RichField + Extendable<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer {
+    impl<F: RichField + BinomiallyExtendable<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer {
         impl_gate_serializer! {
             DefaultGateSerializer,
             ArithmeticGate,

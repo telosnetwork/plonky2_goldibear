@@ -2,8 +2,8 @@
 
 use anyhow::{ensure, Result};
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::Field;
 use crate::fri::verifier::verify_fri_proof;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
@@ -14,7 +14,7 @@ use crate::plonk::validate_shape::validate_proof_with_pis_shape;
 use crate::plonk::vanishing_poly::eval_vanishing_poly;
 use crate::plonk::vars::EvaluationVars;
 
-pub(crate) fn verify<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub(crate) fn verify<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
     proof_with_pis: ProofWithPublicInputs<F, C, D>,
     verifier_data: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,
@@ -38,7 +38,7 @@ pub(crate) fn verify<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, c
 }
 
 pub(crate) fn verify_with_challenges<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(

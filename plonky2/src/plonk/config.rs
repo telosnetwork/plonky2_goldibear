@@ -14,7 +14,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use crate::field::extension::quadratic::QuadraticExtension;
-use crate::field::extension::{Extendable, FieldExtension};
+use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::field::goldilocks_field::GoldilocksField;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
@@ -88,7 +88,7 @@ pub trait AlgebraicHasher<F: RichField>: Hasher<F, Hash = HashOut<F>> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self::AlgebraicPermutation
     where
-        F: RichField + Extendable<D>;
+        F: RichField + BinomiallyExtendable<D>;
 }
 
 /// Generic configuration trait.
@@ -96,7 +96,7 @@ pub trait GenericConfig<const D: usize>:
     Debug + Clone + Sync + Sized + Send + Eq + PartialEq
 {
     /// Main field.
-    type F: RichField + Extendable<D, Extension = Self::FE>;
+    type F: RichField + BinomiallyExtendable<D, Extension = Self::FE>;
     /// Field extension of degree D of the main field.
     type FE: FieldExtension<D, BaseField = Self::F>;
     /// Hash function used for building Merkle trees.

@@ -6,7 +6,7 @@ use std::sync::{Arc, Once};
 use itertools::Itertools;
 use log::Level;
 
-use crate::field::types::Field;
+use p3_field::Field;
 use crate::gadgets::lookup::{OTHER_TABLE, SMALLER_TABLE, TIP5_TABLE};
 use crate::gates::lookup_table::LookupTable;
 use crate::gates::noop::NoopGate;

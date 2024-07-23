@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::gates::gate::Gate;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
@@ -15,7 +15,7 @@ use crate::util::serialization::{Buffer, IoResult};
 #[derive(Debug)]
 pub struct NoopGate;
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for NoopGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for NoopGate {
     fn id(&self) -> String {
         "NoopGate".into()
     }

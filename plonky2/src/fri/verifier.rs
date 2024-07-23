@@ -2,10 +2,10 @@
 use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
+use p3_field::extension::BinomiallyExtendable;
 
-use crate::field::extension::{flatten, Extendable, FieldExtension};
 use crate::field::interpolation::{barycentric_weights, interpolate};
-use crate::field::types::Field;
+use p3_field::Field;
 use crate::fri::proof::{FriChallenges, FriInitialTreeProof, FriProof, FriQueryRound};
 use crate::fri::structure::{FriBatchInfo, FriInstanceInfo, FriOpenings};
 use crate::fri::validate_shape::validate_fri_proof_shape;
@@ -19,7 +19,7 @@ use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place};
 
 /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
 /// and P' is the FRI reduced polynomial.
-pub(crate) fn compute_evaluation<F: Field + Extendable<D>, const D: usize>(
+pub(crate) fn compute_evaluation<F: Field + BinomiallyExtendable<D>, const D: usize>(
     x: F,
     x_index_within_coset: usize,
     arity_bits: usize,
@@ -46,7 +46,7 @@ pub(crate) fn compute_evaluation<F: Field + Extendable<D>, const D: usize>(
     interpolate(&points, beta, &barycentric_weights)
 }
 
-pub(crate) fn fri_verify_proof_of_work<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) fn fri_verify_proof_of_work<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     fri_pow_response: F,
     config: &FriConfig,
 ) -> Result<()> {
@@ -60,7 +60,7 @@ pub(crate) fn fri_verify_proof_of_work<F: RichField + Extendable<D>, const D: us
 }
 
 pub fn verify_fri_proof<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -121,7 +121,7 @@ fn fri_verify_initial_proof<F: RichField, H: Hasher<F>>(
 }
 
 pub(crate) fn fri_combine_initial<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -162,7 +162,7 @@ pub(crate) fn fri_combine_initial<
 }
 
 fn fri_verifier_query_round<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -243,11 +243,11 @@ fn fri_verifier_query_round<
 /// For each opening point, holds the reduced (by `alpha`) evaluations of each polynomial that's
 /// opened at that point.
 #[derive(Clone, Debug)]
-pub(crate) struct PrecomputedReducedOpenings<F: RichField + Extendable<D>, const D: usize> {
+pub(crate) struct PrecomputedReducedOpenings<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub reduced_openings_at_point: Vec<F::Extension>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PrecomputedReducedOpenings<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PrecomputedReducedOpenings<F, D> {
     pub(crate) fn from_os_and_alpha(openings: &FriOpenings<F, D>, alpha: F::Extension) -> Self {
         let reduced_openings_at_point = openings
             .batches

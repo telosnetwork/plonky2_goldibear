@@ -11,7 +11,7 @@ use anyhow::ensure;
 use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -31,7 +31,7 @@ use crate::util::serialization::{Buffer, Read, Write};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct Proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct Proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -53,7 +53,7 @@ pub struct ProofTarget<const D: usize> {
     pub opening_proof: FriProofTarget<D>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> Proof<F, C, D> {
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> Proof<F, C, D> {
     /// Compress the proof.
     pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D> {
         let Proof {
@@ -77,7 +77,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> P
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct ProofWithPublicInputs<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -85,7 +85,7 @@ pub struct ProofWithPublicInputs<
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
     ProofWithPublicInputs<F, C, D>
 {
     pub fn compress(
@@ -129,7 +129,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedProof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct CompressedProof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
@@ -143,7 +143,7 @@ pub struct CompressedProof<F: RichField + Extendable<D>, C: GenericConfig<D, F =
     pub opening_proof: CompressedFriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
     CompressedProof<F, C, D>
 {
     /// Decompress the proof.
@@ -174,7 +174,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct CompressedProofWithPublicInputs<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -182,7 +182,7 @@ pub struct CompressedProofWithPublicInputs<
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
     CompressedProofWithPublicInputs<F, C, D>
 {
     pub fn decompress(
@@ -257,7 +257,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 }
 
 #[derive(Debug)]
-pub struct ProofChallenges<F: RichField + Extendable<D>, const D: usize> {
+pub struct ProofChallenges<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     /// Random values used in Plonk's permutation argument.
     pub plonk_betas: Vec<F>,
 
@@ -286,7 +286,7 @@ pub(crate) struct ProofChallengesTarget<const D: usize> {
 }
 
 /// Coset elements that can be inferred in the FRI reduction steps.
-pub(crate) struct FriInferredElements<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) struct FriInferredElements<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     pub Vec<F::Extension>,
 );
 
@@ -298,7 +298,7 @@ pub struct ProofWithPublicInputsTarget<const D: usize> {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
-pub struct OpeningSet<F: RichField + Extendable<D>, const D: usize> {
+pub struct OpeningSet<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub constants: Vec<F::Extension>,
     pub plonk_sigmas: Vec<F::Extension>,
     pub wires: Vec<F::Extension>,
@@ -310,7 +310,7 @@ pub struct OpeningSet<F: RichField + Extendable<D>, const D: usize> {
     pub lookup_zs_next: Vec<F::Extension>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> OpeningSet<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> OpeningSet<F, D> {
     pub fn new<C: GenericConfig<D, F = F>>(
         zeta: F::Extension,
         g: F::Extension,
@@ -513,7 +513,7 @@ mod tests {
     fn test_proof_compression_lookup() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        use plonky2_field::types::Field;
+        use p3_field::Field;
         type F = <C as GenericConfig<D>>::F;
 
         let mut config = CircuitConfig::standard_recursion_config();

@@ -2,7 +2,7 @@
 use alloc::{string::String, vec::Vec};
 use core::ops::Range;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -28,7 +28,7 @@ impl PublicInputGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for PublicInputGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for PublicInputGate {
     fn id(&self) -> String {
         "PublicInputGate".into()
     }
@@ -99,7 +99,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for PublicInputGat
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,

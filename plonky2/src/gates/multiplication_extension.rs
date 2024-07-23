@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::ops::Range;
 
-use crate::field::extension::{Extendable, FieldExtension};
+use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -51,7 +51,7 @@ impl<const D: usize> MulExtensionGate<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -155,13 +155,13 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGa
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct MulExtensionGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct MulExtensionGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     row: usize,
     const_0: F,
     i: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
     for MulExtensionGenerator<F, D>
 {
     fn id(&self) -> String {

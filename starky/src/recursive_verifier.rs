@@ -7,7 +7,7 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
-use plonky2::field::extension::Extendable;
+use plonky2::field::extension::BinomiallyExtendable;
 use plonky2::field::types::Field;
 use plonky2::fri::witness_util::set_fri_proof_target;
 use plonky2::hash::hash_types::RichField;
@@ -35,7 +35,7 @@ use crate::vanishing_poly::eval_vanishing_poly_circuit;
 /// Encodes the verification of a [`StarkProofWithPublicInputsTarget`]
 /// for some statement in a circuit.
 pub fn verify_stark_proof_circuit<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
     const D: usize,
@@ -69,7 +69,7 @@ pub fn verify_stark_proof_circuit<
 
 /// Recursively verifies an inner STARK proof.
 pub fn verify_stark_proof_with_challenges_circuit<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
     const D: usize,
@@ -196,7 +196,7 @@ pub fn verify_stark_proof_with_challenges_circuit<
     );
 }
 
-fn eval_l_0_and_l_last_circuit<F: RichField + Extendable<D>, const D: usize>(
+fn eval_l_0_and_l_last_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     log_n: usize,
     x: ExtensionTarget<D>,
@@ -217,7 +217,7 @@ fn eval_l_0_and_l_last_circuit<F: RichField + Extendable<D>, const D: usize>(
 
 /// Adds a new `StarkProofWithPublicInputsTarget` to this circuit.
 pub fn add_virtual_stark_proof_with_pis<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     S: Stark<F, D>,
     const D: usize,
 >(
@@ -244,7 +244,7 @@ pub fn add_virtual_stark_proof_with_pis<
 }
 
 /// Adds a new `StarkProofTarget` to this circuit.
-pub fn add_virtual_stark_proof<F: RichField + Extendable<D>, S: Stark<F, D>, const D: usize>(
+pub fn add_virtual_stark_proof<F: RichField + BinomiallyExtendable<D>, S: Stark<F, D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     stark: &S,
     config: &StarkConfig,
@@ -287,7 +287,7 @@ pub fn add_virtual_stark_proof<F: RichField + Extendable<D>, S: Stark<F, D>, con
     }
 }
 
-fn add_virtual_stark_opening_set<F: RichField + Extendable<D>, S: Stark<F, D>, const D: usize>(
+fn add_virtual_stark_opening_set<F: RichField + BinomiallyExtendable<D>, S: Stark<F, D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     stark: &S,
     num_ctl_helper_zs: usize,
@@ -326,7 +326,7 @@ pub fn set_stark_proof_with_pis_target<F, C: GenericConfig<D, F = F>, W, const D
     stark_proof_with_pis: &StarkProofWithPublicInputs<F, C, D>,
     zero: Target,
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C::Hasher: AlgebraicHasher<F>,
     W: Witness<F>,
 {
@@ -355,7 +355,7 @@ pub fn set_stark_proof_target<F, C: GenericConfig<D, F = F>, W, const D: usize>(
     proof: &StarkProof<F, C, D>,
     zero: Target,
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C::Hasher: AlgebraicHasher<F>,
     W: Witness<F>,
 {
@@ -383,7 +383,7 @@ pub fn set_stark_proof_target<F, C: GenericConfig<D, F = F>, W, const D: usize>(
 
 /// Utility function to check that all lookups data wrapped in `Option`s are `Some` iff
 /// the STARK uses a permutation argument.
-fn check_lookup_options<F: RichField + Extendable<D>, S: Stark<F, D>, const D: usize>(
+fn check_lookup_options<F: RichField + BinomiallyExtendable<D>, S: Stark<F, D>, const D: usize>(
     stark: &S,
     proof: &StarkProofTarget<D>,
     challenges: &StarkProofChallengesTarget<D>,

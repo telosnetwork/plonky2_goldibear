@@ -1,10 +1,10 @@
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::hash::hash_types::RichField;
 use crate::iop::target::BoolTarget;
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn permute<H: AlgebraicHasher<F>>(
         &mut self,
         inputs: H::AlgebraicPermutation,

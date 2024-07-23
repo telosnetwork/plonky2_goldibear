@@ -8,8 +8,8 @@ use plonky2_util::ceil_div_usize;
 use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
 use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::Field;
+use crate::field::extension::{BinomiallyExtendable, FieldExtension};
+use p3_field::Field;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;
 use crate::gates::lookup_table::LookupTableGate;
@@ -28,7 +28,7 @@ use crate::util::strided_view::PackedStridedView;
 use crate::with_context;
 
 /// Get the polynomial associated to a lookup table with current challenges.
-pub(crate) fn get_lut_poly<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) fn get_lut_poly<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     lut_index: usize,
     deltas: &[F],
@@ -48,7 +48,7 @@ pub(crate) fn get_lut_poly<F: RichField + Extendable<D>, const D: usize>(
 /// Evaluate the vanishing polynomial at `x`. In this context, the vanishing polynomial is a random
 /// linear combination of gate constraints, plus some other terms relating to the permutation
 /// argument. All such terms should vanish on `H`.
-pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) fn eval_vanishing_poly<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     x: F::Extension,
     vars: EvaluationVars<F, D>,
@@ -158,7 +158,7 @@ pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
 }
 
 /// Like `eval_vanishing_poly`, but specialized for base field points. Batched.
-pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     indices_batch: &[usize],
     xs_batch: &[F],
@@ -333,7 +333,7 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const
 /// Sum and LDC are broken down in partial polynomials to lower the constraint degree, similarly to the permutation argument.
 /// They also share the same partial SLDC polynomials, so that the last SLDC value is Sum(end) - LDC(end). The final constraint
 /// Sum(end) = LDC(end) becomes simply SLDC(end) = 0, and we can remove the LDC initial constraint.
-pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
+pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVars<F, D>,
     local_lookup_zs: &[F::Extension],
@@ -506,7 +506,7 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
 }
 
 /// Same as `check_lookup_constraints`, but for the base field case.
-pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usize>(
+pub fn check_lookup_constraints_batch<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVarsBase<F>,
     local_lookup_zs: &[F],
@@ -662,7 +662,7 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
 /// `num_gate_constraints` is the largest number of constraints imposed by any gate. It is not
 /// strictly necessary, but it helps performance by ensuring that we allocate a vector with exactly
 /// the capacity that we need.
-pub fn evaluate_gate_constraints<F: RichField + Extendable<D>, const D: usize>(
+pub fn evaluate_gate_constraints<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVars<F, D>,
 ) -> Vec<F::Extension> {
@@ -693,7 +693,7 @@ pub fn evaluate_gate_constraints<F: RichField + Extendable<D>, const D: usize>(
 /// Returns a vector of `num_gate_constraints * vars_batch.len()` field elements. The constraints
 /// corresponding to `vars_batch[i]` are found in `result[i], result[vars_batch.len() + i],
 /// result[2 * vars_batch.len() + i], ...`.
-pub fn evaluate_gate_constraints_base_batch<F: RichField + Extendable<D>, const D: usize>(
+pub fn evaluate_gate_constraints_base_batch<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars_batch: EvaluationVarsBaseBatch<F>,
 ) -> Vec<F> {
@@ -721,7 +721,7 @@ pub fn evaluate_gate_constraints_base_batch<F: RichField + Extendable<D>, const 
     constraints_batch
 }
 
-pub fn evaluate_gate_constraints_circuit<F: RichField + Extendable<D>, const D: usize>(
+pub fn evaluate_gate_constraints_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationTargets<D>,
@@ -747,7 +747,7 @@ pub fn evaluate_gate_constraints_circuit<F: RichField + Extendable<D>, const D: 
     all_gate_constraints
 }
 
-pub(crate) fn get_lut_poly_circuit<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) fn get_lut_poly_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
     lut_index: usize,
@@ -783,7 +783,7 @@ pub(crate) fn get_lut_poly_circuit<F: RichField + Extendable<D>, const D: usize>
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound. This is fine if `x` is a random
 /// variable drawn from a sufficiently large domain.
-pub(crate) fn eval_vanishing_poly_circuit<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) fn eval_vanishing_poly_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
     x: ExtensionTarget<D>,
@@ -918,7 +918,7 @@ pub(crate) fn eval_vanishing_poly_circuit<F: RichField + Extendable<D>, const D:
 }
 
 /// Same as `check_lookup_constraints`, but for the recursive case.
-pub fn check_lookup_constraints_circuit<F: RichField + Extendable<D>, const D: usize>(
+pub fn check_lookup_constraints_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationTargets<D>,

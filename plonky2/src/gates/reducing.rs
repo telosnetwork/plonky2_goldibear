@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::ops::Range;
 
-use crate::field::extension::{Extendable, FieldExtension};
+use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -60,7 +60,7 @@ impl<const D: usize> ReducingGate<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingGate<D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ReducingGate<D> {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -188,7 +188,7 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingGate<D>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
     fn id(&self) -> String {
         "ReducingGenerator".to_string()
     }

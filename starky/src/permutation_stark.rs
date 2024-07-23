@@ -5,7 +5,7 @@
 use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
 
-use plonky2::field::extension::{Extendable, FieldExtension};
+use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::PolynomialValues;
 use plonky2::hash::hash_types::RichField;
@@ -22,12 +22,12 @@ use crate::util::trace_rows_to_poly_values;
 /// i' <- i+1, j' <- j+1`.
 /// Note: The `0, 1` columns are the columns used to test the permutation argument.
 #[derive(Copy, Clone)]
-struct PermutationStark<F: RichField + Extendable<D>, const D: usize> {
+struct PermutationStark<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     num_rows: usize,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PermutationStark<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PermutationStark<F, D> {
     const fn new(num_rows: usize) -> Self {
         Self {
             num_rows,
@@ -54,7 +54,7 @@ impl<F: RichField + Extendable<D>, const D: usize> PermutationStark<F, D> {
 const PERM_COLUMNS: usize = 3;
 const PERM_PUBLIC_INPUTS: usize = 1;
 
-impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for PermutationStark<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for PermutationStark<F, D> {
     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, PERM_COLUMNS, PERM_PUBLIC_INPUTS>
     where
         FE: FieldExtension<D2, BaseField = F>,
@@ -100,7 +100,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for PermutationSt
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2::field::extension::Extendable;
+    use plonky2::field::extension::BinomiallyExtendable;
     use plonky2::field::types::Field;
     use plonky2::hash::hash_types::RichField;
     use plonky2::iop::witness::PartialWitness;
@@ -197,7 +197,7 @@ mod tests {
     }
 
     fn recursive_proof<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         S: Stark<F, D> + Copy,
         InnerC: GenericConfig<D, F = F>,

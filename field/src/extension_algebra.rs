@@ -200,12 +200,12 @@ mod tests {
     use itertools::Itertools;
 
     use crate::extension::algebra::ExtensionAlgebra;
-    use crate::extension::{Extendable, FieldExtension};
+    use crate::extension::{BinomiallyExtendable, FieldExtension};
     use crate::goldilocks_field::GoldilocksField;
     use crate::types::{Field, Sample};
 
     /// Tests that the multiplication on the extension algebra lifts that of the field extension.
-    fn test_extension_algebra<F: Extendable<D>, const D: usize>() {
+    fn test_extension_algebra<F: BinomiallyExtendable<D>, const D: usize>() {
         #[derive(Copy, Clone, Debug)]
         enum ZeroOne {
             Zero,
@@ -222,8 +222,8 @@ mod tests {
             arr0.copy_from_slice(&x.iter().map(to_field).collect::<Vec<_>>());
             arr1.copy_from_slice(&y.iter().map(to_field).collect::<Vec<_>>());
             (
-                <F as Extendable<D>>::Extension::from_basefield_array(arr0),
-                <F as Extendable<D>>::Extension::from_basefield_array(arr1),
+                <F as BinomiallyExtendable<D>>::Extension::from_basefield_array(arr0),
+                <F as BinomiallyExtendable<D>>::Extension::from_basefield_array(arr1),
             )
         };
 

@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::fri::proof::{FriProof, FriProofTarget};
 use crate::hash::hash_types::RichField;
 use crate::iop::witness::WitnessWrite;
@@ -12,7 +12,7 @@ pub fn set_fri_proof_target<F, W, H, const D: usize>(
     fri_proof_target: &FriProofTarget<D>,
     fri_proof: &FriProof<F, H, D>,
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     W: WitnessWrite<F> + ?Sized,
     H: AlgebraicHasher<F>,
 {

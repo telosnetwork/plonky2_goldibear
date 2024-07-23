@@ -13,7 +13,7 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig, Hasher};
 impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_openings<const D: usize>(&mut self, openings: &FriOpenings<F, D>)
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);
@@ -29,7 +29,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         config: &FriConfig,
     ) -> FriChallenges<F, D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         let num_fri_queries = config.num_query_rounds;
         let lde_size = 1 << (degree_bits + config.rate_bits);
@@ -63,7 +63,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     }
 }
 
-impl<F: RichField + Extendable<D>, H: AlgebraicHasher<F>, const D: usize>
+impl<F: RichField + BinomiallyExtendable<D>, H: AlgebraicHasher<F>, const D: usize>
     RecursiveChallenger<F, H, D>
 {
     pub fn observe_openings(&mut self, openings: &FriOpeningsTarget<D>) {

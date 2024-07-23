@@ -5,9 +5,9 @@ use alloc::{
     vec::Vec,
 };
 use core::borrow::Borrow;
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::PrimeField64;
 
-use crate::field::extension::{Extendable, FieldExtension, OEF};
-use crate::field::types::{Field, Field64};
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
 use crate::gates::multiplication_extension::MulExtensionGate;
 use crate::hash::hash_types::RichField;
@@ -20,7 +20,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn arithmetic_extension(
         &mut self,
         const_0: F,
@@ -506,7 +506,7 @@ pub struct QuotientGeneratorExtension<const D: usize> {
     quotient: ExtensionTarget<D>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
     for QuotientGeneratorExtension<D>
 {
     fn id(&self) -> String {
@@ -552,7 +552,7 @@ pub struct PowersTarget<const D: usize> {
 }
 
 impl<const D: usize> PowersTarget<D> {
-    pub fn next<F: RichField + Extendable<D>>(
+    pub fn next<F: RichField + BinomiallyExtendable<D>>(
         &mut self,
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D> {
@@ -561,7 +561,7 @@ impl<const D: usize> PowersTarget<D> {
         result
     }
 
-    pub fn repeated_frobenius<F: RichField + Extendable<D>>(
+    pub fn repeated_frobenius<F: RichField + BinomiallyExtendable<D>>(
         self,
         k: usize,
         builder: &mut CircuitBuilder<F, D>,
@@ -574,7 +574,7 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
         PowersTarget {
             base,
@@ -585,7 +585,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
 /// Represents an extension arithmetic operation in the circuit. Used to memoize results.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct ExtensionArithmeticOperation<F: Field64 + Extendable<D>, const D: usize> {
+pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + BinomiallyExtendable<D>, const D: usize> {
     const_0: F,
     const_1: F,
     multiplicand_0: ExtensionTarget<D>,

@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::hash::hash_types::{HashOutTarget, RichField};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::{CommonCircuitData, VerifierCircuitTarget};
@@ -15,7 +15,7 @@ use crate::plonk::vars::EvaluationTargets;
 use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// Recursively verifies an inner proof.
     pub fn verify_proof<C: GenericConfig<D, F = F>>(
         &mut self,
@@ -418,7 +418,7 @@ mod tests {
     );
 
     /// Creates a dummy proof which should have roughly `num_dummy_gates` gates.
-    fn dummy_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+    fn dummy_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
         config: &CircuitConfig,
         num_dummy_gates: u64,
     ) -> Result<Proof<F, C, D>> {
@@ -437,7 +437,7 @@ mod tests {
 
     /// Creates a dummy lookup proof which does one lookup to one LUT.
     fn dummy_lookup_proof<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -495,7 +495,7 @@ mod tests {
 
     /// Creates a dummy lookup proof which does one lookup to two different LUTs.
     fn dummy_two_luts_proof<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -572,7 +572,7 @@ mod tests {
 
     /// Creates a dummy proof which has more than 256 lookups to one LUT.
     fn dummy_too_many_rows_proof<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -627,7 +627,7 @@ mod tests {
     }
 
     fn recursive_proof<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         InnerC: GenericConfig<D, F = F>,
         const D: usize,
@@ -686,7 +686,7 @@ mod tests {
 
     /// Test serialization and print some size info.
     fn test_serialization<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(

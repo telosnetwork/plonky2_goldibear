@@ -19,18 +19,18 @@ use plonky2::util::serialization::{
     Buffer, DefaultGateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
 use plonky2::{get_generator_tag_impl, impl_generator_serializer, read_generator_impl};
-use plonky2_field::extension::Extendable;
+use plonky2_field::extension::BinomiallyExtendable;
 
 /// A generator used by the prover to calculate the square root (`x`) of a given value
 /// (`x_squared`), outside of the circuit, in order to supply it as an additional public input.
 #[derive(Debug, Default)]
-struct SquareRootGenerator<F: RichField + Extendable<D>, const D: usize> {
+struct SquareRootGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     x: Target,
     x_squared: Target,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
     for SquareRootGenerator<F, D>
 {
     fn id(&self) -> String {
@@ -73,7 +73,7 @@ pub struct CustomGeneratorSerializer<C: GenericConfig<D>, const D: usize> {
 
 impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for CustomGeneratorSerializer<C, D>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F> + 'static,
     C::Hasher: AlgebraicHasher<F>,
 {

@@ -6,7 +6,7 @@ use alloc::{
 };
 
 use hashbrown::HashMap;
-use plonky2_field::extension::Extendable;
+use plonky2_field::extension::BinomiallyExtendable;
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_util::ceil_div_usize;
 
@@ -40,7 +40,7 @@ pub fn cyclic_base_proof<F, C, const D: usize>(
     mut nonzero_public_inputs: HashMap<usize, F>,
 ) -> ProofWithPublicInputs<F, C, D>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     C::Hasher: AlgebraicHasher<C::F>,
 {
@@ -69,7 +69,7 @@ where
 /// certain public inputs (identified by their indices) which should be given specific values.
 /// The rest will default to zero.
 pub(crate) fn dummy_proof<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -88,7 +88,7 @@ where
 
 /// Generate a circuit matching a given `CommonCircuitData`.
 pub(crate) fn dummy_circuit<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -121,7 +121,7 @@ pub(crate) fn dummy_circuit<
     circuit
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F> + 'static>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
@@ -149,7 +149,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 #[derive(Debug)]
 pub struct DummyProofGenerator<F, C, const D: usize>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
 {
     pub(crate) proof_with_pis_target: ProofWithPublicInputsTarget<D>,
@@ -160,7 +160,7 @@ where
 
 impl<F, C, const D: usize> Default for DummyProofGenerator<F, C, D>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
 {
     fn default() -> Self {
@@ -221,7 +221,7 @@ where
 
 impl<F, C, const D: usize> SimpleGenerator<F, D> for DummyProofGenerator<F, C, D>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F> + 'static,
     C::Hasher: AlgebraicHasher<F>,
 {

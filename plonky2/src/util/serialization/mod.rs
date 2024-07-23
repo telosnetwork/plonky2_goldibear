@@ -19,7 +19,7 @@ pub use generator_serialization::default::DefaultGeneratorSerializer;
 pub use generator_serialization::WitnessGeneratorSerializer;
 use hashbrown::HashMap;
 
-use crate::field::extension::{Extendable, FieldExtension};
+use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::field::types::{Field64, PrimeField64};
 use crate::fri::oracle::PolynomialBatch;
@@ -177,7 +177,7 @@ pub trait Read {
     #[inline]
     fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<F::Extension>
     where
-        F: Field64 + Extendable<D>,
+        F: Field64 + BinomiallyExtendable<D>,
     {
         let mut arr = [F::zero(); D];
         for a in arr.iter_mut() {
@@ -195,7 +195,7 @@ pub trait Read {
         length: usize,
     ) -> IoResult<Vec<F::Extension>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         (0..length).map(|_| self.read_field_ext::<F, D>()).collect()
     }
@@ -345,7 +345,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<OpeningSet<F, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -433,7 +433,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<FriInitialTreeProof<F, C::Hasher>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -487,7 +487,7 @@ pub trait Read {
         compressed: bool,
     ) -> IoResult<FriQueryStep<F, C::Hasher, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let evals = self.read_field_ext_vec::<F, D>(arity - usize::from(compressed))?;
@@ -517,7 +517,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<Vec<FriQueryRound<F, C::Hasher, D>>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -566,7 +566,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<FriProof<F, C::Hasher, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -690,13 +690,13 @@ pub trait Read {
         })
     }
 
-    fn read_gate<F: RichField + Extendable<D>, const D: usize>(
+    fn read_gate<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<GateRef<F, D>>;
 
-    fn read_generator<F: RichField + Extendable<D>, const D: usize>(
+    fn read_generator<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
@@ -719,7 +719,7 @@ pub trait Read {
     }
 
     fn read_polynomial_batch<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -746,7 +746,7 @@ pub trait Read {
         })
     }
 
-    fn read_common_circuit_data<F: RichField + Extendable<D>, const D: usize>(
+    fn read_common_circuit_data<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
     ) -> IoResult<CommonCircuitData<F, D>> {
@@ -805,7 +805,7 @@ pub trait Read {
     }
 
     fn read_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -824,7 +824,7 @@ pub trait Read {
     }
 
     fn read_prover_only_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -907,7 +907,7 @@ pub trait Read {
     }
 
     fn read_prover_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -924,7 +924,7 @@ pub trait Read {
     }
 
     fn read_verifier_only_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -940,7 +940,7 @@ pub trait Read {
     }
 
     fn read_verifier_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -971,7 +971,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<Proof<F, C, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1014,7 +1014,7 @@ pub trait Read {
     ) -> IoResult<ProofWithPublicInputs<F, C, D>>
     where
         Self: Remaining,
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let proof = self.read_proof(common_data)?;
@@ -1046,7 +1046,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedFriQueryRounds<F, C::Hasher, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1094,7 +1094,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedFriProof<F, C::Hasher, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1121,7 +1121,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedProof<F, C, D>>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1147,7 +1147,7 @@ pub trait Read {
     ) -> IoResult<CompressedProofWithPublicInputs<F, C, D>>
     where
         Self: Remaining,
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let proof = self.read_compressed_proof(common_data)?;
@@ -1274,7 +1274,7 @@ pub trait Write {
     #[inline]
     fn write_field_ext<F, const D: usize>(&mut self, x: F::Extension) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         for &a in &x.to_basefield_array() {
             self.write_field(a)?;
@@ -1286,7 +1286,7 @@ pub trait Write {
     #[inline]
     fn write_field_ext_vec<F, const D: usize>(&mut self, v: &[F::Extension]) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         for &a in v {
             self.write_field_ext::<F, D>(a)?;
@@ -1435,7 +1435,7 @@ pub trait Write {
     #[inline]
     fn write_opening_set<F, const D: usize>(&mut self, os: &OpeningSet<F, D>) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         self.write_field_ext_vec::<F, D>(&os.constants)?;
         self.write_field_ext_vec::<F, D>(&os.plonk_sigmas)?;
@@ -1506,7 +1506,7 @@ pub trait Write {
         fitp: &FriInitialTreeProof<F, C::Hasher>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         for (v, p) in &fitp.evals_proofs {
@@ -1537,7 +1537,7 @@ pub trait Write {
         fqs: &FriQueryStep<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         self.write_field_ext_vec::<F, D>(&fqs.evals)?;
@@ -1561,7 +1561,7 @@ pub trait Write {
         fqrs: &[FriQueryRound<F, C::Hasher, D>],
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         for fqr in fqrs {
@@ -1597,7 +1597,7 @@ pub trait Write {
         fp: &FriProof<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         for cap in &fp.commit_phase_merkle_caps {
@@ -1712,14 +1712,14 @@ pub trait Write {
         Ok(())
     }
 
-    fn write_gate<F: RichField + Extendable<D>, const D: usize>(
+    fn write_gate<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         gate: &GateRef<F, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<()>;
 
-    fn write_generator<F: RichField + Extendable<D>, const D: usize>(
+    fn write_generator<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         generator: &WitnessGeneratorRef<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
@@ -1742,7 +1742,7 @@ pub trait Write {
     }
 
     fn write_polynomial_batch<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -1762,7 +1762,7 @@ pub trait Write {
         Ok(())
     }
 
-    fn write_common_circuit_data<F: RichField + Extendable<D>, const D: usize>(
+    fn write_common_circuit_data<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
@@ -1813,7 +1813,7 @@ pub trait Write {
     }
 
     fn write_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -1832,7 +1832,7 @@ pub trait Write {
     }
 
     fn write_prover_only_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -1907,7 +1907,7 @@ pub trait Write {
     }
 
     fn write_prover_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -1925,7 +1925,7 @@ pub trait Write {
     }
 
     fn write_verifier_only_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -1945,7 +1945,7 @@ pub trait Write {
     }
 
     fn write_verifier_circuit_data<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -1976,7 +1976,7 @@ pub trait Write {
     #[inline]
     fn write_proof<F, C, const D: usize>(&mut self, proof: &Proof<F, C, D>) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
@@ -2003,7 +2003,7 @@ pub trait Write {
         proof_with_pis: &ProofWithPublicInputs<F, C, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let ProofWithPublicInputs {
@@ -2036,7 +2036,7 @@ pub trait Write {
         cfqrs: &CompressedFriQueryRounds<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         for &i in &cfqrs.indices {
@@ -2064,7 +2064,7 @@ pub trait Write {
         fp: &CompressedFriProof<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         for cap in &fp.commit_phase_merkle_caps {
@@ -2082,7 +2082,7 @@ pub trait Write {
         proof: &CompressedProof<F, C, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
@@ -2099,7 +2099,7 @@ pub trait Write {
         proof_with_pis: &CompressedProofWithPublicInputs<F, C, D>,
     ) -> IoResult<()>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
     {
         let CompressedProofWithPublicInputs {
@@ -2144,7 +2144,7 @@ impl Write for Vec<u8> {
         Ok(())
     }
 
-    fn write_gate<F: RichField + Extendable<D>, const D: usize>(
+    fn write_gate<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         gate: &GateRef<F, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
@@ -2153,7 +2153,7 @@ impl Write for Vec<u8> {
         gate_serializer.write_gate(self, gate, common_data)
     }
 
-    fn write_generator<F: RichField + Extendable<D>, const D: usize>(
+    fn write_generator<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         generator: &WitnessGeneratorRef<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
@@ -2215,7 +2215,7 @@ impl<'a> Read for Buffer<'a> {
         }
     }
 
-    fn read_gate<F: RichField + Extendable<D>, const D: usize>(
+    fn read_gate<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
@@ -2223,7 +2223,7 @@ impl<'a> Read for Buffer<'a> {
         gate_serializer.read_gate(self, common_data)
     }
 
-    fn read_generator<F: RichField + Extendable<D>, const D: usize>(
+    fn read_generator<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,

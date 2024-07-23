@@ -5,7 +5,7 @@ use core::mem::size_of;
 use static_assertions::const_assert;
 
 use crate::field::goldilocks_field::GoldilocksField;
-use crate::field::types::Field;
+use p3_field::Field;
 use crate::hash::poseidon::{
     Poseidon, ALL_ROUND_CONSTANTS, HALF_N_FULL_ROUNDS, N_PARTIAL_ROUNDS, N_ROUNDS,
 };

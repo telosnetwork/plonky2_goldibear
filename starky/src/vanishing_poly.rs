@@ -1,4 +1,4 @@
-use plonky2::field::extension::{Extendable, FieldExtension};
+use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::packed::PackedField;
 use plonky2::hash::hash_types::RichField;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
@@ -24,7 +24,7 @@ pub(crate) fn eval_vanishing_poly<F, FE, P, S, const D: usize, const D2: usize>(
     ctl_vars: Option<&[CtlCheckVars<F, FE, P, D2>]>,
     consumer: &mut ConstraintConsumer<P>,
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     FE: FieldExtension<D2, BaseField = F>,
     P: PackedField<Scalar = FE>,
     S: Stark<F, D>,
@@ -63,7 +63,7 @@ pub(crate) fn eval_vanishing_poly_circuit<F, S, const D: usize>(
     ctl_vars: Option<&[CtlCheckVarsTarget<F, D>]>,
     consumer: &mut RecursiveConstraintConsumer<F, D>,
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     S: Stark<F, D>,
 {
     // Evaluate all of the STARK's table constraints.

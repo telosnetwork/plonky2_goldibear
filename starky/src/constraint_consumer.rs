@@ -7,7 +7,7 @@
 use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
 
-use plonky2::field::extension::Extendable;
+use plonky2::field::extension::BinomiallyExtendable;
 use plonky2::field::packed::PackedField;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
@@ -87,7 +87,7 @@ impl<P: PackedField> ConstraintConsumer<P> {
 
 /// Circuit version of [`ConstraintConsumer`].
 #[derive(Debug)]
-pub struct RecursiveConstraintConsumer<F: RichField + Extendable<D>, const D: usize> {
+pub struct RecursiveConstraintConsumer<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     /// A random value used to combine multiple constraints into one.
     alphas: Vec<Target>,
 
@@ -108,7 +108,7 @@ pub struct RecursiveConstraintConsumer<F: RichField + Extendable<D>, const D: us
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> RecursiveConstraintConsumer<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> RecursiveConstraintConsumer<F, D> {
     /// Creates a new instance of [`RecursiveConstraintConsumer`].
     pub fn new(
         zero: ExtensionTarget<D>,

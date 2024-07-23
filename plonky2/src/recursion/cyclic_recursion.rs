@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -61,7 +61,7 @@ impl VerifierCircuitTarget {
         })
     }
 
-    fn from_slice<F: RichField + Extendable<D>, const D: usize>(
+    fn from_slice<F: RichField + BinomiallyExtendable<D>, const D: usize>(
         slice: &[Target],
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<Self> {
@@ -86,7 +86,7 @@ impl VerifierCircuitTarget {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
     ///
@@ -179,7 +179,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 /// Additional checks to be performed on a cyclic recursive proof in addition to verifying the proof.
 /// Checks that the purported verifier data in the public inputs match the real verifier data.
 pub fn check_cyclic_proof_verifier_data<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -204,7 +204,7 @@ mod tests {
 
     use anyhow::Result;
 
-    use crate::field::extension::Extendable;
+    use p3_field::extension::BinomiallyExtendable;
     use crate::field::types::{Field, PrimeField64};
     use crate::gates::noop::NoopGate;
     use crate::hash::hash_types::{HashOutTarget, RichField};
@@ -219,7 +219,7 @@ mod tests {
 
     // Generates `CommonCircuitData` usable for recursion.
     fn common_data_for_recursion<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >() -> CommonCircuitData<F, D>

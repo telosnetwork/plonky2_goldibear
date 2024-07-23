@@ -11,8 +11,8 @@ use hashbrown::HashMap;
 use serde::{Serialize, Serializer};
 
 use crate::field::batch_util::batch_multiply_inplace;
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::Field;
+use crate::field::extension::{BinomiallyExtendable, FieldExtension};
+use p3_field::Field;
 use crate::gates::selectors::UNUSED_SELECTOR;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -50,7 +50,7 @@ use crate::util::serialization::{Buffer, IoResult};
 ///
 /// Note however that extending the number of wires necessary for a custom gate comes at a price, and may
 /// impact the overall performances when generating proofs for a circuit containing them.
-pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + Sync {
+pub trait Gate<F: RichField + BinomiallyExtendable<D>, const D: usize>: 'static + Send + Sync {
     /// Defines a unique identifier for this custom gate.
     ///
     /// This is used as differentiating tag in gate serializers.
@@ -254,11 +254,11 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
 }
 
 /// A wrapper trait over a `Gate`, to allow for gate serialization.
-pub trait AnyGate<F: RichField + Extendable<D>, const D: usize>: Gate<F, D> {
+pub trait AnyGate<F: RichField + BinomiallyExtendable<D>, const D: usize>: Gate<F, D> {
     fn as_any(&self) -> &dyn Any;
 }
 
-impl<T: Gate<F, D>, F: RichField + Extendable<D>, const D: usize> AnyGate<F, D> for T {
+impl<T: Gate<F, D>, F: RichField + BinomiallyExtendable<D>, const D: usize> AnyGate<F, D> for T {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -266,35 +266,35 @@ impl<T: Gate<F, D>, F: RichField + Extendable<D>, const D: usize> AnyGate<F, D> 
 
 /// A wrapper around an `Arc<AnyGate>` which implements `PartialEq`, `Eq` and `Hash` based on gate IDs.
 #[derive(Clone)]
-pub struct GateRef<F: RichField + Extendable<D>, const D: usize>(pub Arc<dyn AnyGate<F, D>>);
+pub struct GateRef<F: RichField + BinomiallyExtendable<D>, const D: usize>(pub Arc<dyn AnyGate<F, D>>);
 
-impl<F: RichField + Extendable<D>, const D: usize> GateRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> GateRef<F, D> {
     pub fn new<G: Gate<F, D>>(gate: G) -> GateRef<F, D> {
         GateRef(Arc::new(gate))
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PartialEq for GateRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PartialEq for GateRef<F, D> {
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Hash for GateRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Hash for GateRef<F, D> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.id().hash(state)
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Eq for GateRef<F, D> {}
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Eq for GateRef<F, D> {}
 
-impl<F: RichField + Extendable<D>, const D: usize> Debug for GateRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Debug for GateRef<F, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", self.0.id())
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Serialize for GateRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Serialize for GateRef<F, D> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0.id())
     }
@@ -304,20 +304,20 @@ impl<F: RichField + Extendable<D>, const D: usize> Serialize for GateRef<F, D> {
 /// An available slot is of the form `(row, op)`, meaning the current available slot
 /// is at gate index `row` in the `op`-th operation.
 #[derive(Clone, Debug, Default)]
-pub struct CurrentSlot<F: RichField + Extendable<D>, const D: usize> {
+pub struct CurrentSlot<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub current_slot: HashMap<Vec<F>, (usize, usize)>,
 }
 
 /// A gate along with any constants used to configure it.
 #[derive(Clone, Debug)]
-pub struct GateInstance<F: RichField + Extendable<D>, const D: usize> {
+pub struct GateInstance<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub gate_ref: GateRef<F, D>,
     pub constants: Vec<F>,
 }
 
 /// Map each gate to a boolean prefix used to construct the gate's selector polynomial.
 #[derive(Debug, Clone)]
-pub struct PrefixedGate<F: RichField + Extendable<D>, const D: usize> {
+pub struct PrefixedGate<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub gate: GateRef<F, D>,
     pub prefix: Vec<bool>,
 }
@@ -332,7 +332,7 @@ fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_se
         .product()
 }
 
-fn compute_filter_circuit<F: RichField + Extendable<D>, const D: usize>(
+fn compute_filter_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     row: usize,
     group_range: Range<usize>,

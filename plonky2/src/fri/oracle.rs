@@ -2,10 +2,10 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-use plonky2_field::types::Field;
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::Field;
 use plonky2_maybe_rayon::*;
 
-use crate::field::extension::Extendable;
 use crate::field::fft::FftRootTable;
 use crate::field::packed::PackedField;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
@@ -27,7 +27,7 @@ pub const SALT_SIZE: usize = 4;
 
 /// Represents a FRI oracle, i.e. a batch of polynomials which have been Merklized.
 #[derive(Eq, PartialEq, Debug)]
-pub struct PolynomialBatch<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct PolynomialBatch<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 {
     pub polynomials: Vec<PolynomialCoeffs<F>>,
     pub merkle_tree: MerkleTree<F, C::Hasher>,
@@ -36,7 +36,7 @@ pub struct PolynomialBatch<F: RichField + Extendable<D>, C: GenericConfig<D, F =
     pub blinding: bool,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> Default
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> Default
     for PolynomialBatch<F, C, D>
 {
     fn default() -> Self {
@@ -50,7 +50,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> D
     }
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
     PolynomialBatch<F, C, D>
 {
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.

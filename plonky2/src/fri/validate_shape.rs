@@ -1,6 +1,6 @@
 use anyhow::ensure;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::fri::proof::{FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::structure::FriInstanceInfo;
 use crate::fri::FriParams;
@@ -14,7 +14,7 @@ pub(crate) fn validate_fri_proof_shape<F, C, const D: usize>(
     params: &FriParams,
 ) -> anyhow::Result<()>
 where
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
 {
     let FriProof {

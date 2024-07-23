@@ -26,7 +26,7 @@
 //! ```rust
 //! # use core::marker::PhantomData;
 //! // Imports all basic types.
-//! use plonky2::field::extension::{Extendable, FieldExtension};
+//! use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 //! use plonky2::field::packed::PackedField;
 //! use plonky2::field::polynomial::PolynomialValues;
 //! use plonky2::hash::hash_types::RichField;
@@ -41,13 +41,13 @@
 //! use plonky2::iop::ext_target::ExtensionTarget;
 //! use plonky2::plonk::circuit_builder::CircuitBuilder;
 //!
-//! pub struct FibonacciStark<F: RichField + Extendable<D>, const D: usize> {
+//! pub struct FibonacciStark<F: RichField + BinomiallyExtendable<D>, const D: usize> {
 //!     num_rows: usize,
 //!     _phantom: PhantomData<F>,
 //! }
 //!
 //! // Define witness generation.
-//! impl<F: RichField + Extendable<D>, const D: usize> FibonacciStark<F, D> {
+//! impl<F: RichField + BinomiallyExtendable<D>, const D: usize> FibonacciStark<F, D> {
 //!     // The first public input is `x0`.
 //!     const PI_INDEX_X0: usize = 0;
 //!     // The second public input is `x1`.
@@ -77,7 +77,7 @@
 //! const COLUMNS: usize = 3;
 //! const PUBLIC_INPUTS: usize = 3;
 //!
-//! impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
+//! impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
 //!     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, COLUMNS, PUBLIC_INPUTS>
 //!     where
 //!         FE: FieldExtension<D2, BaseField = F>,
@@ -158,7 +158,7 @@
 //! # use anyhow::Result;
 //! # use core::marker::PhantomData;
 //! # // Imports all basic types.
-//! # use plonky2::field::extension::{Extendable, FieldExtension};
+//! # use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 //! # use plonky2::field::types::Field;
 //! # use plonky2::field::packed::PackedField;
 //! # use plonky2::field::polynomial::PolynomialValues;
@@ -178,12 +178,12 @@
 //! # use starky::config::StarkConfig;
 //! #
 //! # #[derive(Copy, Clone)]
-//! # pub struct FibonacciStark<F: RichField + Extendable<D>, const D: usize> {
+//! # pub struct FibonacciStark<F: RichField + BinomiallyExtendable<D>, const D: usize> {
 //! #     num_rows: usize,
 //! #     _phantom: PhantomData<F>,
 //! # }
 //! # // Define witness generation.
-//! # impl<F: RichField + Extendable<D>, const D: usize> FibonacciStark<F, D> {
+//! # impl<F: RichField + BinomiallyExtendable<D>, const D: usize> FibonacciStark<F, D> {
 //! #     // The first public input is `x0`.
 //! #     const PI_INDEX_X0: usize = 0;
 //! #     // The second public input is `x1`.
@@ -215,7 +215,7 @@
 //! # // Define constraints.
 //! # const COLUMNS: usize = 3;
 //! # const PUBLIC_INPUTS: usize = 3;
-//! # impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
+//! # impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
 //! #     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, COLUMNS, PUBLIC_INPUTS>
 //! #     where
 //! #         FE: FieldExtension<D2, BaseField = F>,

@@ -4,7 +4,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use plonky2::field::extension::{Extendable, FieldExtension};
+use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::packed::PackedField;
 use plonky2::field::types::Field;
 use plonky2::fri::structure::{
@@ -21,7 +21,7 @@ use crate::evaluation_frame::StarkEvaluationFrame;
 use crate::lookup::Lookup;
 
 /// Represents a STARK system.
-pub trait Stark<F: RichField + Extendable<D>, const D: usize>: Sync {
+pub trait Stark<F: RichField + BinomiallyExtendable<D>, const D: usize>: Sync {
     /// The total number of columns in the trace.
     const COLUMNS: usize = Self::EvaluationFrameTarget::COLUMNS;
     /// The total number of public inputs.

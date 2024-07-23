@@ -7,11 +7,11 @@ use alloc::{
 };
 use core::marker::PhantomData;
 use core::ops::Range;
+use p3_field::extension::BinomiallyExtendable;
 
 use crate::field::extension::algebra::ExtensionAlgebra;
-use crate::field::extension::{Extendable, FieldExtension, OEF};
 use crate::field::interpolation::barycentric_weights;
-use crate::field::types::Field;
+use p3_field::Field;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -54,14 +54,14 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// Then $e[N]$ is the final interpolated value. The non-routed wires hold every $(d - 1)$'th
 /// intermediate value of $p$ and $e$, starting at $p[d]$ and $e[d]$, where $d$ is the gate degree.
 #[derive(Clone, Debug, Default)]
-pub struct CosetInterpolationGate<F: RichField + Extendable<D>, const D: usize> {
+pub struct CosetInterpolationGate<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub subgroup_bits: usize,
     pub degree: usize,
     pub barycentric_weights: Vec<F>,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CosetInterpolationGate<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CosetInterpolationGate<F, D> {
     pub fn new(subgroup_bits: usize) -> Self {
         Self::with_max_degree(subgroup_bits, 1 << subgroup_bits)
     }
@@ -171,7 +171,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CosetInterpolationGate<F, D> 
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for CosetInterpolationGate<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for CosetInterpolationGate<F, D> {
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -395,14 +395,14 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for CosetInterpola
 }
 
 #[derive(Debug, Default)]
-pub struct InterpolationGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct InterpolationGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     row: usize,
     gate: CosetInterpolationGate<F, D>,
     interpolation_domain: Vec<F>,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> InterpolationGenerator<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> InterpolationGenerator<F, D> {
     fn new(row: usize, gate: CosetInterpolationGate<F, D>) -> Self {
         let interpolation_domain = F::two_adic_subgroup(gate.subgroup_bits);
         InterpolationGenerator {
@@ -414,7 +414,7 @@ impl<F: RichField + Extendable<D>, const D: usize> InterpolationGenerator<F, D> 
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
     for InterpolationGenerator<F, D>
 {
     fn id(&self) -> String {
@@ -520,7 +520,7 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
 ///
 /// The domain lies in a base field while the values and evaluation point may be from an extension
 /// field. The Barycentric weights are precomputed and taken as arguments.
-pub fn interpolate_over_base_domain<F: Field + Extendable<D>, const D: usize>(
+pub fn interpolate_over_base_domain<F: Field + BinomiallyExtendable<D>, const D: usize>(
     domain: &[F],
     values: &[F::Extension],
     barycentric_weights: &[F],
@@ -544,7 +544,7 @@ pub fn interpolate_over_base_domain<F: Field + Extendable<D>, const D: usize>(
 /// accumulated values, a partial evaluation and a partial product. This partially updates the
 /// accumulated values, so that starting with an initial evaluation of 0 and a partial evaluation
 /// of 1 and running over the whole domain is a full interpolation.
-fn partial_interpolate<F: Field + Extendable<D>, const D: usize>(
+fn partial_interpolate<F: Field + BinomiallyExtendable<D>, const D: usize>(
     domain: &[F],
     values: &[F::Extension],
     barycentric_weights: &[F],
@@ -602,7 +602,7 @@ fn partial_interpolate_ext_algebra<F: OEF<D>, const D: usize>(
     )
 }
 
-fn partial_interpolate_ext_algebra_target<F: RichField + Extendable<D>, const D: usize>(
+fn partial_interpolate_ext_algebra_target<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     domain: &[F],
     values: &[ExtensionAlgebraTarget<D>],
@@ -643,7 +643,7 @@ mod tests {
     use plonky2_util::log2_strict;
 
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;
@@ -651,56 +651,56 @@ mod tests {
 
     #[test]
     fn test_degree_and_wires_minimized() {
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 2);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 2);
         assert_eq!(gate.num_intermediates(), 6);
         assert_eq!(gate.degree(), 2);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 3);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 3);
         assert_eq!(gate.num_intermediates(), 3);
         assert_eq!(gate.degree(), 3);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 4);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 4);
         assert_eq!(gate.num_intermediates(), 2);
         assert_eq!(gate.degree(), 4);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 5);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 5);
         assert_eq!(gate.num_intermediates(), 1);
         assert_eq!(gate.degree(), 5);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 6);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 6);
         assert_eq!(gate.num_intermediates(), 1);
         assert_eq!(gate.degree(), 5);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 7);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 7);
         assert_eq!(gate.num_intermediates(), 1);
         assert_eq!(gate.degree(), 5);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(4, 3);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 3);
         assert_eq!(gate.num_intermediates(), 7);
         assert_eq!(gate.degree(), 3);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(4, 6);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 6);
         assert_eq!(gate.num_intermediates(), 2);
         assert_eq!(gate.degree(), 6);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(4, 8);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 8);
         assert_eq!(gate.num_intermediates(), 2);
         assert_eq!(gate.degree(), 6);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(4, 9);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 9);
         assert_eq!(gate.num_intermediates(), 1);
         assert_eq!(gate.degree(), 9);
     }
 
     #[test]
     fn wire_indices_degree2() {
-        let gate = CosetInterpolationGate::<GoldilocksField, 4> {
+        let gate = CosetInterpolationGate::<Goldilocks, 4> {
             subgroup_bits: 2,
             degree: 2,
             barycentric_weights: barycentric_weights(
-                &GoldilocksField::two_adic_subgroup(2)
+                &Goldilocks::two_adic_subgroup(2)
                     .into_iter()
-                    .map(|x| (x, GoldilocksField::ZERO))
+                    .map(|x| (x, Goldilocks::ZERO))
                     .collect::<Vec<_>>(),
             ),
             _phantom: PhantomData,
@@ -725,13 +725,13 @@ mod tests {
 
     #[test]
     fn wire_indices_degree_3() {
-        let gate = CosetInterpolationGate::<GoldilocksField, 4> {
+        let gate = CosetInterpolationGate::<Goldilocks, 4> {
             subgroup_bits: 2,
             degree: 3,
             barycentric_weights: barycentric_weights(
-                &GoldilocksField::two_adic_subgroup(2)
+                &Goldilocks::two_adic_subgroup(2)
                     .into_iter()
-                    .map(|x| (x, GoldilocksField::ZERO))
+                    .map(|x| (x, Goldilocks::ZERO))
                     .collect::<Vec<_>>(),
             ),
             _phantom: PhantomData,
@@ -754,13 +754,13 @@ mod tests {
 
     #[test]
     fn wire_indices_degree_n() {
-        let gate = CosetInterpolationGate::<GoldilocksField, 4> {
+        let gate = CosetInterpolationGate::<Goldilocks, 4> {
             subgroup_bits: 2,
             degree: 4,
             barycentric_weights: barycentric_weights(
-                &GoldilocksField::two_adic_subgroup(2)
+                &Goldilocks::two_adic_subgroup(2)
                     .into_iter()
-                    .map(|x| (x, GoldilocksField::ZERO))
+                    .map(|x| (x, Goldilocks::ZERO))
                     .collect::<Vec<_>>(),
             ),
             _phantom: PhantomData,
@@ -781,7 +781,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(CosetInterpolationGate::new(2));
+        test_low_degree::<Goldilocks, _, 4>(CosetInterpolationGate::new(2));
     }
 
     #[test]
@@ -854,15 +854,15 @@ mod tests {
 
     #[test]
     fn test_num_wires_constraints() {
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(4, 8);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 8);
         assert_eq!(gate.num_wires(), 47);
         assert_eq!(gate.num_constraints(), 12);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(3, 8);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 8);
         assert_eq!(gate.num_wires(), 23);
         assert_eq!(gate.num_constraints(), 4);
 
-        let gate = <CosetInterpolationGate<GoldilocksField, 2>>::with_max_degree(4, 16);
+        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 16);
         assert_eq!(gate.num_wires(), 39);
         assert_eq!(gate.num_constraints(), 4);
     }

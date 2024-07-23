@@ -2,9 +2,8 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::field::packed::PackedField;
-use crate::field::types::{Field, Field64};
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -34,7 +33,7 @@ impl<const B: usize> BaseSumGate<B> {
         Self { num_limbs }
     }
 
-    pub fn new_from_config<F: Field64>(config: &CircuitConfig) -> Self {
+    pub fn new_from_config<F: PrimeField64>(config: &CircuitConfig) -> Self {
         let num_limbs =
             log_floor(F::ORDER - 1, B as u64).min(config.num_routed_wires - Self::START_LIMBS);
         Self::new(num_limbs)
@@ -49,7 +48,7 @@ impl<const B: usize> BaseSumGate<B> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize, const B: usize> Gate<F, D> for BaseSumGate<B> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize, const B: usize> Gate<F, D> for BaseSumGate<B> {
     fn id(&self) -> String {
         format!("{self:?} + Base: {B}")
     }
@@ -145,7 +144,7 @@ impl<F: RichField + Extendable<D>, const D: usize, const B: usize> Gate<F, D> fo
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize, const B: usize> PackedEvaluableBase<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize, const B: usize> PackedEvaluableBase<F, D>
     for BaseSumGate<B>
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
@@ -174,7 +173,7 @@ pub struct BaseSplitGenerator<const B: usize> {
     num_limbs: usize,
 }
 
-impl<F: RichField + Extendable<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
     for BaseSplitGenerator<B>
 {
     fn id(&self) -> String {
@@ -226,14 +225,14 @@ impl<F: RichField + Extendable<D>, const B: usize, const D: usize> SimpleGenerat
 mod tests {
     use anyhow::Result;
 
-    use crate::field::goldilocks_field::GoldilocksField;
+    use p3_goldilocks::Goldilocks;
     use crate::gates::base_sum::BaseSumGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(BaseSumGate::<6>::new(11))
+        test_low_degree::<Goldilocks, _, 4>(BaseSumGate::<6>::new(11))
     }
 
     #[test]

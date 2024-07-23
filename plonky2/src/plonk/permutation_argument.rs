@@ -5,7 +5,7 @@ use hashbrown::HashMap;
 use plonky2_maybe_rayon::*;
 
 use crate::field::polynomial::PolynomialValues;
-use crate::field::types::Field;
+use p3_field::Field;
 use crate::iop::target::Target;
 use crate::iop::wire::Wire;
 

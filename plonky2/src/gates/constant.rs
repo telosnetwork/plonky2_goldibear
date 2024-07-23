@@ -3,7 +3,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 
 use serde::{Deserialize, Serialize};
 
-use crate::field::extension::Extendable;
+use p3_field::extension::BinomiallyExtendable;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -41,7 +41,7 @@ impl ConstantGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ConstantGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ConstantGate {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -117,7 +117,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ConstantGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for ConstantGate {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D> for ConstantGate {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
