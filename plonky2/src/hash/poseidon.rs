@@ -3,13 +3,13 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::{ExtensionField, PrimeField64};
 use core::fmt::Debug;
 
 use plonky2_field::packed::PackedField;
 use unroll::unroll_for_loops;
 
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::{Field, PrimeField64};
 use crate::gates::gate::Gate;
 use crate::gates::poseidon::PoseidonGate;
 use crate::gates::poseidon_mds::PoseidonMdsGate;
@@ -200,7 +200,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
-    fn mds_row_shf_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn mds_row_shf_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         r: usize,
         v: &[F; SPONGE_WIDTH],
     ) -> F {
@@ -217,7 +217,7 @@ pub trait Poseidon: PrimeField64 {
 
     /// Same as `mds_row_shf` for `PackedField`.
     fn mds_row_shf_packed_field<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         const D: usize,
         FE,
         P,
@@ -227,7 +227,7 @@ pub trait Poseidon: PrimeField64 {
         v: &[P; SPONGE_WIDTH],
     ) -> P
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        FE: ExtensionField<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         debug_assert!(r < SPONGE_WIDTH);
@@ -249,7 +249,7 @@ pub trait Poseidon: PrimeField64 {
         v: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> ExtensionTarget<D>
     where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = builder.zero_extension();
@@ -290,7 +290,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_layer` for field extensions of `Self`.
-    fn mds_layer_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn mds_layer_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         state: &[F; SPONGE_WIDTH],
     ) -> [F; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
@@ -304,7 +304,7 @@ pub trait Poseidon: PrimeField64 {
 
     /// Same as `mds_layer` for `PackedField`.
     fn mds_layer_packed_field<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         const D: usize,
         FE,
         P,
@@ -313,7 +313,7 @@ pub trait Poseidon: PrimeField64 {
         state: &[P; SPONGE_WIDTH],
     ) -> [P; SPONGE_WIDTH]
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        FE: ExtensionField<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         let mut result = [P::ZEROS; SPONGE_WIDTH];
@@ -331,7 +331,7 @@ pub trait Poseidon: PrimeField64 {
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         // If we have enough routed wires, we will use PoseidonMdsGate.
         let mds_gate = PoseidonMdsGate::<Self, D>::new();
@@ -362,7 +362,7 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn partial_first_constant_layer<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn partial_first_constant_layer<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         state: &mut [F; SPONGE_WIDTH],
     ) {
         for i in 0..12 {
@@ -376,7 +376,7 @@ pub trait Poseidon: PrimeField64 {
     #[inline(always)]
     #[unroll_for_loops]
     fn partial_first_constant_layer_packed_field<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         const D: usize,
         FE,
         P,
@@ -384,7 +384,7 @@ pub trait Poseidon: PrimeField64 {
     >(
         state: &mut [P; SPONGE_WIDTH],
     ) where
-        FE: FieldExtension<D2, BaseField = F>,
+        FE: ExtensionField<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         for i in 0..12 {
@@ -400,7 +400,7 @@ pub trait Poseidon: PrimeField64 {
         builder: &mut CircuitBuilder<Self, D>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         for i in 0..SPONGE_WIDTH {
             let c = <Self as Poseidon>::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i];
@@ -412,7 +412,7 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn mds_partial_layer_init<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn mds_partial_layer_init<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         state: &[F; SPONGE_WIDTH],
     ) -> [F; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
@@ -444,7 +444,7 @@ pub trait Poseidon: PrimeField64 {
     #[inline(always)]
     #[unroll_for_loops]
     fn mds_partial_layer_init_packed_field<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         const D: usize,
         FE,
         P,
@@ -453,7 +453,7 @@ pub trait Poseidon: PrimeField64 {
         state: &[P; SPONGE_WIDTH],
     ) -> [P; SPONGE_WIDTH]
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        FE: ExtensionField<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         let mut result = [P::ZEROS; SPONGE_WIDTH];
@@ -486,7 +486,7 @@ pub trait Poseidon: PrimeField64 {
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         let mut result = [builder.zero_extension(); SPONGE_WIDTH];
 
@@ -542,7 +542,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_partial_layer_fast` for field extensions of `Self`.
-    fn mds_partial_layer_fast_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn mds_partial_layer_fast_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         state: &[F; SPONGE_WIDTH],
         r: usize,
     ) -> [F; SPONGE_WIDTH] {
@@ -566,7 +566,7 @@ pub trait Poseidon: PrimeField64 {
 
     /// Same as `mds_partial_layer_fast` for `PackedField.
     fn mds_partial_layer_fast_packed_field<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         const D: usize,
         FE,
         P,
@@ -576,7 +576,7 @@ pub trait Poseidon: PrimeField64 {
         r: usize,
     ) -> [P; SPONGE_WIDTH]
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        FE: ExtensionField<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         let s0 = state[0];
@@ -604,7 +604,7 @@ pub trait Poseidon: PrimeField64 {
         r: usize,
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
@@ -641,7 +641,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `constant_layer` for field extensions of `Self`.
-    fn constant_layer_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn constant_layer_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         state: &mut [F; SPONGE_WIDTH],
         round_ctr: usize,
     ) {
@@ -652,7 +652,7 @@ pub trait Poseidon: PrimeField64 {
 
     /// Same as `constant_layer` for PackedFields.
     fn constant_layer_packed_field<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         const D: usize,
         FE,
         P,
@@ -661,7 +661,7 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [P; SPONGE_WIDTH],
         round_ctr: usize,
     ) where
-        FE: FieldExtension<D2, BaseField = F>,
+        FE: ExtensionField<D2, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         for i in 0..SPONGE_WIDTH {
@@ -676,7 +676,7 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
         round_ctr: usize,
     ) where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         for i in 0..SPONGE_WIDTH {
             let c = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
@@ -687,7 +687,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     #[inline(always)]
-    fn sbox_monomial<F: FieldExtension<D, BaseField = Self>, const D: usize>(x: F) -> F {
+    fn sbox_monomial<F: ExtensionField<D, BaseField = Self>, const D: usize>(x: F) -> F {
         // x |--> x^7
         let x2 = x.square();
         let x4 = x2.square();
@@ -701,7 +701,7 @@ pub trait Poseidon: PrimeField64 {
         x: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         // x |--> x^7
         builder.exp_u64_extension(x, 7)
@@ -718,7 +718,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `sbox_layer` for field extensions of `Self`.
-    fn sbox_layer_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
+    fn sbox_layer_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
         state: &mut [F; SPONGE_WIDTH],
     ) {
         for i in 0..SPONGE_WIDTH {
@@ -731,7 +731,7 @@ pub trait Poseidon: PrimeField64 {
         builder: &mut CircuitBuilder<Self, D>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where
-        Self: RichField + Extendable<D>,
+        Self: RichField + BinomiallyExtendable<D>,
     {
         for i in 0..SPONGE_WIDTH {
             state[i] = <Self as Poseidon>::sbox_monomial_circuit(builder, state[i]);
@@ -895,7 +895,7 @@ impl<F: RichField> AlgebraicHasher<F> for PoseidonHash {
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self::AlgebraicPermutation
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);

@@ -3,9 +3,9 @@ use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
 use itertools::{zip_eq, Itertools};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::Field;
 
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::Field;
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
 use crate::fri::witness_util::set_fri_proof_target;
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -39,9 +39,9 @@ pub trait WitnessWrite<F: Field> {
         }
     }
 
-    fn set_extension_target<const D: usize>(&mut self, et: ExtensionTarget<D>, value: F::Extension)
+    fn set_extension_target<const D: usize>(&mut self, et: ExtensionTarget<D>, value: BinomialExtensionField<F,D>)
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         self.set_target_arr(&et.0, &value.to_basefield_array());
     }
@@ -53,9 +53,9 @@ pub trait WitnessWrite<F: Field> {
     fn set_extension_targets<const D: usize>(
         &mut self,
         ets: &[ExtensionTarget<D>],
-        values: &[F::Extension],
+        values: &[BinomialExtensionField<F,D>],
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         debug_assert_eq!(ets.len(), values.len());
         ets.iter()
@@ -74,7 +74,7 @@ pub trait WitnessWrite<F: Field> {
         proof_with_pis_target: &ProofWithPublicInputsTarget<D>,
         proof_with_pis: &ProofWithPublicInputs<F, C, D>,
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C::Hasher: AlgebraicHasher<F>,
     {
         let ProofWithPublicInputs {
@@ -100,7 +100,7 @@ pub trait WitnessWrite<F: Field> {
         proof_target: &ProofTarget<D>,
         proof: &Proof<F, C, D>,
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C::Hasher: AlgebraicHasher<F>,
     {
         self.set_cap_target(&proof_target.wires_cap, &proof.wires_cap);
@@ -123,7 +123,7 @@ pub trait WitnessWrite<F: Field> {
         fri_openings_target: &FriOpeningsTarget<D>,
         fri_openings: &FriOpenings<F, D>,
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         for (batch_target, batch) in fri_openings_target
             .batches
@@ -139,7 +139,7 @@ pub trait WitnessWrite<F: Field> {
         vdt: &VerifierCircuitTarget,
         vd: &VerifierOnlyCircuitData<C, D>,
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C::Hasher: AlgebraicHasher<F>,
     {
         self.set_cap_target(&vdt.constants_sigmas_cap, &vd.constants_sigmas_cap);
@@ -162,7 +162,7 @@ pub trait WitnessWrite<F: Field> {
 
     fn set_ext_wires<W, const D: usize>(&mut self, wires: W, value: F::Extension)
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         W: IntoIterator<Item = Wire>,
     {
         self.set_wires(wires, &value.to_basefield_array());
@@ -189,7 +189,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
 
     fn get_extension_target<const D: usize>(&self, et: ExtensionTarget<D>) -> F::Extension
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         F::Extension::from_basefield_array(
             self.get_targets(&et.to_target_array()).try_into().unwrap(),
@@ -198,7 +198,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
 
     fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<F::Extension>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         ets.iter()
             .map(|&et| self.get_extension_target(et))

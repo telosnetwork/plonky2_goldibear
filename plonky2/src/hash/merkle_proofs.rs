@@ -3,9 +3,9 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+use p3_field::extension::BinomiallyExtendable;
 use serde::{Deserialize, Serialize};
 
-use crate::field::extension::Extendable;
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField, NUM_HASH_OUT_ELTS};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleCap;
@@ -76,7 +76,7 @@ pub fn verify_merkle_proof_to_cap<F: RichField, H: Hasher<F>>(
     Ok(())
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given root. The index is given by its little-endian bits.
     pub fn verify_merkle_proof<H: AlgebraicHasher<F>>(
@@ -171,11 +171,11 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
 #[cfg(test)]
 mod tests {
+    use p3_field::Field;
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
-    use crate::field::types::Field;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;

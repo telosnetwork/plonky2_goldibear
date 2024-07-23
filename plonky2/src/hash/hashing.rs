@@ -1,16 +1,16 @@
 //! Concrete instantiation of a hash function.
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::Field;
 use core::fmt::Debug;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField, NUM_HASH_OUT_ELTS};
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn hash_or_noop<H: AlgebraicHasher<F>>(&mut self, inputs: Vec<Target>) -> HashOutTarget {
         let zero = self.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {

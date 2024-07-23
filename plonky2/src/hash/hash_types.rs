@@ -2,10 +2,11 @@
 use alloc::vec::Vec;
 
 use anyhow::ensure;
+use p3_field::{Field, PrimeField64};
+use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::field::goldilocks_field::GoldilocksField;
-use crate::field::types::{Field, PrimeField64, Sample};
+use crate::field::types::Sample;
 use crate::hash::poseidon::Poseidon;
 use crate::iop::target::Target;
 use crate::plonk::config::GenericHashOut;
@@ -13,7 +14,7 @@ use crate::plonk::config::GenericHashOut;
 /// A prime order field with the features we need to use it as a base field in our argument system.
 pub trait RichField: PrimeField64 + Poseidon {}
 
-impl RichField for GoldilocksField {}
+impl RichField for Goldilocks {}
 
 pub const NUM_HASH_OUT_ELTS: usize = 4;
 

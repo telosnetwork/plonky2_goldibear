@@ -1,11 +1,11 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use p3_field::extension::BinomiallyExtendable;
+use p3_field::{ExtensionField, Field};
 use core::borrow::Borrow;
 
-use crate::field::extension::{Extendable, FieldExtension};
 use crate::field::packed::PackedField;
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::field::types::Field;
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
 use crate::gates::reducing::ReducingGate;
 use crate::gates::reducing_extension::ReducingExtensionGate;
@@ -39,7 +39,7 @@ impl<F: Field> ReducingFactor<F> {
 
     fn mul_ext<FE, P, const D: usize>(&mut self, x: P) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
+        FE: ExtensionField<D, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         self.count += 1;
@@ -62,7 +62,7 @@ impl<F: Field> ReducingFactor<F> {
         iter: impl DoubleEndedIterator<Item = impl Borrow<P>>,
     ) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
+        FE: ExtensionField<D, BaseField = F>,
         P: PackedField<Scalar = FE>,
     {
         iter.rev()
@@ -80,7 +80,7 @@ impl<F: Field> ReducingFactor<F> {
         })
     }
 
-    pub fn reduce_polys_base<BF: Extendable<D, Extension = F>, const D: usize>(
+    pub fn reduce_polys_base<BF: BinomiallyExtendable<D, Extension = F>, const D: usize>(
         &mut self,
         polys: impl IntoIterator<Item = impl Borrow<PolynomialCoeffs<BF>>>,
     ) -> PolynomialCoeffs<F> {
@@ -128,7 +128,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         let l = terms.len();
 
@@ -183,7 +183,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         let l = terms.len();
 
@@ -236,7 +236,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         self.count += terms.len() as u64;
         terms
@@ -253,7 +253,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         let zero_ext = builder.zero_extension();
         let exp = if x == zero_ext {

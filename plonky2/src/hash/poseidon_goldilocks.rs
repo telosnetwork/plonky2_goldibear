@@ -4,14 +4,12 @@
 //! `poseidon_constants.sage` script in the `0xPolygonZero/hash-constants`
 //! repository.
 
-#[cfg(not(all(target_arch = "aarch64", target_feature = "neon")))]
-use plonky2_field::types::Field;
+use p3_goldilocks::Goldilocks;
 
-use crate::field::goldilocks_field::GoldilocksField;
 use crate::hash::poseidon::{Poseidon, N_PARTIAL_ROUNDS};
 
 #[rustfmt::skip]
-impl Poseidon for GoldilocksField {
+impl Poseidon for Goldilocks {
     // The MDS matrix we use is C + D, where C is the circulant matrix whose first row is given by
     // `MDS_MATRIX_CIRC`, and D is the diagonal matrix whose diagonal is given by `MDS_MATRIX_DIAG`.
     //
@@ -218,7 +216,7 @@ impl Poseidon for GoldilocksField {
     #[inline(always)]
     #[unroll::unroll_for_loops]
     fn mds_layer(state: &[Self; 12]) -> [Self; 12] {
-        let mut result = [GoldilocksField::ZERO; 12];
+        let mut result = [Goldilocks::ZERO; 12];
 
         // Using the linearity of the operations we can split the state into a low||high decomposition
         // and operate on each with no overflow and then combine/reduce the result to a field element.
@@ -237,12 +235,12 @@ impl Poseidon for GoldilocksField {
         for r in 0..12 {
             let s = state_l[r] as u128 + ((state_h[r] as u128) << 32);
 
-            result[r] = GoldilocksField::from_noncanonical_u96((s as u64, (s >> 64) as u32));
+            result[r] = Goldilocks::from_noncanonical_u96((s as u64, (s >> 64) as u32));
         }
 
         // Add first element with the only non-zero diagonal matrix coefficient.
         let s = Self::MDS_MATRIX_DIAG[0] as u128 * (state[0].0 as u128);
-        result[0] += GoldilocksField::from_noncanonical_u96((s as u64, (s >> 64) as u32));
+        result[0] += Goldilocks::from_noncanonical_u96((s as u64, (s >> 64) as u32));
 
         result
     }
@@ -446,18 +444,17 @@ mod poseidon12_mds {
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{vec, vec::Vec};
-
-    use crate::field::goldilocks_field::GoldilocksField as F;
-    use crate::field::types::{Field, PrimeField64};
+    use p3_goldilocks::Goldilocks;
     use crate::hash::poseidon::test_helpers::{check_consistency, check_test_vectors};
 
+    type F = Goldilocks;
     #[test]
     fn test_vectors() {
         // Test inputs are:
         // 1. all zeros
         // 2. range 0..WIDTH
         // 3. all -1's
-        // 4. random elements of GoldilocksField.
+        // 4. random elements of Goldilocks.
         // expected output calculated with (modified) hadeshash reference implementation.
 
         let neg_one: u64 = F::NEG_ONE.to_canonical_u64();

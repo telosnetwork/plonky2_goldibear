@@ -5,11 +5,10 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use p3_field::{extension::BinomiallyExtendable, ExtensionField, Field};
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::Target;
@@ -23,7 +22,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// given set of generators.
 pub fn generate_partial_witness<
     'a,
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -103,7 +102,7 @@ pub fn generate_partial_witness<
 }
 
 /// A generator participates in the generation of the witness.
-pub trait WitnessGenerator<F: RichField + Extendable<D>, const D: usize>:
+pub trait WitnessGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize>:
     'static + Send + Sync + Debug
 {
     fn id(&self) -> String;
@@ -126,25 +125,25 @@ pub trait WitnessGenerator<F: RichField + Extendable<D>, const D: usize>:
 
 /// A wrapper around an `Box<WitnessGenerator>` which implements `PartialEq`
 /// and `Eq` based on generator IDs.
-pub struct WitnessGeneratorRef<F: RichField + Extendable<D>, const D: usize>(
+pub struct WitnessGeneratorRef<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     pub Box<dyn WitnessGenerator<F, D>>,
 );
 
-impl<F: RichField + Extendable<D>, const D: usize> WitnessGeneratorRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> WitnessGeneratorRef<F, D> {
     pub fn new<G: WitnessGenerator<F, D>>(generator: G) -> WitnessGeneratorRef<F, D> {
         WitnessGeneratorRef(Box::new(generator))
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PartialEq for WitnessGeneratorRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PartialEq for WitnessGeneratorRef<F, D> {
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Eq for WitnessGeneratorRef<F, D> {}
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Eq for WitnessGeneratorRef<F, D> {}
 
-impl<F: RichField + Extendable<D>, const D: usize> Debug for WitnessGeneratorRef<F, D> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Debug for WitnessGeneratorRef<F, D> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0.id())
     }
@@ -187,10 +186,10 @@ impl<F: Field> GeneratedValues<F> {
 
     pub fn singleton_extension_target<const D: usize>(
         et: ExtensionTarget<D>,
-        value: F::Extension,
+        value: p3_field::extension::BinomialExtensionField<F, D>,
     ) -> Self
     where
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
     {
         let mut witness = Self::with_capacity(D);
         witness.set_extension_target(et, value);
@@ -199,7 +198,7 @@ impl<F: Field> GeneratedValues<F> {
 }
 
 /// A generator which runs once after a list of dependencies is present in the witness.
-pub trait SimpleGenerator<F: RichField + Extendable<D>, const D: usize>:
+pub trait SimpleGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize>:
     'static + Send + Sync + Debug
 {
     fn id(&self) -> String;
@@ -227,7 +226,7 @@ pub trait SimpleGenerator<F: RichField + Extendable<D>, const D: usize>:
 
 #[derive(Debug)]
 pub struct SimpleGeneratorAdapter<
-    F: RichField + Extendable<D>,
+    F: RichField + BinomiallyExtendable<D>,
     SG: SimpleGenerator<F, D> + ?Sized,
     const D: usize,
 > {
@@ -235,7 +234,7 @@ pub struct SimpleGeneratorAdapter<
     inner: SG,
 }
 
-impl<F: RichField + Extendable<D>, SG: SimpleGenerator<F, D>, const D: usize> WitnessGenerator<F, D>
+impl<F: RichField + BinomiallyExtendable<D>, SG: SimpleGenerator<F, D>, const D: usize> WitnessGenerator<F, D>
     for SimpleGeneratorAdapter<F, SG, D>
 {
     fn id(&self) -> String {
@@ -274,7 +273,7 @@ pub struct CopyGenerator {
     pub(crate) dst: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for CopyGenerator {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for CopyGenerator {
     fn id(&self) -> String {
         "CopyGenerator".to_string()
     }
@@ -306,7 +305,7 @@ pub struct RandomValueGenerator {
     pub(crate) target: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for RandomValueGenerator {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for RandomValueGenerator {
     fn id(&self) -> String {
         "RandomValueGenerator".to_string()
     }
@@ -337,7 +336,7 @@ pub struct NonzeroTestGenerator {
     pub(crate) dummy: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for NonzeroTestGenerator {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for NonzeroTestGenerator {
     fn id(&self) -> String {
         "NonzeroTestGenerator".to_string()
     }
@@ -385,7 +384,7 @@ impl<F: Field> ConstantGenerator<F> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for ConstantGenerator<F> {
+impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for ConstantGenerator<F> {
     fn id(&self) -> String {
         "ConstantGenerator".to_string()
     }

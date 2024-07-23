@@ -1,4 +1,3 @@
-use crate::field::extension::Extendable;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::proof::{FriChallenges, FriChallengesTarget};
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};

@@ -227,9 +227,9 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::extension::BinomiallyExtendable;
 
     use super::*;
-    use crate::field::extension::Extendable;
     use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
@@ -238,7 +238,7 @@ mod tests {
     }
 
     fn verify_all_leaves<
-        F: RichField + Extendable<D>,
+        F: RichField + BinomiallyExtendable<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
