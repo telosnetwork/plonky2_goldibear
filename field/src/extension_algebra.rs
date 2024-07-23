@@ -122,17 +122,17 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Mul for ExtensionAlgebra<F, D> 
     #[inline]
     fn mul(self, rhs: Self) -> Self {
         let mut res = Self::zero();
-        let w = F::w();
+        let w = <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::w());
         for i in 0..D {
             for j in 0..D {
-                res[(i + j) % D] += if i + j < D {
+                res.0[(i + j) % D] += if i + j < D {
                     self.0[i] * rhs.0[j]
                 } else {
                     w * self.0[i] * rhs.0[j]
                 }
             }
         }
-        Self(res)
+        res
     }
 }
 
@@ -164,7 +164,7 @@ impl<F: BinomiallyExtendable<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
         self.coeffs
             .iter()
             .rev()
-            .fold(ExtensionAlgebra::ZERO, |acc, &c| acc * x + c)
+            .fold(ExtensionAlgebra::zero(), |acc, &c| acc * x + c)
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
@@ -181,7 +181,7 @@ impl<F: BinomiallyExtendable<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
         self.coeffs
             .iter()
             .rev()
-            .fold(ExtensionAlgebra::ZERO, |acc, &c| acc.scalar_mul(x) + c)
+            .fold(ExtensionAlgebra::zero(), |acc, &c| acc.scalar_mul(x) + c)
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
