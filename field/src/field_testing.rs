@@ -12,13 +12,11 @@ macro_rules! test_field_arithmetic {
         mod field_arithmetic {
             use alloc::vec::Vec;
 
-            use p3_field::{batch_multiplicative_inverse, Field, AbstractField, TwoAdicField};
-            use $crate::types::{Sample};
-
+            use p3_field::{batch_multiplicative_inverse, AbstractField, Field, TwoAdicField};
+            use $crate::types::Sample;
 
             #[test]
             fn batch_inversion() {
-
                 for n in 0..20 {
                     let xs = (1..=n as u64)
                         .map(|i| <$field>::from_canonical_u64(i))
@@ -63,8 +61,6 @@ macro_rules! test_field_arithmetic {
                 assert_eq!(F::one().exp_u64(1), <F>::one());
                 assert_eq!(F::two().exp_u64(1), <F>::two());
             }
-
-
 
             #[test]
             fn inverses() {
@@ -183,7 +179,6 @@ pub(crate) fn test_power_of_two_gen<
         .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
         BinomialExtensionField::<AF, D>::from_base(AF::two_adic_generator(AF::TWO_ADICITY))
     );
-
 }
 
 #[macro_export]
@@ -218,7 +213,7 @@ macro_rules! test_field_extension {
 mod tests {
 
     mod goldilocks {
-        use crate::{test_field_arithmetic};
+        use crate::test_field_arithmetic;
         test_field_arithmetic!(p3_goldilocks::Goldilocks);
     }
     mod goldilocks_ext {
@@ -231,7 +226,7 @@ mod tests {
     }
 
     mod babybear {
-        use crate::{test_field_arithmetic};
+        use crate::test_field_arithmetic;
         test_field_arithmetic!(p3_baby_bear::BabyBear);
     }
 

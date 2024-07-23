@@ -71,7 +71,8 @@ macro_rules! test_prime_field_arithmetic {
     ($field:ty) => {
         mod prime_field_arithmetic {
             use core::ops::{Add, Mul, Neg, Sub};
-            use p3_field::{Field, PrimeField64, AbstractField};
+
+            use p3_field::{AbstractField, Field, PrimeField64};
 
             #[test]
             fn arithmetic_addition() {
@@ -145,7 +146,10 @@ macro_rules! test_prime_field_arithmetic {
             fn subtraction_double_wraparound() {
                 type F = $field;
 
-                let (a, b) = (F::from_canonical_u64((F::ORDER_U64 + 1u64) / 2u64), F::two());
+                let (a, b) = (
+                    F::from_canonical_u64((F::ORDER_U64 + 1u64) / 2u64),
+                    F::two(),
+                );
                 let x = a * b;
                 assert_eq!(x, F::one());
                 assert_eq!(F::zero() - x, F::neg_one());
