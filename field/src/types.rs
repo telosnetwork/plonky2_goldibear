@@ -1,7 +1,8 @@
 use alloc::vec::Vec;
+use p3_baby_bear::BabyBear;
 
 use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
-use p3_field::{AbstractExtensionField, AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use rand::rngs::OsRng;
 use rand::RngCore;
@@ -62,3 +63,15 @@ impl<const D: usize, F: AbstractField + Sample + BinomiallyExtendable<D>> Sample
         )
     }
 }
+
+impl Sample for BabyBear {
+    fn sample<R>(rng: &mut R) -> Self
+    where
+        R: RngCore + ?Sized,
+    {
+        use rand::Rng;
+        Self::from_canonical_u32(rng.gen_range(0..Self::ORDER_U32))
+    }
+}
+
+

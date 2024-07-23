@@ -169,8 +169,16 @@ macro_rules! test_prime_field_arithmetic {
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_field_arithmetic, test_prime_field_arithmetic};
+    mod goldilocks {
+        use crate::{test_field_arithmetic, test_prime_field_arithmetic};
 
-    test_prime_field_arithmetic!(p3_goldilocks::Goldilocks);
-    test_field_arithmetic!(p3_goldilocks::Goldilocks);
+        test_prime_field_arithmetic!(p3_goldilocks::Goldilocks);
+        test_field_arithmetic!(p3_goldilocks::Goldilocks);
+    }
+    mod babybear {
+        use crate::{test_field_arithmetic, test_prime_field_arithmetic};
+
+        test_prime_field_arithmetic!(p3_baby_bear::BabyBear);
+        test_field_arithmetic!(p3_baby_bear::BabyBear);
+    }
 }

@@ -229,4 +229,18 @@ mod tests {
             p3_field::extension::BinomialExtensionField<p3_goldilocks::Goldilocks, 2>
         );
     }
+
+    mod babybear {
+        use crate::{test_field_arithmetic};
+        test_field_arithmetic!(p3_baby_bear::BabyBear);
+    }
+
+    mod babybear_ext {
+        use crate::{test_field_arithmetic, test_field_extension};
+
+        test_field_extension!(p3_baby_bear::BabyBear, 4);
+        test_field_arithmetic!(
+            p3_field::extension::BinomialExtensionField<p3_baby_bear::BabyBear, 4>
+        );
+    }
 }
