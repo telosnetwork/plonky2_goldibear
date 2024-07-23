@@ -1,5 +1,6 @@
-use crate::packed::PackedField;
 use p3_field::Field;
+
+use crate::packed::PackedField;
 
 /// Points us to the default packing for a particular field. There may me multiple choices of
 /// PackedField for a particular Field (e.g. every Field is also a PackedField), but this is the

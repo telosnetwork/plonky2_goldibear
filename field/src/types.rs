@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
-use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64, TwoAdicField};
+
 use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::{AbstractExtensionField, AbstractField, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
+use rand::rngs::OsRng;
 use rand::RngCore;
 
-use rand::rngs::OsRng;
-
-pub fn two_adic_subgroup<F:TwoAdicField>(n_log: usize) -> Vec<F> {
+pub fn two_adic_subgroup<F: TwoAdicField>(n_log: usize) -> Vec<F> {
     let generator = F::two_adic_generator(n_log);
     generator.powers().take(1 << n_log).collect()
 }
@@ -42,19 +42,23 @@ pub trait Sample: Sized {
 impl Sample for Goldilocks {
     fn sample<R>(rng: &mut R) -> Self
     where
-        R: RngCore + ?Sized
+        R: RngCore + ?Sized,
     {
         use rand::Rng;
         Self::from_canonical_u64(rng.gen_range(0..Self::ORDER_U64))
     }
 }
 
-impl<const D: usize, F:AbstractField + Sample+BinomiallyExtendable<D>> Sample for BinomialExtensionField<F,D> {
+impl<const D: usize, F: AbstractField + Sample + BinomiallyExtendable<D>> Sample
+    for BinomialExtensionField<F, D>
+{
     #[inline]
-    fn sample<R>(rng: &mut R) -> Self
+    fn sample<R>(_rng: &mut R) -> Self
     where
         R: rand::RngCore + ?Sized,
     {
-        <Self as AbstractExtensionField<F>>::from_base_slice(&(0..D).map(|_| F::rand()).collect::<Vec<_>>())
+        <Self as AbstractExtensionField<F>>::from_base_slice(
+            &(0..D).map(|_| F::rand()).collect::<Vec<_>>(),
+        )
     }
 }

@@ -498,11 +498,12 @@ unsafe fn interleave2(x: __m256i, y: __m256i) -> (__m256i, __m256i) {
 
 #[cfg(test)]
 mod tests {
+    use p3_field::Field;
+
     use crate::arch::x86_64::avx2_goldilocks_field::Avx2GoldilocksField;
     use crate::goldilocks_field::GoldilocksField;
     use crate::ops::Square;
     use crate::packed::PackedField;
-    use p3_field::Field;
 
     fn test_vals_a() -> [GoldilocksField; 4] {
         [

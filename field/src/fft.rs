@@ -2,9 +2,8 @@ use alloc::vec::Vec;
 use core::cmp::{max, min};
 
 use p3_field::{Field, TwoAdicField};
-use unroll::unroll_for_loops;
-
 use plonky2_util::{log2_strict, reverse_index_bits_in_place};
+use unroll::unroll_for_loops;
 
 use crate::packable::Packable;
 use crate::packed::PackedField;
@@ -211,13 +210,11 @@ pub(crate) fn fft_classic<F: Field>(values: &mut [F], r: usize, root_table: &Fft
 mod tests {
     use alloc::vec::Vec;
 
-    use p3_field::{AbstractField, Field, TwoAdicField};
+    use p3_field::{AbstractField, TwoAdicField};
     use p3_goldilocks::Goldilocks;
-
     use plonky2_util::{log2_ceil, log2_strict};
 
     use crate::fft::{fft, fft_with_options, ifft};
-
     use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
     use crate::types::two_adic_subgroup;
 

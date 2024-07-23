@@ -398,11 +398,12 @@ unsafe fn interleave4(x: __m512i, y: __m512i) -> (__m512i, __m512i) {
 
 #[cfg(test)]
 mod tests {
+    use p3_field::Field;
+
     use crate::arch::x86_64::avx512_goldilocks_field::Avx512GoldilocksField;
     use crate::goldilocks_field::GoldilocksField;
     use crate::ops::Square;
     use crate::packed::PackedField;
-    use p3_field::Field;
 
     fn test_vals_a() -> [GoldilocksField; 8] {
         [

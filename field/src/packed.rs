@@ -3,8 +3,9 @@ use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 use core::slice;
 
-use crate::ops::Square;
 use p3_field::{AbstractField, Field};
+
+use crate::ops::Square;
 
 /// # Safety
 /// - WIDTH is assumed to be a power of 2.
@@ -103,9 +104,15 @@ unsafe impl<F: Field> PackedField for F {
     type Scalar = Self;
 
     const WIDTH: usize = 1;
-    fn zeros() -> Self {F::zero()}
-    fn ones() -> Self {F::one()}
-    fn twos() -> Self {F::two()}
+    fn zeros() -> Self {
+        F::zero()
+    }
+    fn ones() -> Self {
+        F::one()
+    }
+    fn twos() -> Self {
+        F::two()
+    }
 
     fn from_slice(slice: &[Self::Scalar]) -> &Self {
         &slice[0]

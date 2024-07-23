@@ -16,23 +16,26 @@ pub fn get_unique_coset_shifts<F: Field>(subgroup_size: usize, num_shifts: usize
     // Let g be a generator of the entire multiplicative group. Let n be the order of the subgroup.
     // The subgroup can be written as <g^(|F*| / n)>. We can use g^0, ..., g^(num_shifts - 1) as our
     // shifts, since g^i <g^(|F*| / n)> are distinct cosets provided i < |F*| / n, which we checked.
-    F::generator()
-        .powers()
-        .take(num_shifts)
-        .collect()
+    F::generator().powers().take(num_shifts).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
+
     use p3_goldilocks::Goldilocks;
     extern crate std;
     use std::collections::HashSet;
+
     use p3_field::TwoAdicField;
 
     use crate::cosets::get_unique_coset_shifts;
 
-    fn cyclic_subgroup_coset_known_order<F:TwoAdicField>(generator: F, shift: F, order: usize) -> Vec<F> {
+    fn cyclic_subgroup_coset_known_order<F: TwoAdicField>(
+        generator: F,
+        shift: F,
+        order: usize,
+    ) -> Vec<F> {
         let subgroup: Vec<F> = generator.powers().take(order).collect();
         subgroup.into_iter().map(|x| x * shift).collect()
     }

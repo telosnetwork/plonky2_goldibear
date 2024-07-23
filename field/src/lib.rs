@@ -10,7 +10,6 @@ extern crate alloc;
 
 pub(crate) mod arch;
 
-
 pub mod batch_util;
 pub mod cosets;
 pub mod fft;
@@ -21,11 +20,10 @@ pub mod packed;
 pub mod polynomial;
 //pub mod secp256k1_base;
 //pub mod secp256k1_scalar;
-pub mod zero_poly_coset;
-pub mod types;
 #[cfg(test)]
 mod field_testing;
+pub mod types;
+pub mod zero_poly_coset;
 
 #[cfg(test)]
 mod prime_field_testing;
-

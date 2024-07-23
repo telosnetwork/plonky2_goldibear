@@ -8,13 +8,11 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+use p3_field::{ExtensionField as FieldExtension, Field, TwoAdicField};
 use plonky2_util::log2_strict;
 use serde::{Deserialize, Serialize};
 
 use crate::fft::{fft, fft_with_options, ifft, FftRootTable};
-use p3_field::{ExtensionField as FieldExtension, TwoAdicField};
-use p3_field::Field;
-
 
 /// A polynomial in point-value form.
 ///
@@ -296,13 +294,14 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
         modified_poly.fft_with_options(zero_factor, root_table)
     }
 
-    pub fn to_extension<FE: FieldExtension<F> + TwoAdicField>(&self) -> PolynomialCoeffs<FE>
-    {
+    pub fn to_extension<FE: FieldExtension<F> + TwoAdicField>(&self) -> PolynomialCoeffs<FE> {
         PolynomialCoeffs::new(self.coeffs.iter().map(|&c| c.into()).collect())
     }
 
-    pub fn mul_extension<FE: FieldExtension<F> + TwoAdicField>(&self, rhs: FE) -> PolynomialCoeffs<FE>
-    {
+    pub fn mul_extension<FE: FieldExtension<F> + TwoAdicField>(
+        &self,
+        rhs: FE,
+    ) -> PolynomialCoeffs<FE> {
         PolynomialCoeffs::new(self.coeffs.iter().map(|&c| rhs * c).collect())
     }
 }
@@ -441,15 +440,13 @@ mod tests {
     use p3_goldilocks::Goldilocks;
     extern crate std;
     use std::time::Instant;
-    use p3_field::AbstractField;
 
+    use p3_field::{cyclic_subgroup_coset_known_order, AbstractField};
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
     use crate::types::Sample;
-
-    use p3_field::cyclic_subgroup_coset_known_order;
 
     #[test]
     fn test_trimmed() {
@@ -489,7 +486,6 @@ mod tests {
 
         let generator = F::two_adic_generator(k);
         let naive_coset_evals = cyclic_subgroup_coset_known_order::<F>(generator, shift, n)
-            .into_iter()
             .map(|x| poly.eval(x))
             .collect::<Vec<_>>();
         assert_eq!(coset_evals, naive_coset_evals);
@@ -510,7 +506,6 @@ mod tests {
 
         let generator = F::two_adic_generator(k);
         let naive_coset_evals = cyclic_subgroup_coset_known_order::<F>(generator, shift, n)
-            .into_iter()
             .map(|x| coeffs.eval(x))
             .collect::<Vec<_>>();
         assert_eq!(evals, naive_coset_evals.into());
@@ -614,7 +609,7 @@ mod tests {
         let xn_minus_one = {
             let mut xn_min_one_vec = vec![F::zero(); n + 1];
             xn_min_one_vec[n] = F::one();
-            xn_min_one_vec[0] = - F::one();
+            xn_min_one_vec[0] = -F::one();
             PolynomialCoeffs::new(xn_min_one_vec)
         };
 

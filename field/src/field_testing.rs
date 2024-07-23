@@ -1,14 +1,10 @@
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
-use p3_field::{AbstractField, Field};
+use p3_field::extension::{
+    BinomialExtensionField, BinomiallyExtendable, HasFrobenius, HasTwoAdicBionmialExtension,
+};
+use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 
-use crate::ops::Square;
 use crate::packed::PackedField;
 use crate::types::Sample;
-
-use p3_field::extension::HasFrobenius;
-use p3_field::extension::HasTwoAdicBionmialExtension;
-use p3_field::TwoAdicField;
-use p3_field::AbstractExtensionField;
 
 #[macro_export]
 macro_rules! test_field_arithmetic {
@@ -124,6 +120,7 @@ macro_rules! test_field_arithmetic {
     };
 }
 
+/// Test of consistency of the arithmetic operations.
 #[allow(clippy::eq_op)]
 pub(crate) fn test_add_neg_sub_mul<
     AF: AbstractField + BinomiallyExtendable<D> + Sample,
@@ -144,6 +141,7 @@ pub(crate) fn test_add_neg_sub_mul<
     assert_eq!(x * (y + z), x * y + x * z);
 }
 
+/// Test of consistency of division.
 pub(crate) fn test_inv_div<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: usize>() {
     let x = BinomialExtensionField::<AF, D>::rand();
     let y = BinomialExtensionField::<AF, D>::rand();
@@ -159,6 +157,7 @@ pub(crate) fn test_inv_div<AF: AbstractField + BinomiallyExtendable<D> + Sample,
     assert_eq!((x * y) / z, x * (y / z));
 }
 
+/// Test that the Frobenius automorphism is consistent with the naive version.
 pub(crate) fn test_frobenius<
     AF: AbstractField + BinomiallyExtendable<D> + Sample,
     const D: usize,
@@ -173,6 +172,7 @@ pub(crate) fn test_frobenius<
     }
 }
 
+/// Exponentiation of an extension field element by an arbitrary large integer.
 fn exp_biguint<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: usize>(
     x: BinomialExtensionField<AF, D>,
     power: &num::BigUint,
@@ -185,6 +185,7 @@ fn exp_biguint<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: us
     result
 }
 
+/// Test that x^(|F| - 1) for a random (non-zero) x in F.
 pub(crate) fn test_field_order<
     AF: AbstractField + BinomiallyExtendable<D> + Sample,
     const D: usize,
@@ -196,15 +197,29 @@ pub(crate) fn test_field_order<
     );
 }
 
-pub(crate) fn test_power_of_two_gen<AF: AbstractField + TwoAdicField + HasTwoAdicBionmialExtension<D> + Sample, const D: usize>() {
+/// Tests of consistency  the extension field generator,
+/// the two_adicities of base and extension field and
+/// the two_adic generators of the base field and the extension field.
+pub(crate) fn test_power_of_two_gen<
+    AF: AbstractField + TwoAdicField + HasTwoAdicBionmialExtension<D> + Sample,
+    const D: usize,
+>() {
     assert_eq!(
-        exp_biguint(BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_generator())
-            , &(BinomialExtensionField::<AF, D>::order() >> BinomialExtensionField::<AF, D>::TWO_ADICITY)),
-            BinomialExtensionField::<AF,D>::from_base_slice(&AF::ext_two_adic_generator(BinomialExtensionField::<AF, D>::TWO_ADICITY)));
+        exp_biguint(
+            BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_generator()),
+            &(BinomialExtensionField::<AF, D>::order()
+                >> BinomialExtensionField::<AF, D>::TWO_ADICITY)
+        ),
+        BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_two_adic_generator(
+            BinomialExtensionField::<AF, D>::TWO_ADICITY
+        ))
+    );
     assert_eq!(
-        BinomialExtensionField::<AF,D>::from_base_slice(&AF::ext_two_adic_generator(BinomialExtensionField::<AF, D>::TWO_ADICITY))
-            .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
-            BinomialExtensionField::<AF,D>::from_base(AF::two_adic_generator(AF::TWO_ADICITY))
+        BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_two_adic_generator(
+            BinomialExtensionField::<AF, D>::TWO_ADICITY
+        ))
+        .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
+        BinomialExtensionField::<AF, D>::from_base(AF::two_adic_generator(AF::TWO_ADICITY))
     );
 }
 

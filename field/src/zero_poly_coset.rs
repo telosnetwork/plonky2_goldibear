@@ -1,7 +1,8 @@
 use alloc::vec::Vec;
 
-use crate::packed::PackedField;
 use p3_field::{batch_multiplicative_inverse, Field, TwoAdicField};
+
+use crate::packed::PackedField;
 use crate::types::two_adic_subgroup;
 
 /// Precomputations of the evaluation of `Z_H(X) = X^n - 1` on a coset `gK` with `H <= K`.

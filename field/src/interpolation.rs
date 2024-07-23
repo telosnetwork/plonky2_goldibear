@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
+use p3_field::{batch_multiplicative_inverse, Field, TwoAdicField};
 use plonky2_util::log2_ceil;
 
 use crate::fft::ifft;
 use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
-use p3_field::{batch_multiplicative_inverse, Field, TwoAdicField};
 
 /// Computes the unique degree < n interpolant of an arbitrary list of n (point, value) pairs.
 ///
@@ -83,9 +83,10 @@ pub fn interpolate2<F: Field>(points: [(F, F); 2], x: F) -> F {
 mod tests {
     use p3_field::extension::BinomialExtensionField;
     use p3_goldilocks::Goldilocks;
+
     use super::*;
     use crate::polynomial::PolynomialCoeffs;
-    use crate::types::{Sample, two_adic_subgroup};
+    use crate::types::{two_adic_subgroup, Sample};
 
     #[test]
     fn interpolant_random() {
@@ -137,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_interpolate2() {
-        type F = BinomialExtensionField<Goldilocks,2>;
+        type F = BinomialExtensionField<Goldilocks, 2>;
         let points = [(F::rand(), F::rand()), (F::rand(), F::rand())];
         let x = F::rand();
 
