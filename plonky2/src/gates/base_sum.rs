@@ -3,7 +3,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 use p3_field::PrimeField64;
 use core::ops::Range;
 
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -63,7 +63,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize, const B: usize> Gat
         Ok(Self { num_limbs })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let sum = vars.local_wires[Self::WIRE_SUM];
         let limbs = vars.local_wires[self.limbs()].to_vec();
         let computed_sum = reduce_with_powers(&limbs, F::Extension::from_canonical_usize(B));

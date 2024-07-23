@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::{extension::BinomiallyExtendable, PrimeField64};
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::gates::exponentiation::ExponentiationGate;
 use crate::hash::hash_types::RichField;

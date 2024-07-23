@@ -105,7 +105,7 @@ mod tests {
     use anyhow::Result;
 
     use super::*;
-    use crate::field::types::{Field, Sample};
+    use crate::field::types::Sample;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

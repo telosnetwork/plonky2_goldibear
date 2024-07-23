@@ -3,7 +3,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use p3_field::{ExtensionField, PrimeField64};
 use core::fmt::Debug;
 
@@ -200,10 +200,10 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
-    fn mds_row_shf_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
+    fn mds_row_shf_field<F: BinomiallyExtendable<D>, const D: usize>(
         r: usize,
         v: &[F; SPONGE_WIDTH],
-    ) -> F {
+    ) -> BinomialExtensionField<F,D> {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = F::zero();
 
@@ -219,7 +219,6 @@ pub trait Poseidon: PrimeField64 {
     fn mds_row_shf_packed_field<
         F: RichField + BinomiallyExtendable<D>,
         const D: usize,
-        FE,
         P,
         const D2: usize,
     >(
@@ -227,8 +226,7 @@ pub trait Poseidon: PrimeField64 {
         v: &[P; SPONGE_WIDTH],
     ) -> P
     where
-        FE: ExtensionField<D2, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
     {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = P::ZEROS;
@@ -290,9 +288,9 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_layer` for field extensions of `Self`.
-    fn mds_layer_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
+    fn mds_layer_field<F: BinomiallyExtendable<D>, const D: usize>(
         state: &[F; SPONGE_WIDTH],
-    ) -> [F; SPONGE_WIDTH] {
+    ) -> [BinomialExtensionField<F,D>; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
@@ -313,8 +311,7 @@ pub trait Poseidon: PrimeField64 {
         state: &[P; SPONGE_WIDTH],
     ) -> [P; SPONGE_WIDTH]
     where
-        FE: ExtensionField<D2, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
     {
         let mut result = [P::ZEROS; SPONGE_WIDTH];
 
@@ -362,8 +359,8 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn partial_first_constant_layer<F: ExtensionField<D, BaseField = Self>, const D: usize>(
-        state: &mut [F; SPONGE_WIDTH],
+    fn partial_first_constant_layer<F: BinomiallyExtendable<D>, const D: usize>(
+        state: &mut [BinomialExtensionField<F,D>; SPONGE_WIDTH],
     ) {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
@@ -378,14 +375,12 @@ pub trait Poseidon: PrimeField64 {
     fn partial_first_constant_layer_packed_field<
         F: RichField + BinomiallyExtendable<D>,
         const D: usize,
-        FE,
         P,
         const D2: usize,
     >(
         state: &mut [P; SPONGE_WIDTH],
     ) where
-        FE: ExtensionField<D2, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D2>>,
     {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
@@ -412,9 +407,9 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn mds_partial_layer_init<F: ExtensionField<D, BaseField = Self>, const D: usize>(
-        state: &[F; SPONGE_WIDTH],
-    ) -> [F; SPONGE_WIDTH] {
+    fn mds_partial_layer_init<F: BinomiallyExtendable<D>, const D: usize>(
+        state: &[BinomialExtensionField<F,D>; SPONGE_WIDTH],
+    ) -> [BinomialExtensionField<F,D>; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
 
         // Initial matrix has first row/column = [1, 0, ..., 0];
@@ -446,15 +441,13 @@ pub trait Poseidon: PrimeField64 {
     fn mds_partial_layer_init_packed_field<
         F: RichField + BinomiallyExtendable<D>,
         const D: usize,
-        FE,
         P,
         const D2: usize,
     >(
         state: &[P; SPONGE_WIDTH],
     ) -> [P; SPONGE_WIDTH]
     where
-        FE: ExtensionField<D2, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D2>>,
     {
         let mut result = [P::ZEROS; SPONGE_WIDTH];
 
@@ -542,10 +535,10 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_partial_layer_fast` for field extensions of `Self`.
-    fn mds_partial_layer_fast_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
-        state: &[F; SPONGE_WIDTH],
+    fn mds_partial_layer_fast_field<F: BinomiallyExtendable<D>, const D: usize>(
+        state: &[BinomialExtensionField<F,D>; SPONGE_WIDTH],
         r: usize,
-    ) -> [F; SPONGE_WIDTH] {
+    ) -> [BinomialExtensionField<F,D>; SPONGE_WIDTH] {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
         let mut d = s0 * F::from_canonical_u64(mds0to0);
@@ -568,7 +561,6 @@ pub trait Poseidon: PrimeField64 {
     fn mds_partial_layer_fast_packed_field<
         F: RichField + BinomiallyExtendable<D>,
         const D: usize,
-        FE,
         P,
         const D2: usize,
     >(
@@ -576,8 +568,7 @@ pub trait Poseidon: PrimeField64 {
         r: usize,
     ) -> [P; SPONGE_WIDTH]
     where
-        FE: ExtensionField<D2, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
     {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
@@ -641,8 +632,8 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `constant_layer` for field extensions of `Self`.
-    fn constant_layer_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
-        state: &mut [F; SPONGE_WIDTH],
+    fn constant_layer_field<F: BinomiallyExtendable<D>, const D: usize>(
+        state: &mut [BinomialExtensionField<F,D>; SPONGE_WIDTH],
         round_ctr: usize,
     ) {
         for i in 0..SPONGE_WIDTH {
@@ -654,15 +645,13 @@ pub trait Poseidon: PrimeField64 {
     fn constant_layer_packed_field<
         F: RichField + BinomiallyExtendable<D>,
         const D: usize,
-        FE,
         P,
         const D2: usize,
     >(
         state: &mut [P; SPONGE_WIDTH],
         round_ctr: usize,
     ) where
-        FE: ExtensionField<D2, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
     {
         for i in 0..SPONGE_WIDTH {
             state[i] +=
@@ -687,7 +676,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     #[inline(always)]
-    fn sbox_monomial<F: ExtensionField<D, BaseField = Self>, const D: usize>(x: F) -> F {
+    fn sbox_monomial<F: BinomiallyExtendable<D>, const D: usize>(x: BinomialExtensionField<F,D>) -> BinomialExtensionField<F,D> {
         // x |--> x^7
         let x2 = x.square();
         let x4 = x2.square();
@@ -718,8 +707,8 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `sbox_layer` for field extensions of `Self`.
-    fn sbox_layer_field<F: ExtensionField<D, BaseField = Self>, const D: usize>(
-        state: &mut [F; SPONGE_WIDTH],
+    fn sbox_layer_field<F: BinomiallyExtendable<D>, const D: usize>(
+        state: &mut [BinomialExtensionField<F,D>; SPONGE_WIDTH],
     ) {
         for i in 0..SPONGE_WIDTH {
             state[i] = Self::sbox_monomial(state[i]);

@@ -3,7 +3,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 
 use serde::{Deserialize, Serialize};
 
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -55,7 +55,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Cons
         Ok(Self { num_consts })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         (0..self.num_consts)
             .map(|i| {
                 vars.local_constants[self.const_input(i)] - vars.local_wires[self.wire_output(i)]

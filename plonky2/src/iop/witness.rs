@@ -4,7 +4,7 @@ use alloc::{vec, vec::Vec};
 use hashbrown::HashMap;
 use itertools::{zip_eq, Itertools};
 use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
-use p3_field::Field;
+use p3_field::{AbstractExtensionField, Field};
 
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
 use crate::fri::witness_util::set_fri_proof_target;
@@ -160,7 +160,7 @@ pub trait WitnessWrite<F: Field> {
         }
     }
 
-    fn set_ext_wires<W, const D: usize>(&mut self, wires: W, value: F::Extension)
+    fn set_ext_wires<W, const D: usize>(&mut self, wires: W, value: BinomialExtensionField<F,D>)
     where
         F: RichField + BinomiallyExtendable<D>,
         W: IntoIterator<Item = Wire>,
@@ -187,16 +187,16 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         targets.iter().map(|&t| self.get_target(t)).collect()
     }
 
-    fn get_extension_target<const D: usize>(&self, et: ExtensionTarget<D>) -> F::Extension
+    fn get_extension_target<const D: usize>(&self, et: ExtensionTarget<D>) -> BinomialExtensionField<F,D>
     where
         F: RichField + BinomiallyExtendable<D>,
     {
-        F::Extension::from_basefield_array(
-            self.get_targets(&et.to_target_array()).try_into().unwrap(),
+        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base_slice(
+            &self.get_targets(&et.to_target_array()),
         )
     }
 
-    fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<F::Extension>
+    fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<BinomialExtensionField<F,D>>
     where
         F: RichField + BinomiallyExtendable<D>,
     {

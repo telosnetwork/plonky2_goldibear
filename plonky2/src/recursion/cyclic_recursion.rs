@@ -205,7 +205,6 @@ mod tests {
     use anyhow::Result;
 
     use p3_field::extension::BinomiallyExtendable;
-    use crate::field::types::{Field, PrimeField64};
     use crate::gates::noop::NoopGate;
     use crate::hash::hash_types::{HashOutTarget, RichField};
     use crate::hash::hashing::hash_n_to_hash_no_pad;

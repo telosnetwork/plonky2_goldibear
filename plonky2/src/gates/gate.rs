@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, sync::Arc, vec, vec::Vec};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::any::Any;
 use core::fmt::{Debug, Error, Formatter};
 use core::hash::{Hash, Hasher};
@@ -65,7 +66,7 @@ pub trait Gate<F: RichField + BinomiallyExtendable<D>, const D: usize>: 'static 
 
     /// Defines and evaluates the constraints that enforce the statement represented by this gate.
     /// Constraints must be defined in the extension of this custom gate base field.
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension>;
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>>;
 
     /// Like `eval_unfiltered`, but specialized for points in the base field.
     ///
@@ -138,7 +139,7 @@ pub trait Gate<F: RichField + BinomiallyExtendable<D>, const D: usize>: 'static 
         group_range: Range<usize>,
         num_selectors: usize,
         num_lookup_selectors: usize,
-    ) -> Vec<F::Extension> {
+    ) -> Vec<BinomialExtensionField<F,D>> {
         let filter = compute_filter(
             row,
             group_range,

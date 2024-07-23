@@ -11,7 +11,7 @@ use anyhow::ensure;
 use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -271,7 +271,7 @@ pub struct ProofChallenges<F: RichField + BinomiallyExtendable<D>, const D: usiz
     pub plonk_deltas: Vec<F>,
 
     /// Point at which the PLONK polynomials are opened.
-    pub plonk_zeta: F::Extension,
+    pub plonk_zeta: BinomialExtensionField<F,D>,
 
     pub fri_challenges: FriChallenges<F, D>,
 }
@@ -287,7 +287,7 @@ pub(crate) struct ProofChallengesTarget<const D: usize> {
 
 /// Coset elements that can be inferred in the FRI reduction steps.
 pub(crate) struct FriInferredElements<F: RichField + BinomiallyExtendable<D>, const D: usize>(
-    pub Vec<F::Extension>,
+    pub Vec<BinomialExtensionField<F,D>>,
 );
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -296,31 +296,31 @@ pub struct ProofWithPublicInputsTarget<const D: usize> {
     pub public_inputs: Vec<Target>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Serialize, /*Deserialize,*/ Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
 pub struct OpeningSet<F: RichField + BinomiallyExtendable<D>, const D: usize> {
-    pub constants: Vec<F::Extension>,
-    pub plonk_sigmas: Vec<F::Extension>,
-    pub wires: Vec<F::Extension>,
-    pub plonk_zs: Vec<F::Extension>,
-    pub plonk_zs_next: Vec<F::Extension>,
-    pub partial_products: Vec<F::Extension>,
-    pub quotient_polys: Vec<F::Extension>,
-    pub lookup_zs: Vec<F::Extension>,
-    pub lookup_zs_next: Vec<F::Extension>,
+    pub constants: Vec<BinomialExtensionField<F,D>>,
+    pub plonk_sigmas: Vec<BinomialExtensionField<F,D>>,
+    pub wires: Vec<BinomialExtensionField<F,D>>,
+    pub plonk_zs: Vec<BinomialExtensionField<F,D>>,
+    pub plonk_zs_next: Vec<BinomialExtensionField<F,D>>,
+    pub partial_products: Vec<BinomialExtensionField<F,D>>,
+    pub quotient_polys: Vec<BinomialExtensionField<F,D>>,
+    pub lookup_zs: Vec<BinomialExtensionField<F,D>>,
+    pub lookup_zs_next: Vec<BinomialExtensionField<F,D>>,
 }
 
 impl<F: RichField + BinomiallyExtendable<D>, const D: usize> OpeningSet<F, D> {
     pub fn new<C: GenericConfig<D, F = F>>(
-        zeta: F::Extension,
-        g: F::Extension,
+        zeta: BinomialExtensionField<F,D>,
+        g: BinomialExtensionField<F,D>,
         constants_sigmas_commitment: &PolynomialBatch<F, C, D>,
         wires_commitment: &PolynomialBatch<F, C, D>,
         zs_partial_products_lookup_commitment: &PolynomialBatch<F, C, D>,
         quotient_polys_commitment: &PolynomialBatch<F, C, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> Self {
-        let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D>| {
+        let eval_commitment = |z: BinomialExtensionField<F,D>, c: &PolynomialBatch<F, C, D>| {
             c.polynomials
                 .par_iter()
                 .map(|p| p.to_extension().eval(z))

@@ -4,7 +4,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::ops::Range;
 
 use crate::gates::gate::Gate;
@@ -68,7 +68,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Arit
         Ok(Self { num_ops })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let const_0 = vars.local_constants[0];
         let const_1 = vars.local_constants[1];
 

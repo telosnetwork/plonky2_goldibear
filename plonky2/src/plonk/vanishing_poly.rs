@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::cmp::min;
 
 use plonky2_field::polynomial::PolynomialCoeffs;
@@ -8,7 +9,7 @@ use plonky2_util::ceil_div_usize;
 use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
 use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
-use p3_field::Field;
+use p3_field::{AbstractExtensionField, Field};
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;
 use crate::gates::lookup_table::LookupTableGate;
@@ -49,19 +50,19 @@ pub(crate) fn get_lut_poly<F: RichField + BinomiallyExtendable<D>, const D: usiz
 /// argument. All such terms should vanish on `H`.
 pub(crate) fn eval_vanishing_poly<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
-    x: F::Extension,
+    x: BinomialExtensionField<F,D>,
     vars: EvaluationVars<F, D>,
-    local_zs: &[F::Extension],
-    next_zs: &[F::Extension],
-    local_lookup_zs: &[F::Extension],
-    next_lookup_zs: &[F::Extension],
-    partial_products: &[F::Extension],
-    s_sigmas: &[F::Extension],
+    local_zs: &[BinomialExtensionField<F,D>],
+    next_zs: &[BinomialExtensionField<F,D>],
+    local_lookup_zs: &[BinomialExtensionField<F,D>],
+    next_lookup_zs: &[BinomialExtensionField<F,D>],
+    partial_products: &[BinomialExtensionField<F,D>],
+    s_sigmas: &[BinomialExtensionField<F,D>],
     betas: &[F],
     gammas: &[F],
     alphas: &[F],
     deltas: &[F],
-) -> Vec<F::Extension> {
+) -> Vec<BinomialExtensionField<F,D>> {
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
@@ -92,7 +93,7 @@ pub(crate) fn eval_vanishing_poly<F: RichField + BinomiallyExtendable<D>, const 
     for i in 0..common_data.config.num_challenges {
         let z_x = local_zs[i];
         let z_gx = next_zs[i];
-        vanishing_z_1_terms.push(l_0_x * (z_x - F::Extension::ONE));
+        vanishing_z_1_terms.push(l_0_x * (z_x - <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::one())));
 
         if has_lookup {
             let cur_local_lookup_zs = &local_lookup_zs
@@ -335,11 +336,11 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + BinomiallyExtendable
 pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVars<F, D>,
-    local_lookup_zs: &[F::Extension],
-    next_lookup_zs: &[F::Extension],
-    lookup_selectors: &[F::Extension],
+    local_lookup_zs: &[BinomialExtensionField<F,D>],
+    next_lookup_zs: &[BinomialExtensionField<F,D>],
+    lookup_selectors: &[BinomialExtensionField<F,D>],
     deltas: &[F; 4],
-) -> Vec<F::Extension> {
+) -> Vec<BinomialExtensionField<F,D>> {
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;
@@ -356,11 +357,11 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
     let z_x_lookup_sldcs = &local_lookup_zs[1..num_sldc_polys + 1];
     let z_gx_lookup_sldcs = &next_lookup_zs[1..num_sldc_polys + 1];
 
-    let delta_challenge_a = F::Extension::from(deltas[LookupChallenges::ChallengeA as usize]);
-    let delta_challenge_b = F::Extension::from(deltas[LookupChallenges::ChallengeB as usize]);
+    let delta_challenge_a = <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeA as usize]);
+    let delta_challenge_b = <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeB as usize]);
 
     // Compute all current looked and looking combos, i.e. the combos we need for the SLDC polynomials.
-    let current_looked_combos: Vec<F::Extension> = (0..num_lut_slots)
+    let current_looked_combos: Vec<BinomialExtensionField<F,D>> = (0..num_lut_slots)
         .map(|s| {
             let input_wire = vars.local_wires[LookupTableGate::wire_ith_looked_inp(s)];
             let output_wire = vars.local_wires[LookupTableGate::wire_ith_looked_out(s)];
@@ -368,7 +369,7 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
         })
         .collect();
 
-    let current_looking_combos: Vec<F::Extension> = (0..num_lu_slots)
+    let current_looking_combos: Vec<BinomialExtensionField<F,D>> = (0..num_lu_slots)
         .map(|s| {
             let input_wire = vars.local_wires[LookupGate::wire_ith_looking_inp(s)];
             let output_wire = vars.local_wires[LookupGate::wire_ith_looking_out(s)];
@@ -377,7 +378,7 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
         .collect();
 
     // Compute all current lookup combos, i.e. the combos used to check that the LUT is correct.
-    let current_lookup_combos: Vec<F::Extension> = (0..num_lut_slots)
+    let current_lookup_combos: Vec<BinomialExtensionField<F,D>> = (0..num_lut_slots)
         .map(|s| {
             let input_wire = vars.local_wires[LookupTableGate::wire_ith_looked_inp(s)];
             let output_wire = vars.local_wires[LookupTableGate::wire_ith_looked_out(s)];
@@ -420,7 +421,7 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
     let mut cur_sum = next_z_re;
     for elt in &current_lookup_combos {
         cur_sum =
-            cur_sum * F::Extension::from(deltas[LookupChallenges::ChallengeDelta as usize]) + *elt;
+            cur_sum * <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeDelta as usize]) + *elt;
     }
     let unfiltered_re_line = z_re - cur_sum;
 
@@ -428,18 +429,18 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
 
     for poly in 0..num_sldc_polys {
         // Compute prod(alpha - combo) for the current slot for Sum.
-        let lut_prod: F::Extension = (poly * lut_degree
+        let lut_prod: BinomialExtensionField<F,D> = (poly * lut_degree
             ..min((poly + 1) * lut_degree, num_lut_slots))
             .map(|i| {
-                F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                     - current_looked_combos[i]
             })
             .product();
 
         // Compute prod(alpha - combo) for the current slot for LDC.
-        let lu_prod: F::Extension = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
+        let lu_prod: BinomialExtensionField<F,D> = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
             .map(|i| {
-                F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                     - current_looking_combos[i]
             })
             .product();
@@ -449,10 +450,10 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
             (poly * lut_degree..min((poly + 1) * lut_degree, num_lut_slots))
                 .map(|j| {
                     if j != i {
-                        F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                             - current_looked_combos[j]
                     } else {
-                        F::Extension::ONE
+                        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::one())
                     }
                 })
                 .product()
@@ -463,22 +464,22 @@ pub fn check_lookup_constraints<F: RichField + BinomiallyExtendable<D>, const D:
             (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
                 .map(|j| {
                     if j != i {
-                        F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                             - current_looking_combos[j]
                     } else {
-                        F::Extension::ONE
+                        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::one())
                     }
                 })
                 .product()
         };
         // Compute sum_i(prod_{j!=i}(alpha - combo_j)) for LDC.
         let lu_sum_prods = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
-            .fold(F::Extension::ZERO, |acc, i| acc + lu_prod_i(i));
+            .fold(<BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::zero()), |acc, i| acc + lu_prod_i(i));
 
         // Compute sum_i(mul_i.prod_{j!=i}(alpha - combo_j)) for Sum.
         let lut_sum_prods_with_mul = (poly * lut_degree
             ..min((poly + 1) * lut_degree, num_lut_slots))
-            .fold(F::Extension::ZERO, |acc, i| {
+            .fold(<BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::zero()), |acc, i| {
                 acc + vars.local_wires[LookupTableGate::wire_ith_multiplicity(i)] * lut_prod_i(i)
             });
 
@@ -664,8 +665,8 @@ pub fn check_lookup_constraints_batch<F: RichField + BinomiallyExtendable<D>, co
 pub fn evaluate_gate_constraints<F: RichField + BinomiallyExtendable<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVars<F, D>,
-) -> Vec<F::Extension> {
-    let mut constraints = vec![F::Extension::ZERO; common_data.num_gate_constraints];
+) -> Vec<BinomialExtensionField<F,D>> {
+    let mut constraints = vec![<BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::zero()); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
         let gate_constraints = gate.0.eval_filtered(

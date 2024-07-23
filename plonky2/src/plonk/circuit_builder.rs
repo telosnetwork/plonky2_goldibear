@@ -2,7 +2,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, sync::Arc, vec, vec::Vec};
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::cmp::max;
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
@@ -660,7 +660,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D
 
     /// If the given [`ExtensionTarget`] is a constant (i.e. it was created by the
     /// `constant_extension(F)` method), returns its constant value. Otherwise, returns `None`.
-    pub fn target_as_constant_ext(&self, target: ExtensionTarget<D>) -> Option<F::Extension> {
+    pub fn target_as_constant_ext(&self, target: ExtensionTarget<D>) -> Option<BinomialExtensionField<F,D>> {
         // Get a Vec of any coefficients that are constant. If we end up with exactly D of them,
         // then the `ExtensionTarget` as a whole is constant.
         let const_coeffs: Vec<F> = target

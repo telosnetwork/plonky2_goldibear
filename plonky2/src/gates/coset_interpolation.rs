@@ -5,9 +5,11 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use num::zero;
+use plonky2_field::extension_algebra::ExtensionAlgebra;
 use core::marker::PhantomData;
 use core::ops::Range;
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::{extension::{BinomialExtensionField, BinomiallyExtendable}, AbstractExtensionField};
 
 use crate::field::interpolation::barycentric_weights;
 use p3_field::Field;
@@ -195,7 +197,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Cose
         })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         let shift = vars.local_wires[self.wire_shift()];
@@ -268,8 +270,8 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Cose
             &values[..self.degree()],
             &weights[..self.degree()],
             shifted_evaluation_point,
-            F::Extension::ZERO,
-            F::Extension::ONE,
+            <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::zero()),
+            <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::one()),
         );
 
         for i in 0..self.num_intermediates() {
@@ -321,7 +323,9 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Cose
         let weights = &self.barycentric_weights;
 
         let initial_eval = builder.zero_ext_algebra();
-        let initial_prod = builder.constant_ext_algebra(F::Extension::ONE.into());
+        let initial_prod = builder.constant_ext_algebra(
+            <BinomialExtensionField<F,D> as AbstractExtensionField<F,D>>::from_base(F::one())
+        );
         let (mut computed_eval, mut computed_prod) = partial_interpolate_ext_algebra_target(
             builder,
             &domain[..self.degree()],
@@ -453,7 +457,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
             debug_assert_eq!(wire_range.len(), D);
             let values = wire_range.map(get_local_wire).collect::<Vec<_>>();
             let arr = values.try_into().unwrap();
-            F::Extension::from_basefield_array(arr)
+            <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base_slice(&arr)
         };
 
         let evaluation_point = get_local_ext(self.gate.wires_evaluation_point());
@@ -477,8 +481,8 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
             &values[..degree],
             &weights[..degree],
             shifted_evaluation_point,
-            F::Extension::ZERO,
-            F::Extension::ONE,
+            <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::zero()),
+            <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::one()),
         );
 
         for i in 0..self.gate.num_intermediates() {
@@ -521,17 +525,17 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
 /// field. The Barycentric weights are precomputed and taken as arguments.
 pub fn interpolate_over_base_domain<F: Field + BinomiallyExtendable<D>, const D: usize>(
     domain: &[F],
-    values: &[F::Extension],
+    values: &[BinomialExtensionField<F,D>],
     barycentric_weights: &[F],
-    x: F::Extension,
-) -> F::Extension {
+    x: BinomialExtensionField<F,D>,
+) -> BinomialExtensionField<F,D> {
     let (result, _) = partial_interpolate(
         domain,
         values,
         barycentric_weights,
         x,
-        F::Extension::ZERO,
-        F::Extension::ONE,
+        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::zero()),
+        <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(F::one()),
     );
     result
 }
@@ -545,12 +549,12 @@ pub fn interpolate_over_base_domain<F: Field + BinomiallyExtendable<D>, const D:
 /// of 1 and running over the whole domain is a full interpolation.
 fn partial_interpolate<F: Field + BinomiallyExtendable<D>, const D: usize>(
     domain: &[F],
-    values: &[F::Extension],
+    values: &[BinomialExtensionField<F,D>],
     barycentric_weights: &[F],
-    x: F::Extension,
-    initial_eval: F::Extension,
-    initial_partial_prod: F::Extension,
-) -> (F::Extension, F::Extension) {
+    x: BinomialExtensionField<F,D>,
+    initial_eval: BinomialExtensionField<F,D>,
+    initial_partial_prod: BinomialExtensionField<F,D>,
+) -> (BinomialExtensionField<F,D>, BinomialExtensionField<F,D>) {
     let n = domain.len();
     assert_ne!(n, 0);
     assert_eq!(n, values.len());
@@ -572,10 +576,10 @@ fn partial_interpolate<F: Field + BinomiallyExtendable<D>, const D: usize>(
     )
 }
 
-fn partial_interpolate_ext_algebra<F: OEF<D>, const D: usize>(
-    domain: &[F::BaseField],
+fn partial_interpolate_ext_algebra<F: BinomiallyExtendable<D>, const D: usize>(
+    domain: &[F],
     values: &[ExtensionAlgebra<F, D>],
-    barycentric_weights: &[F::BaseField],
+    barycentric_weights: &[F],
     x: ExtensionAlgebra<F, D>,
     initial_eval: ExtensionAlgebra<F, D>,
     initial_partial_prod: ExtensionAlgebra<F, D>,
@@ -623,8 +627,8 @@ fn partial_interpolate_ext_algebra_target<F: RichField + BinomiallyExtendable<D>
         .fold(
             (initial_eval, initial_partial_prod),
             |(eval, partial_prod), ((val, x), weight)| {
-                let x_target = builder.constant_ext_algebra(F::Extension::from(x).into());
-                let weight_target = builder.constant_extension(F::Extension::from(weight));
+                let x_target = builder.constant_ext_algebra(<BinomialExtensionField<F,D> as AbstractExtensionField<F,D>>::from_base(x).into());
+                let weight_target = builder.constant_extension(<BinomialExtensionField<F,D> as AbstractExtensionField<F,D>>::from_base(weight));
                 let term = builder.sub_ext_algebra(point, x_target);
                 let weighted_val = builder.scalar_mul_ext_algebra(weight_target, val);
                 let new_eval = builder.mul_ext_algebra(eval, term);
@@ -799,13 +803,13 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        type FF = BinomialExtensionField<F,D>;
 
         /// Returns the local wires for an interpolation gate for given coeffs, points and eval point.
         fn get_wires(shift: F, values: PolynomialValues<FF>, eval_point: FF) -> Vec<FF> {
             let domain = F::two_adic_subgroup(log2_strict(values.len()));
             let shifted_eval_point =
-                <FF as FieldExtension<2>>::scalar_mul(&eval_point, shift.inverse());
+                eval_point * shift.inverse();
             let weights =
                 barycentric_weights(&domain.iter().map(|&x| (x, F::zero())).collect::<Vec<_>>());
             let (intermediate_eval, intermediate_prod) = partial_interpolate::<_, D>(

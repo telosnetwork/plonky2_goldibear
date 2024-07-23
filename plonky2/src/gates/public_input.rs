@@ -2,7 +2,7 @@
 use alloc::{string::String, vec::Vec};
 use core::ops::Range;
 
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -45,7 +45,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Publ
         Ok(Self)
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         Self::wires_public_inputs_hash()
             .zip(vars.public_inputs_hash.elements)
             .map(|(wire, hash_part)| vars.local_wires[wire] - hash_part.into())

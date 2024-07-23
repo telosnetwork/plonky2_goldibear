@@ -5,6 +5,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::ops::Range;
 
 use crate::gates::gate::Gate;
@@ -77,7 +78,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Redu
         Ok(Self::new(num_coeffs))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let alpha = vars.get_local_ext_algebra(Self::wires_alpha());
         let old_acc = vars.get_local_ext_algebra(Self::wires_old_acc());
         let coeffs = self

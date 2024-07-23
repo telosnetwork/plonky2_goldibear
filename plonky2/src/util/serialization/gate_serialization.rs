@@ -2,10 +2,9 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use p3_field::extension::BinomiallyExtendable;
 #[cfg(feature = "std")]
 use std::vec::Vec; // For macros below
-
-use plonky2_field::extension::BinomiallyExtendable;
 
 use crate::gates::gate::GateRef;
 use crate::hash::hash_types::RichField;
@@ -93,7 +92,7 @@ macro_rules! impl_gate_serializer {
 }
 
 pub mod default {
-    use plonky2_field::extension::BinomiallyExtendable;
+    use p3_field::extension::BinomiallyExtendable;
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;

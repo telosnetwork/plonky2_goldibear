@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::extension::BinomiallyExtendable;
-use p3_field::{ExtensionField, Field};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::{AbstractExtensionField, ExtensionField, Field};
 use core::borrow::Borrow;
 
 use crate::field::packed::PackedField;
@@ -37,14 +37,13 @@ impl<F: Field> ReducingFactor<F> {
         self.base * x
     }
 
-    fn mul_ext<FE, P, const D: usize>(&mut self, x: P) -> P
+    fn mul_ext<P, const D: usize>(&mut self, x: P) -> P
     where
-        FE: ExtensionField<D, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
     {
         self.count += 1;
         // TODO: Would like to use `FE::scalar_mul`, but it doesn't work with Packed currently.
-        x * FE::from_basefield(self.base)
+        x * <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(self.base)
     }
 
     fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>) {
@@ -57,13 +56,12 @@ impl<F: Field> ReducingFactor<F> {
             .fold(F::zero(), |acc, x| self.mul(acc) + *x.borrow())
     }
 
-    pub fn reduce_ext<FE, P, const D: usize>(
+    pub fn reduce_ext<P, const D: usize>(
         &mut self,
         iter: impl DoubleEndedIterator<Item = impl Borrow<P>>,
     ) -> P
     where
-        FE: ExtensionField<D, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
     {
         iter.rev()
             .fold(P::ZEROS, |acc, x| self.mul_ext(acc) + *x.borrow())
@@ -80,7 +78,7 @@ impl<F: Field> ReducingFactor<F> {
         })
     }
 
-    pub fn reduce_polys_base<BF: BinomiallyExtendable<D, Extension = F>, const D: usize>(
+    pub fn reduce_polys_base<BF: BinomiallyExtendable<D>, const D: usize>(
         &mut self,
         polys: impl IntoIterator<Item = impl Borrow<PolynomialCoeffs<BF>>>,
     ) -> PolynomialCoeffs<F> {

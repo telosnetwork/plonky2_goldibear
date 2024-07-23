@@ -3,15 +3,17 @@
 use core::ops::Range;
 
 use crate::field::packed::PackedField;
-use p3_field::Field;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::{AbstractExtensionField, Field};
+use plonky2_field::extension_algebra::ExtensionAlgebra;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::util::strided_view::PackedStridedView;
 
 #[derive(Debug, Copy, Clone)]
 pub struct EvaluationVars<'a, F: RichField + BinomiallyExtendable<D>, const D: usize> {
-    pub local_constants: &'a [F::Extension],
-    pub local_wires: &'a [F::Extension],
+    pub local_constants: &'a [BinomialExtensionField<F,D>],
+    pub local_wires: &'a [BinomialExtensionField<F,D>],
     pub public_inputs_hash: &'a HashOut<F>,
 }
 
@@ -48,7 +50,7 @@ impl<'a, F: RichField + BinomiallyExtendable<D>, const D: usize> EvaluationVars<
     pub fn get_local_ext_algebra(
         &self,
         wire_range: Range<usize>,
-    ) -> ExtensionAlgebra<F::Extension, D> {
+    ) -> ExtensionAlgebra<F, D> {
         debug_assert_eq!(wire_range.len(), D);
         let arr = self.local_wires[wire_range].try_into().unwrap();
         ExtensionAlgebra::from_basefield_array(arr)
@@ -119,13 +121,13 @@ impl<'a, F: Field> EvaluationVarsBaseBatch<'a, F> {
 }
 
 impl<'a, F: Field> EvaluationVarsBase<'a, F> {
-    pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> F::Extension
+    pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> BinomialExtensionField<F,D>
     where
         F: RichField + BinomiallyExtendable<D>,
     {
         debug_assert_eq!(wire_range.len(), D);
         let arr = self.local_wires.view(wire_range).try_into().unwrap();
-        F::Extension::from_basefield_array(arr)
+        <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base_slice(&arr)
     }
 }
 

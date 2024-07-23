@@ -596,6 +596,8 @@ pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + BinomiallyExten
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::extension::BinomialExtensionField;
+    use plonky2_field::extension_algebra::ExtensionAlgebra;
 
     use crate::field::types::Sample;
     use crate::iop::ext_target::ExtensionAlgebraTarget;
@@ -673,7 +675,7 @@ mod tests {
         const D: usize = 2;
         type C = KeccakGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        type FF = BinomialExtensionField<F,D>;
 
         let config = CircuitConfig::standard_recursion_config();
 
@@ -691,8 +693,8 @@ mod tests {
             builder.connect_extension(zt.0[i], comp_zt.0[i]);
         }
 
-        let x = ExtensionAlgebra::<FF, D>(FF::rand_array());
-        let y = ExtensionAlgebra::<FF, D>(FF::rand_array());
+        let x = ExtensionAlgebra::<F, D>(F::rand_array());
+        let y = ExtensionAlgebra::<F, D>(F::rand_array());
         let z = x * y;
         for i in 0..D {
             pw.set_extension_target(xt.0[i], x.0[i]);

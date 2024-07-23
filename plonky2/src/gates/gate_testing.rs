@@ -6,7 +6,7 @@ use p3_field::extension::BinomiallyExtendable;
 use p3_field::Field;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::field::types::{Field, Sample};
+use crate::field::types::Sample;
 use crate::gates::gate::Gate;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::iop::witness::{PartialWitness, WitnessWrite};

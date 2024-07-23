@@ -7,8 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::extension::BinomiallyExtendable;
-use p3_field::Field;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::gates::gate::Gate;
 use crate::gates::poseidon_mds::PoseidonMdsGate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -116,7 +115,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Pose
         Ok(PoseidonGate::new())
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         // Assert that `swap` is binary.
@@ -537,7 +536,7 @@ impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> SimpleGe
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2_field::goldilocks_field::Goldilocks;
+    use p3_goldilocks::Goldilocks;
 
     use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};

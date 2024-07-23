@@ -8,6 +8,8 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::ExtensionField;
 use core::fmt::Debug;
 
 use serde::de::DeserializeOwned;
@@ -94,9 +96,9 @@ pub trait GenericConfig<const D: usize>:
     Debug + Clone + Sync + Sized + Send + Eq + PartialEq
 {
     /// Main field.
-    type F: RichField + BinomiallyExtendable<D, Extension = Self::FE>;
+    type F: RichField + BinomiallyExtendable<D>;
     /// Field extension of degree D of the main field.
-    type FE: FieldExtension<D, BaseField = Self::F>;
+    type FE: ExtensionField<Self::F>;
     /// Hash function used for building Merkle trees.
     type Hasher: Hasher<Self::F>;
     /// Algebraic hash function used for the challenger and hashing public inputs.
@@ -108,7 +110,7 @@ pub trait GenericConfig<const D: usize>:
 pub struct PoseidonGoldilocksConfig;
 impl GenericConfig<2> for PoseidonGoldilocksConfig {
     type F = Goldilocks;
-    type FE = QuadraticExtension<Self::F>;
+    type FE = BinomialExtensionField<Self::F,2>;
     type Hasher = PoseidonHash;
     type InnerHasher = PoseidonHash;
 }
@@ -118,7 +120,7 @@ impl GenericConfig<2> for PoseidonGoldilocksConfig {
 pub struct KeccakGoldilocksConfig;
 impl GenericConfig<2> for KeccakGoldilocksConfig {
     type F = Goldilocks;
-    type FE = QuadraticExtension<Self::F>;
+    type FE = BinomialExtensionField<Self::F,2>;
     type Hasher = KeccakHash<25>;
     type InnerHasher = PoseidonHash;
 }

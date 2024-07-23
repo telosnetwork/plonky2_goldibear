@@ -42,6 +42,8 @@ mod tests {
     use alloc::vec::Vec;
 
     use anyhow::Result;
+    use p3_field::extension::BinomialExtensionField;
+    use p3_field::AbstractExtensionField;
 
     use crate::field::interpolation::interpolant;
     use crate::field::types::{Sample};
@@ -57,7 +59,7 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        type FF = BinomialExtensionField<F,D>;
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
         let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -72,7 +74,7 @@ mod tests {
         let homogeneous_points = points
             .iter()
             .zip(values.iter())
-            .map(|(&a, &b)| (<FF as FieldExtension<D>>::from_basefield(a), b))
+            .map(|(&a, &b)| (<FF as AbstractExtensionField<F>>::from_base(a), b))
             .collect::<Vec<_>>();
 
         let true_interpolant = interpolant(&homogeneous_points);

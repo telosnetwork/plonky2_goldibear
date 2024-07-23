@@ -6,6 +6,8 @@ pub mod gate_serialization;
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, sync::Arc, vec, vec::Vec};
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::{AbstractExtensionField, PrimeField64};
 use core::convert::Infallible;
 use core::fmt::{Debug, Display, Formatter};
 use core::mem::size_of;
@@ -19,7 +21,6 @@ pub use generator_serialization::default::DefaultGeneratorSerializer;
 pub use generator_serialization::WitnessGeneratorSerializer;
 use hashbrown::HashMap;
 
-use crate::field::extension::{BinomiallyExtendable, FieldExtension};
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
@@ -174,7 +175,7 @@ pub trait Read {
 
     /// Reads an element from the field extension of `F` from `self.`
     #[inline]
-    fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<F::Extension>
+    fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<BinomialExtensionField<F,D>>
     where
         F: PrimeField64 + BinomiallyExtendable<D>,
     {
@@ -182,8 +183,8 @@ pub trait Read {
         for a in arr.iter_mut() {
             *a = self.read_field()?;
         }
-        Ok(<F::Extension as FieldExtension<D>>::from_basefield_array(
-            arr,
+        Ok(<BinomialExtensionField<F,D> as AbstractExtensionField<D>>::from_base_slice(
+            &arr,
         ))
     }
 
@@ -192,7 +193,7 @@ pub trait Read {
     fn read_field_ext_vec<F, const D: usize>(
         &mut self,
         length: usize,
-    ) -> IoResult<Vec<F::Extension>>
+    ) -> IoResult<Vec<BinomialExtensionField<F,D>>>
     where
         F: RichField + BinomiallyExtendable<D>,
     {
@@ -1271,7 +1272,7 @@ pub trait Write {
 
     /// Writes an element `x` from the field extension of `F` to `self`.
     #[inline]
-    fn write_field_ext<F, const D: usize>(&mut self, x: F::Extension) -> IoResult<()>
+    fn write_field_ext<F, const D: usize>(&mut self, x: BinomialExtensionField<F,D>) -> IoResult<()>
     where
         F: RichField + BinomiallyExtendable<D>,
     {
@@ -1283,7 +1284,7 @@ pub trait Write {
 
     /// Writes a vector `v` of elements from the field extension of `F` to `self`.
     #[inline]
-    fn write_field_ext_vec<F, const D: usize>(&mut self, v: &[F::Extension]) -> IoResult<()>
+    fn write_field_ext_vec<F, const D: usize>(&mut self, v: &[BinomialExtensionField<F,D>]) -> IoResult<()>
     where
         F: RichField + BinomiallyExtendable<D>,
     {

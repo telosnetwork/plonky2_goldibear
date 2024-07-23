@@ -5,10 +5,11 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use plonky2_field::extension_algebra::ExtensionAlgebra;
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use p3_field::Field;
+use p3_field::{extension::{BinomialExtensionField, BinomiallyExtendable}, Field};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -46,8 +47,8 @@ impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> Poseidon
     /// Same as `mds_row_shf` for an extension algebra of `F`.
     fn mds_row_shf_algebra(
         r: usize,
-        v: &[ExtensionAlgebra<F::Extension, D>; SPONGE_WIDTH],
-    ) -> ExtensionAlgebra<F::Extension, D> {
+        v: &[ExtensionAlgebra<F, D>; SPONGE_WIDTH],
+    ) -> ExtensionAlgebra<F, D> {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = ExtensionAlgebra::ZERO;
 
@@ -90,8 +91,8 @@ impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> Poseidon
 
     /// Same as `mds_layer` for an extension algebra of `F`.
     fn mds_layer_algebra(
-        state: &[ExtensionAlgebra<F::Extension, D>; SPONGE_WIDTH],
-    ) -> [ExtensionAlgebra<F::Extension, D>; SPONGE_WIDTH] {
+        state: &[ExtensionAlgebra<F, D>; SPONGE_WIDTH],
+    ) -> [ExtensionAlgebra<F, D>; SPONGE_WIDTH] {
         let mut result = [ExtensionAlgebra::ZERO; SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
@@ -133,7 +134,7 @@ impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> Gate<F, 
         Ok(PoseidonMdsGate::new())
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
             .map(|i| vars.get_local_ext_algebra(Self::wires_input(i)))
             .collect::<Vec<_>>()

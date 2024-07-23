@@ -6,7 +6,7 @@ use alloc::{
 };
 
 use hashbrown::HashMap;
-use plonky2_field::extension::BinomiallyExtendable;
+use p3_field::extension::BinomiallyExtendable;
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_util::ceil_div_usize;
 

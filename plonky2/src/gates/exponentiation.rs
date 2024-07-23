@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::field::ops::Square;
 use crate::field::packed::PackedField;
 use p3_field::Field;
@@ -89,7 +89,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Expo
         Ok(Self::new(num_power_bits))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         let base = vars.local_wires[self.wire_base()];
 
         let power_bits: Vec<_> = (0..self.num_power_bits)

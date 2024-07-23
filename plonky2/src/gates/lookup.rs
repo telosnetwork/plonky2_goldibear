@@ -11,7 +11,7 @@ use itertools::Itertools;
 use keccak_hash::keccak;
 
 use super::lookup_table::LookupTable;
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -103,7 +103,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Look
         })
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
         // No main trace constraints for lookups.
         vec![]
     }

@@ -1,6 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use plonky2_field::extension_algebra::ExtensionAlgebra;
 use core::ops::Range;
 
 use crate::hash::hash_types::RichField;
@@ -97,7 +98,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D
 
     pub fn constant_ext_algebra(
         &mut self,
-        c: ExtensionAlgebra<F::Extension, D>,
+        c: ExtensionAlgebra<F, D>,
     ) -> ExtensionAlgebraTarget<D> {
         let c_parts = c.to_basefield_array();
         let mut parts = [self.zero_extension(); D];
@@ -124,7 +125,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D
     }
 
     pub fn zero_ext_algebra(&mut self) -> ExtensionAlgebraTarget<D> {
-        self.constant_ext_algebra(ExtensionAlgebra::ZERO)
+        self.constant_ext_algebra(ExtensionAlgebra::zero())
     }
 
     pub fn convert_to_ext(&mut self, t: Target) -> ExtensionTarget<D> {

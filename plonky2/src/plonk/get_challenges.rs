@@ -4,7 +4,7 @@ use alloc::{vec, vec::Vec};
 use hashbrown::HashSet;
 
 use super::circuit_builder::NUM_COINS_LOOKUP;
-use p3_field::extension::BinomiallyExtendable;
+use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::proof::{CompressedFriProof, FriChallenges, FriProof, FriProofTarget};
 use crate::fri::verifier::{compute_evaluation, fri_combine_initial, PrecomputedReducedOpenings};
@@ -30,7 +30,7 @@ fn get_challenges<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F 
     quotient_polys_cap: &MerkleCap<F, C::Hasher>,
     openings: &OpeningSet<F, D>,
     commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
-    final_poly: &PolynomialCoeffs<F::Extension>,
+    final_poly: &PolynomialCoeffs<BinomialExtensionField<F,D>>,
     pow_witness: F,
     circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
     common_data: &CommonCircuitData<F, D>,
