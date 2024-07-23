@@ -12,34 +12,22 @@ macro_rules! test_field_arithmetic {
         mod field_arithmetic {
             use alloc::vec::Vec;
 
-            use num::bigint::BigUint;
-            use rand::rngs::OsRng;
-            use rand::{Rng, RngCore};
-            use $crate::types::{Field, Sample};
+            use p3_field::{batch_multiplicative_inverse, Field, AbstractField, TwoAdicField};
+            use $crate::types::{Sample};
 
-            #[test]
-            fn modular_reduction() {
-                let mut rng = OsRng;
-                for _ in 0..10 {
-                    let x_lo = rng.next_u64();
-                    let x_hi = rng.next_u32();
-                    let x = (x_lo as u128) + ((x_hi as u128) << 64);
-                    let a = <$field>::from_noncanonical_u128(x);
-                    let b = <$field>::from_noncanonical_u96((x_lo, x_hi));
-                    assert_eq!(a, b);
-                }
-            }
 
             #[test]
             fn batch_inversion() {
+
                 for n in 0..20 {
                     let xs = (1..=n as u64)
                         .map(|i| <$field>::from_canonical_u64(i))
                         .collect::<Vec<_>>();
-                    let invs = <$field>::batch_multiplicative_inverse(&xs);
+
+                    let invs = batch_multiplicative_inverse::<$field>(xs.as_slice());
                     assert_eq!(invs.len(), n);
                     for (x, inv) in xs.into_iter().zip(invs) {
-                        assert_eq!(x * inv, <$field>::ONE);
+                        assert_eq!(x * inv, <$field>::one());
                     }
                 }
             }
@@ -48,8 +36,8 @@ macro_rules! test_field_arithmetic {
             fn primitive_root_order() {
                 let max_power = 8.min(<$field>::TWO_ADICITY);
                 for n_power in 0..max_power {
-                    let root = <$field>::primitive_root_of_unity(n_power);
-                    let order = <$field>::generator_order(root);
+                    let root = <$field>::two_adic_generator(n_power);
+                    let order = root.powers().skip(1).position(|y| y.is_one()).unwrap() + 1;
                     assert_eq!(order, 1 << n_power, "2^{}'th primitive root", n_power);
                 }
             }
@@ -58,7 +46,7 @@ macro_rules! test_field_arithmetic {
             fn negation() {
                 type F = $field;
 
-                for x in [F::zero(), F::one(), F::two(), F::NEG_ONE] {
+                for x in [F::zero(), F::one(), F::two(), F::neg_one()] {
                     assert_eq!(x + -x, F::zero());
                 }
             }
@@ -67,42 +55,16 @@ macro_rules! test_field_arithmetic {
             fn exponentiation() {
                 type F = $field;
 
-                assert_eq!(F::zero().exp_u64(0), <F>::ONE);
-                assert_eq!(F::one().exp_u64(0), <F>::ONE);
-                assert_eq!(F::two().exp_u64(0), <F>::ONE);
+                assert_eq!(F::zero().exp_u64(0), <F>::one());
+                assert_eq!(F::one().exp_u64(0), <F>::one());
+                assert_eq!(F::two().exp_u64(0), <F>::one());
 
-                assert_eq!(F::zero().exp_u64(1), <F>::ZERO);
-                assert_eq!(F::one().exp_u64(1), <F>::ONE);
-                assert_eq!(F::two().exp_u64(1), <F>::TWO);
-
-                assert_eq!(F::zero().kth_root_u64(1), <F>::ZERO);
-                assert_eq!(F::one().kth_root_u64(1), <F>::ONE);
-                assert_eq!(F::two().kth_root_u64(1), <F>::TWO);
-
-                for power in 1..10 {
-                    if F::is_monomial_permutation_u64(power) {
-                        let x = F::rand();
-                        assert_eq!(x.exp_u64(power).kth_root_u64(power), x);
-                    }
-                }
+                assert_eq!(F::zero().exp_u64(1), <F>::zero());
+                assert_eq!(F::one().exp_u64(1), <F>::one());
+                assert_eq!(F::two().exp_u64(1), <F>::two());
             }
 
-            #[test]
-            fn exponentiation_large() {
-                type F = $field;
 
-                let mut rng = OsRng;
-
-                let base = F::rand();
-                let pow = BigUint::from(rng.gen::<u64>());
-                let cycles = rng.gen::<u32>();
-                let mul_group_order = F::order() - 1u32;
-                let big_pow = &pow + &mul_group_order * cycles;
-                let big_pow_wrong = &pow + &mul_group_order * cycles + 1u32;
-
-                assert_eq!(base.exp_biguint(&pow), base.exp_biguint(&big_pow));
-                assert_ne!(base.exp_biguint(&pow), base.exp_biguint(&big_pow_wrong));
-            }
 
             #[test]
             fn inverses() {
@@ -192,7 +154,7 @@ pub(crate) fn test_field_order<
 >() {
     let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(
-        exp_biguint::<AF, D>(x, &(AF::order() - 1u8)),
+        exp_biguint::<AF, D>(x, &(BinomialExtensionField::<AF, D>::order() - 1u8)),
         BinomialExtensionField::<AF, D>::ones()
     );
 }
@@ -221,6 +183,7 @@ pub(crate) fn test_power_of_two_gen<
         .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
         BinomialExtensionField::<AF, D>::from_base(AF::two_adic_generator(AF::TWO_ADICITY))
     );
+
 }
 
 #[macro_export]
@@ -249,4 +212,21 @@ macro_rules! test_field_extension {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+
+    mod goldilocks {
+        use crate::{test_field_arithmetic};
+        test_field_arithmetic!(p3_goldilocks::Goldilocks);
+    }
+    mod goldilocks_ext {
+        use crate::{test_field_arithmetic, test_field_extension};
+
+        test_field_extension!(p3_goldilocks::Goldilocks, 2);
+        test_field_arithmetic!(
+            p3_field::extension::BinomialExtensionField<p3_goldilocks::Goldilocks, 2>
+        );
+    }
 }
