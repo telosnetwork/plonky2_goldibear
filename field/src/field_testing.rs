@@ -200,11 +200,11 @@ pub(crate) fn test_power_of_two_gen<AF: AbstractField + TwoAdicField + HasTwoAdi
     assert_eq!(
         exp_biguint(BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_generator())
             , &(BinomialExtensionField::<AF, D>::order() >> BinomialExtensionField::<AF, D>::TWO_ADICITY)),
-            <BinomialExtensionField<AF,D> as TwoAdicField>::ext_two_adic_generator());
+            BinomialExtensionField::<AF,D>::from_base_slice(&AF::ext_two_adic_generator(BinomialExtensionField::<AF, D>::TWO_ADICITY)));
     assert_eq!(
-        BinomialExtensionField::<AF, D>::ext_two_adic_generator()
+        BinomialExtensionField::<AF,D>::from_base_slice(&AF::ext_two_adic_generator(BinomialExtensionField::<AF, D>::TWO_ADICITY))
             .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
-        AF::two_adic_generator(AF::TWO_ADICITY)
+            BinomialExtensionField::<AF,D>::from_base(AF::two_adic_generator(AF::TWO_ADICITY))
     );
 }
 

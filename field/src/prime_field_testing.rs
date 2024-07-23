@@ -30,7 +30,7 @@ where
     let output: Vec<_> = inputs
         .iter()
         .cloned()
-        .map(|x| op(F::from_canonical_u64(x)).to_canonical_u64())
+        .map(|x| op(F::from_canonical_u64(x)).as_canonical_u64())
         .collect();
     // Compare expected outputs with actual outputs
     for i in 0..inputs.len() {
@@ -49,13 +49,13 @@ where
     BinaryOp: Fn(F, F) -> F,
     ExpectedOp: Fn(u64, u64) -> u64,
 {
-    let inputs = test_inputs(F::ORDER);
+    let inputs = test_inputs(F::ORDER_U64);
 
     for &lhs in &inputs {
         for &rhs in &inputs {
             let lhs_f = F::from_canonical_u64(lhs);
             let rhs_f = F::from_canonical_u64(rhs);
-            let actual = op(lhs_f, rhs_f).to_canonical_u64();
+            let actual = op(lhs_f, rhs_f).as_canonical_u64();
             let expected = expected_op(lhs, rhs);
             assert_eq!(
                 actual, expected,
