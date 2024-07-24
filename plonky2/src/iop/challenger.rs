@@ -1,7 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::marker::PhantomData;
+use p3_field::AbstractExtensionField;
+
+use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
@@ -47,9 +49,9 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         }
     }
 
-    pub fn observe_extension_element<const D: usize>(&mut self, element: &BinomialExtensionField<F,D>)
+    pub fn observe_extension_element<const D: usize>(&mut self, element: &F::Extension)
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         self.observe_elements(&element.to_basefield_array());
     }
@@ -60,9 +62,9 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         }
     }
 
-    pub fn observe_extension_elements<const D: usize>(&mut self, elements: &[BinomialExtensionField<F,D>])
+    pub fn observe_extension_elements<const D: usize>(&mut self, elements: &[F::Extension])
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         for element in elements {
             self.observe_extension_element(element);
@@ -106,18 +108,18 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         }
     }
 
-    pub fn get_extension_challenge<const D: usize>(&mut self) -> BinomialExtensionField<F,D>
+    pub fn get_extension_challenge<const D: usize>(&mut self) -> F::Extension
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let mut arr = [F::zero(); D];
         arr.copy_from_slice(&self.get_n_challenges(D));
-        BinomialExtensionField::<F,D>::from_base_slice(&arr)
+        F::Extension::from_base_slice(&arr)
     }
 
-    pub fn get_n_extension_challenges<const D: usize>(&mut self, n: usize) -> Vec<BinomialExtensionField<F,D>>
+    pub fn get_n_extension_challenges<const D: usize>(&mut self, n: usize) -> Vec<F::Extension>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         (0..n)
             .map(|_| self.get_extension_challenge::<D>())
@@ -162,7 +164,7 @@ impl<F: RichField, H: AlgebraicHasher<F>> Default for Challenger<F, H> {
 /// buffer can grow beyond `H::Permutation::RATE`. This is so that `observe_element` etc do not need access
 /// to the `CircuitBuilder`.
 #[derive(Debug)]
-pub struct RecursiveChallenger<F: RichField + BinomiallyExtendable<D>, H: AlgebraicHasher<F>, const D: usize>
+pub struct RecursiveChallenger<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
 {
     sponge_state: H::AlgebraicPermutation,
     input_buffer: Vec<Target>,
@@ -170,7 +172,7 @@ pub struct RecursiveChallenger<F: RichField + BinomiallyExtendable<D>, H: Algebr
     __: PhantomData<(F, H)>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, H: AlgebraicHasher<F>, const D: usize>
+impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
     RecursiveChallenger<F, H, D>
 {
     pub fn new(builder: &mut CircuitBuilder<F, D>) -> Self {

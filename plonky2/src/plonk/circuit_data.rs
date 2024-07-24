@@ -14,13 +14,14 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use core::ops::{Range, RangeFrom};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
 use anyhow::Result;
 use serde::Serialize;
+use plonky2_field::types::HasExtension;
 
 use super::circuit_builder::LookupWire;
 use crate::field::fft::FftRootTable;
@@ -141,13 +142,13 @@ impl CircuitConfig {
 
 /// Mock circuit data to only do witness generation without generating a proof.
 #[derive(Eq, PartialEq, Debug)]
-pub struct MockCircuitData<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct MockCircuitData<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     MockCircuitData<F, C, D>
 {
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
@@ -157,13 +158,13 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 
 /// Circuit data required by the prover or the verifier.
 #[derive(Eq, PartialEq, Debug)]
-pub struct CircuitData<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct CircuitData<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> {
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
     pub verifier_only: VerifierOnlyCircuitData<C, D>,
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     CircuitData<F, C, D>
 {
     pub fn to_bytes(
@@ -253,7 +254,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 /// construct a more minimal prover structure and convert back and forth.
 #[derive(Debug)]
 pub struct ProverCircuitData<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -261,7 +262,7 @@ pub struct ProverCircuitData<
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     ProverCircuitData<F, C, D>
 {
     pub fn to_bytes(
@@ -296,7 +297,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 /// Circuit data required by the prover.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifierCircuitData<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -304,7 +305,7 @@ pub struct VerifierCircuitData<
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     VerifierCircuitData<F, C, D>
 {
     pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
@@ -336,7 +337,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 /// Circuit data required by the prover, but not the verifier.
 #[derive(Eq, PartialEq, Debug)]
 pub struct ProverOnlyCircuitData<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -366,7 +367,7 @@ pub struct ProverOnlyCircuitData<
     pub lut_to_lookups: Vec<Lookup>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     ProverOnlyCircuitData<F, C, D>
 {
     pub fn to_bytes(
@@ -414,7 +415,7 @@ impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
 
 /// Circuit data required by both the prover and the verifier.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CommonCircuitData<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize> {
     pub config: CircuitConfig,
 
     pub fri_params: FriParams,
@@ -452,7 +453,7 @@ pub struct CommonCircuitData<F: RichField + BinomiallyExtendable<D>, const D: us
     pub luts: Vec<LookupTable>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CommonCircuitData<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D> {
     pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_common_circuit_data(self, gate_serializer)?;
@@ -526,7 +527,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CommonCircuitData<F
             ..self.num_zs_partial_products_polys() + i * self.num_lookup_polys + 2
     }
 
-    pub(crate) fn get_fri_instance(&self, zeta: BinomialExtensionField<F,D>) -> FriInstanceInfo<F, D> {
+    pub(crate) fn get_fri_instance(&self, zeta: F::Extension) -> FriInstanceInfo<F, D> {
         // All polynomials are opened at zeta.
         let zeta_batch = FriBatchInfo {
             point: zeta,

@@ -1,7 +1,8 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use p3_field::extension::BinomiallyExtendable;
+use plonky2_field::types::HasExtension;
+
 use crate::field::packable::Packable;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
@@ -9,7 +10,7 @@ use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::plonk::vars::{EvaluationVarsBaseBatch, EvaluationVarsBasePacked};
 
-pub trait PackedEvaluableBase<F: RichField + BinomiallyExtendable<D>, const D: usize>: Gate<F, D> {
+pub trait PackedEvaluableBase<F: RichField + HasExtension<D>, const D: usize>: Gate<F, D> {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars_base: EvaluationVarsBasePacked<P>,

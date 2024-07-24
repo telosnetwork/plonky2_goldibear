@@ -1,5 +1,3 @@
-pub(crate) mod division;
-
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::max;
@@ -9,10 +7,13 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 use anyhow::{ensure, Result};
 use itertools::Itertools;
 use p3_field::{ExtensionField as FieldExtension, Field, TwoAdicField};
-use plonky2_util::log2_strict;
 use serde::{Deserialize, Serialize};
 
-use crate::fft::{fft, fft_with_options, ifft, FftRootTable};
+use plonky2_util::log2_strict;
+
+use crate::fft::{fft, fft_with_options, FftRootTable, ifft};
+
+pub(crate) mod division;
 
 /// A polynomial in point-value form.
 ///
@@ -437,16 +438,18 @@ impl<F: TwoAdicField> Mul for &PolynomialCoeffs<F> {
 
 #[cfg(test)]
 mod tests {
-    use p3_goldilocks::Goldilocks;
-    extern crate std;
     use std::time::Instant;
 
-    use p3_field::{cyclic_subgroup_coset_known_order, AbstractField};
-    use rand::rngs::OsRng;
+    use p3_field::{AbstractField, cyclic_subgroup_coset_known_order};
+    use p3_goldilocks::Goldilocks;
     use rand::Rng;
+    use rand::rngs::OsRng;
+
+    use crate::types::Sample;
 
     use super::*;
-    use crate::types::Sample;
+
+    extern crate std;
 
     #[test]
     fn test_trimmed() {

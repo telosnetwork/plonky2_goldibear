@@ -7,10 +7,11 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use crate::field::ops::Square;
 use crate::field::packed::PackedField;
 use p3_field::Field;
+use plonky2_field::types::HasExtension;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -30,12 +31,12 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for raising a value to a power.
 #[derive(Clone, Debug, Default)]
-pub struct ExponentiationGate<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize> {
     pub num_power_bits: usize,
     pub _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> ExponentiationGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> {
     pub const fn new(num_power_bits: usize) -> Self {
         Self {
             num_power_bits,
@@ -75,7 +76,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> ExponentiationGate<
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D> {
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -202,7 +203,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Expo
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
     for ExponentiationGate<F, D>
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
@@ -242,12 +243,12 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase
 }
 
 #[derive(Debug, Default)]
-pub struct ExponentiationGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     gate: ExponentiationGate<F, D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ExponentiationGenerator<F, D>
 {
     fn id(&self) -> String {

@@ -4,6 +4,7 @@
 use alloc::vec::Vec;
 
 use p3_field::Field;
+
 use plonky2_maybe_rayon::*;
 #[doc(inline)]
 pub use plonky2_util::*;
@@ -42,7 +43,6 @@ pub(crate) const fn reverse_bits(n: usize, num_bits: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-
     #[cfg(not(feature = "std"))]
     use alloc::vec;
 

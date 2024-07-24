@@ -3,17 +3,18 @@
 use core::ops::Range;
 
 use crate::field::packed::PackedField;
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use p3_field::{AbstractExtensionField, Field};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
+use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::util::strided_view::PackedStridedView;
 
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVars<'a, F: RichField + BinomiallyExtendable<D>, const D: usize> {
-    pub local_constants: &'a [BinomialExtensionField<F,D>],
-    pub local_wires: &'a [BinomialExtensionField<F,D>],
+pub struct EvaluationVars<'a, F: RichField + HasExtension<D>, const D: usize> {
+    pub local_constants: &'a [F::Extension],
+    pub local_wires: &'a [F::Extension],
     pub public_inputs_hash: &'a HashOut<F>,
 }
 
@@ -46,7 +47,7 @@ pub struct EvaluationVarsBasePacked<'a, P: PackedField> {
     pub public_inputs_hash: &'a HashOut<P::Scalar>,
 }
 
-impl<'a, F: RichField + BinomiallyExtendable<D>, const D: usize> EvaluationVars<'a, F, D> {
+impl<'a, F: RichField + HasExtension<D>, const D: usize> EvaluationVars<'a, F, D> {
     pub fn get_local_ext_algebra(
         &self,
         wire_range: Range<usize>,
@@ -121,9 +122,9 @@ impl<'a, F: Field> EvaluationVarsBaseBatch<'a, F> {
 }
 
 impl<'a, F: Field> EvaluationVarsBase<'a, F> {
-    pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> BinomialExtensionField<F,D>
+    pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> F::Extension
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         debug_assert_eq!(wire_range.len(), D);
         let arr = self.local_wires.view(wire_range).try_into().unwrap();

@@ -5,8 +5,8 @@ use plonky2::plonk::circuit_builder::CircuitBuilder;
 
 use crate::constraint_consumer::{ConstraintConsumer, RecursiveConstraintConsumer};
 use crate::cross_table_lookup::{
-    eval_cross_table_lookup_checks, eval_cross_table_lookup_checks_circuit, CtlCheckVars,
-    CtlCheckVarsTarget,
+    CtlCheckVars, CtlCheckVarsTarget, eval_cross_table_lookup_checks,
+    eval_cross_table_lookup_checks_circuit,
 };
 use crate::lookup::{
     eval_ext_lookups_circuit, eval_packed_lookups_generic, Lookup, LookupCheckVars,
@@ -24,7 +24,7 @@ pub(crate) fn eval_vanishing_poly<F, FE, P, S, const D: usize, const D2: usize>(
     ctl_vars: Option<&[CtlCheckVars<F, FE, P, D2>]>,
     consumer: &mut ConstraintConsumer<P>,
 ) where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     FE: FieldExtension<D2, BaseField = F>,
     P: PackedField<Scalar = FE>,
     S: Stark<F, D>,
@@ -63,7 +63,7 @@ pub(crate) fn eval_vanishing_poly_circuit<F, S, const D: usize>(
     ctl_vars: Option<&[CtlCheckVarsTarget<F, D>]>,
     consumer: &mut RecursiveConstraintConsumer<F, D>,
 ) where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     S: Stark<F, D>,
 {
     // Evaluate all of the STARK's table constraints.

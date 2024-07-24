@@ -4,7 +4,8 @@ use core::ops::Range;
 
 use serde::Serialize;
 
-use p3_field::extension::BinomiallyExtendable;
+use plonky2_field::types::HasExtension;
+
 use crate::field::polynomial::PolynomialValues;
 use crate::gates::gate::{GateInstance, GateRef};
 use crate::hash::hash_types::RichField;
@@ -46,7 +47,7 @@ pub enum LookupSelectors {
 /// - {first_lut_row + 1} where we check the initial values of sum and RE (which are 0),
 /// - {last_lu_row} where we check that the last value of LDC is 0.
 /// Conceptually they're part of the selector ends lookups, but since we can have one polynomial for *all* LUTs it's here.
-pub(crate) fn selectors_lookup<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) fn selectors_lookup<F: RichField + HasExtension<D>, const D: usize>(
     _gates: &[GateRef<F, D>],
     instances: &[GateInstance<F, D>],
     lookup_rows: &[LookupWire],
@@ -77,7 +78,7 @@ pub(crate) fn selectors_lookup<F: RichField + BinomiallyExtendable<D>, const D: 
 
 /// Returns selectors for checking the validity of the LUTs.
 /// Each selector equals one on its respective LUT's `last_lut_row`, and 0 elsewhere.
-pub(crate) fn selector_ends_lookups<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) fn selector_ends_lookups<F: RichField + HasExtension<D>, const D: usize>(
     lookup_rows: &[LookupWire],
     instances: &[GateInstance<F, D>],
 ) -> Vec<PolynomialValues<F>> {
@@ -108,7 +109,7 @@ pub(crate) fn selector_ends_lookups<F: RichField + BinomiallyExtendable<D>, cons
 ///         k
 ///     else
 ///         UNUSED_SELECTOR
-pub(crate) fn selector_polynomials<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) fn selector_polynomials<F: RichField + HasExtension<D>, const D: usize>(
     gates: &[GateRef<F, D>],
     instances: &[GateInstance<F, D>],
     max_degree: usize,

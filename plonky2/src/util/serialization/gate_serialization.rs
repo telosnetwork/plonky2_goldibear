@@ -2,16 +2,21 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use p3_field::extension::BinomiallyExtendable;
 #[cfg(feature = "std")]
-use std::vec::Vec; // For macros below
+use std::vec::Vec;
+
+
+
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::GateRef;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult};
 
-pub trait GateSerializer<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+// For macros below
+
+pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize> {
     fn read_gate(
         &self,
         buf: &mut Buffer,
@@ -92,7 +97,9 @@ macro_rules! impl_gate_serializer {
 }
 
 pub mod default {
-    use p3_field::extension::BinomiallyExtendable;
+
+
+    use plonky2_field::types::HasExtension;
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
@@ -112,6 +119,7 @@ pub mod default {
     use crate::gates::reducing_extension::ReducingExtensionGate;
     use crate::hash::hash_types::RichField;
     use crate::util::serialization::GateSerializer;
+
     /// A gate serializer that can be used to serialize all default gates supported
     /// by the `plonky2` library.
     /// Being a unit struct, it can be simply called as
@@ -123,7 +131,7 @@ pub mod default {
     /// the `GateSerializer` trait. This can be easily done through the `impl_gate_serializer` macro.
     #[derive(Debug)]
     pub struct DefaultGateSerializer;
-    impl<F: RichField + BinomiallyExtendable<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer {
+    impl<F: RichField + HasExtension<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer {
         impl_gate_serializer! {
             DefaultGateSerializer,
             ArithmeticGate,

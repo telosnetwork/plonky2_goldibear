@@ -1,8 +1,11 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
-use p3_field::{AbstractExtensionField, ExtensionField, Field};
 use core::borrow::Borrow;
+
+use p3_field::{AbstractExtensionField, ExtensionField, Field};
+use p3_field::extension::{BinomialExtensionField};
+
+use plonky2_field::types::HasExtension;
 
 use crate::field::packed::PackedField;
 use crate::field::polynomial::PolynomialCoeffs;
@@ -43,7 +46,7 @@ impl<F: Field> ReducingFactor<F> {
     {
         self.count += 1;
         // TODO: Would like to use `FE::scalar_mul`, but it doesn't work with Packed currently.
-        x * <BinomialExtensionField<F,D> as AbstractExtensionField<F>>::from_base(self.base)
+        x * F::Extension::from_base(self.base)
     }
 
     fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>) {
@@ -78,7 +81,7 @@ impl<F: Field> ReducingFactor<F> {
         })
     }
 
-    pub fn reduce_polys_base<BF: BinomiallyExtendable<D>, const D: usize>(
+    pub fn reduce_polys_base<BF: HasExtension<D>, const D: usize>(
         &mut self,
         polys: impl IntoIterator<Item = impl Borrow<PolynomialCoeffs<BF>>>,
     ) -> PolynomialCoeffs<F> {
@@ -126,7 +129,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let l = terms.len();
 
@@ -181,7 +184,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let l = terms.len();
 
@@ -234,7 +237,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         self.count += terms.len() as u64;
         terms
@@ -251,7 +254,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let zero_ext = builder.zero_extension();
         let exp = if x == zero_ext {
@@ -274,12 +277,13 @@ impl<const D: usize> ReducingFactorTarget<D> {
 mod tests {
     use anyhow::Result;
 
-    use super::*;
     use crate::field::types::Sample;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
+
+    use super::*;
 
     fn test_reduce_gadget_base(n: usize) -> Result<()> {
         const D: usize = 2;

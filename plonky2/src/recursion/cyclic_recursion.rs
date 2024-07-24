@@ -5,7 +5,8 @@ use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
 
-use p3_field::extension::BinomiallyExtendable;
+
+use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -61,7 +62,7 @@ impl VerifierCircuitTarget {
         })
     }
 
-    fn from_slice<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+    fn from_slice<F: RichField + HasExtension<D>, const D: usize>(
         slice: &[Target],
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<Self> {
@@ -86,7 +87,7 @@ impl VerifierCircuitTarget {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
     ///
@@ -179,7 +180,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D
 /// Additional checks to be performed on a cyclic recursive proof in addition to verifying the proof.
 /// Checks that the purported verifier data in the public inputs match the real verifier data.
 pub fn check_cyclic_proof_verifier_data<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -203,8 +204,9 @@ mod tests {
     use alloc::vec;
 
     use anyhow::Result;
+    use plonky2_field::types::HasExtension;
 
-    use p3_field::extension::BinomiallyExtendable;
+
     use crate::gates::noop::NoopGate;
     use crate::hash::hash_types::{HashOutTarget, RichField};
     use crate::hash::hashing::hash_n_to_hash_no_pad;
@@ -218,7 +220,7 @@ mod tests {
 
     // Generates `CommonCircuitData` usable for recursion.
     fn common_data_for_recursion<
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >() -> CommonCircuitData<F, D>

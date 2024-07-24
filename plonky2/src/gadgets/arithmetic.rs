@@ -6,7 +6,10 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use p3_field::{extension::BinomiallyExtendable, PrimeField64};
+use p3_field::PrimeField64;
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::gates::exponentiation::ExponentiationGate;
 use crate::hash::hash_types::RichField;
@@ -17,7 +20,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Computes `-x`.
     pub fn neg(&mut self, x: Target) -> Target {
         let neg_one = self.neg_one();
@@ -387,7 +390,7 @@ pub struct EqualityGenerator {
     inv: Target,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator {
     fn id(&self) -> String {
         "EqualityGenerator".to_string()
     }

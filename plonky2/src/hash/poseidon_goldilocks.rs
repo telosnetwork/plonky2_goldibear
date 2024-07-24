@@ -6,7 +6,7 @@
 
 use p3_goldilocks::Goldilocks;
 
-use crate::hash::poseidon::{Poseidon, N_PARTIAL_ROUNDS};
+use crate::hash::poseidon::{N_PARTIAL_ROUNDS, Poseidon};
 
 #[rustfmt::skip]
 impl Poseidon for Goldilocks {
@@ -444,7 +444,9 @@ mod poseidon12_mds {
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{vec, vec::Vec};
+
     use p3_goldilocks::Goldilocks;
+
     use crate::hash::poseidon::test_helpers::{check_consistency, check_test_vectors};
 
     type F = Goldilocks;

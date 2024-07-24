@@ -35,6 +35,7 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+
 use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::PolynomialValues;
@@ -51,8 +52,8 @@ use crate::config::StarkConfig;
 use crate::constraint_consumer::{ConstraintConsumer, RecursiveConstraintConsumer};
 use crate::evaluation_frame::StarkEvaluationFrame;
 use crate::lookup::{
-    eval_helper_columns, eval_helper_columns_circuit, get_grand_product_challenge_set,
-    get_helper_cols, Column, ColumnFilter, Filter, GrandProductChallenge, GrandProductChallengeSet,
+    Column, ColumnFilter, eval_helper_columns,
+    eval_helper_columns_circuit, Filter, get_grand_product_challenge_set, get_helper_cols, GrandProductChallenge, GrandProductChallengeSet,
 };
 use crate::proof::{MultiProof, StarkProofTarget, StarkProofWithMetadata};
 use crate::stark::Stark;
@@ -231,7 +232,7 @@ pub fn get_ctl_data<'a, F, C, const D: usize, const N: usize>(
     max_constraint_degree: usize,
 ) -> (GrandProductChallengeSet<F>, [CtlData<'a, F>; N])
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
 {
     // Get challenges for the cross-table lookups.
@@ -256,10 +257,10 @@ pub fn get_ctl_vars_from_proofs<'a, F, C, const D: usize, const N: usize>(
     ctl_challenges: &'a GrandProductChallengeSet<F>,
     num_lookup_columns: &'a [usize; N],
     max_constraint_degree: usize,
-) -> [Vec<CtlCheckVars<'a, F, <F as BinomiallyExtendable<D>>::Extension, <F as BinomiallyExtendable<D>>::Extension, D>>;
+) -> [Vec<CtlCheckVars<'a, F, <F as HasExtension<D>>::Extension, <F as HasExtension<D>>::Extension, D>>;
        N]
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
 {
     let num_ctl_helper_cols =
@@ -487,7 +488,7 @@ where
     pub(crate) filter: Vec<Option<Filter<F>>>,
 }
 
-impl<'a, F: RichField + BinomiallyExtendable<D>, const D: usize>
+impl<'a, F: RichField + HasExtension<D>, const D: usize>
     CtlCheckVars<'a, F, F::Extension, F::Extension, D>
 {
     /// Extracts the `CtlCheckVars` for each STARK.
@@ -632,7 +633,7 @@ pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const 
     consumer: &mut ConstraintConsumer<P>,
     constraint_degree: usize,
 ) where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     FE: FieldExtension<D2, BaseField = F>,
     P: PackedField<Scalar = FE>,
     S: Stark<F, D>,
@@ -844,7 +845,7 @@ impl<'a, F: Field, const D: usize> CtlCheckVarsTarget<F, D> {
 /// and not the next. This enables CTLs across two rows.
 pub(crate) fn eval_cross_table_lookup_checks_circuit<
     S: Stark<F, D>,
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     const D: usize,
 >(
     builder: &mut CircuitBuilder<F, D>,
@@ -943,7 +944,7 @@ pub(crate) fn eval_cross_table_lookup_checks_circuit<
 }
 
 /// Verifies all cross-table lookups.
-pub fn verify_cross_table_lookups<F: RichField + BinomiallyExtendable<D>, const D: usize, const N: usize>(
+pub fn verify_cross_table_lookups<F: RichField + HasExtension<D>, const D: usize, const N: usize>(
     cross_table_lookups: &[CrossTableLookup<F>],
     ctl_zs_first: [Vec<F>; N],
     ctl_extra_looking_sums: Option<&[Vec<F>]>,
@@ -995,7 +996,7 @@ pub fn verify_cross_table_lookups<F: RichField + BinomiallyExtendable<D>, const 
 
 /// Circuit version of `verify_cross_table_lookups`. Verifies all cross-table lookups.
 pub fn verify_cross_table_lookups_circuit<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     const D: usize,
     const N: usize,
 >(
@@ -1050,6 +1051,7 @@ pub mod debug_utils {
     use alloc::{vec, vec::Vec};
 
     use hashbrown::HashMap;
+
     use plonky2::field::polynomial::PolynomialValues;
     use plonky2::field::types::Field;
 

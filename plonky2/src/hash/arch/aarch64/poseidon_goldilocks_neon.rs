@@ -4,10 +4,10 @@ use core::arch::aarch64::*;
 use core::arch::asm;
 use core::mem::transmute;
 
+use p3_goldilocks::Goldilocks;
 use static_assertions::const_assert;
 use unroll::unroll_for_loops;
 
-use p3_goldilocks::Goldilocks;
 use crate::hash::poseidon::Poseidon;
 use crate::util::branch_hint;
 

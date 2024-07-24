@@ -19,12 +19,12 @@ use crate::util::trace_rows_to_poly_values;
 
 /// A trace wirh arbitrary values
 #[derive(Copy, Clone)]
-struct UnconstrainedStark<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+struct UnconstrainedStark<F: RichField + HasExtension<D>, const D: usize> {
     num_rows: usize,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> UnconstrainedStark<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> UnconstrainedStark<F, D> {
     const fn new(num_rows: usize) -> Self {
         Self {
             num_rows,
@@ -44,7 +44,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> UnconstrainedStark<
 const COLUMNS: usize = 2;
 const PUBLIC_INPUTS: usize = 0;
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for UnconstrainedStark<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for UnconstrainedStark<F, D> {
     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, COLUMNS, PUBLIC_INPUTS>
     where
         FE: FieldExtension<D2, BaseField = F>,
@@ -81,6 +81,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for Unc
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+
     use plonky2::field::extension::BinomiallyExtendable;
     use plonky2::hash::hash_types::RichField;
     use plonky2::iop::witness::PartialWitness;
@@ -162,7 +163,7 @@ mod tests {
     }
 
     fn recursive_proof<
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
         S: Stark<F, D> + Copy,
         InnerC: GenericConfig<D, F = F>,

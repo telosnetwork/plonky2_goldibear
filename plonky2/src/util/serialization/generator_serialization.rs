@@ -2,16 +2,21 @@
 
 #[cfg(not(feature = "std"))]
 pub use alloc::vec::Vec;
-use p3_field::extension::BinomiallyExtendable;
 #[cfg(feature = "std")]
-pub use std::vec::Vec; // For macros below
+pub use std::vec::Vec;
+
+
+
+use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::WitnessGeneratorRef;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult};
 
-pub trait WitnessGeneratorSerializer<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+// For macros below
+
+pub trait WitnessGeneratorSerializer<F: RichField + HasExtension<D>, const D: usize> {
     fn read_generator(
         &self,
         buf: &mut Buffer,
@@ -99,7 +104,8 @@ pub mod default {
     use core::marker::PhantomData;
 
 
-    use p3_field::extension::BinomiallyExtendable;
+
+    use plonky2_field::types::HasExtension;
 
     use crate::gadgets::arithmetic::EqualityGenerator;
     use crate::gadgets::arithmetic_extension::QuotientGeneratorExtension;
@@ -147,7 +153,7 @@ pub mod default {
 
     impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for DefaultGeneratorSerializer<C, D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F> + 'static,
         C::Hasher: AlgebraicHasher<F>,
     {

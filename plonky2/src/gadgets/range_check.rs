@@ -5,7 +5,8 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::extension::BinomiallyExtendable;
+
+use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
 use crate::iop::target::{BoolTarget, Target};
@@ -14,7 +15,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Checks that `x < 2^n_log` using a `BaseSumGate`.
     pub fn range_check(&mut self, x: Target, n_log: usize) {
         self.split_le(x, n_log);
@@ -65,7 +66,7 @@ pub struct LowHighGenerator {
     high: Target,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for LowHighGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for LowHighGenerator {
     fn id(&self) -> String {
         "LowHighGenerator".to_string()
     }

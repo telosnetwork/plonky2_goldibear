@@ -1,10 +1,10 @@
-use p3_field::extension::{
-    BinomialExtensionField, BinomiallyExtendable, HasFrobenius, HasTwoAdicBionmialExtension,
-};
 use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
+use p3_field::extension::{
+    BinomialExtensionField, HasFrobenius, HasTwoAdicBionmialExtension,
+};
 
 use crate::packed::PackedField;
-use crate::types::Sample;
+use crate::types::{HasExtension, Sample};
 
 #[macro_export]
 macro_rules! test_field_arithmetic {
@@ -81,7 +81,7 @@ macro_rules! test_field_arithmetic {
 /// Test of consistency of the arithmetic operations.
 #[allow(clippy::eq_op)]
 pub(crate) fn test_add_neg_sub_mul<
-    AF: AbstractField + BinomiallyExtendable<D> + Sample,
+    AF: AbstractField + HasExtension<D> + Sample,
     const D: usize,
 >() {
     let x = BinomialExtensionField::<AF, D>::rand();
@@ -100,7 +100,7 @@ pub(crate) fn test_add_neg_sub_mul<
 }
 
 /// Test of consistency of division.
-pub(crate) fn test_inv_div<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: usize>() {
+pub(crate) fn test_inv_div<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
     let x = BinomialExtensionField::<AF, D>::rand();
     let y = BinomialExtensionField::<AF, D>::rand();
     let z = BinomialExtensionField::<AF, D>::rand();
@@ -117,7 +117,7 @@ pub(crate) fn test_inv_div<AF: AbstractField + BinomiallyExtendable<D> + Sample,
 
 /// Test that the Frobenius automorphism is consistent with the naive version.
 pub(crate) fn test_frobenius<
-    AF: AbstractField + BinomiallyExtendable<D> + Sample,
+    AF: AbstractField + HasExtension<D> + Sample,
     const D: usize,
 >() {
     let x = BinomialExtensionField::<AF, D>::rand();
@@ -131,7 +131,7 @@ pub(crate) fn test_frobenius<
 }
 
 /// Exponentiation of an extension field element by an arbitrary large integer.
-fn exp_biguint<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: usize>(
+fn exp_biguint<AF: AbstractField + HasExtension<D> + Sample, const D: usize>(
     x: BinomialExtensionField<AF, D>,
     power: &num::BigUint,
 ) -> BinomialExtensionField<AF, D> {
@@ -145,7 +145,7 @@ fn exp_biguint<AF: AbstractField + BinomiallyExtendable<D> + Sample, const D: us
 
 /// Test that x^(|F| - 1) for a random (non-zero) x in F.
 pub(crate) fn test_field_order<
-    AF: AbstractField + BinomiallyExtendable<D> + Sample,
+    AF: AbstractField + HasExtension<D> + Sample,
     const D: usize,
 >() {
     let x = BinomialExtensionField::<AF, D>::rand();
@@ -159,7 +159,7 @@ pub(crate) fn test_field_order<
 /// the two_adicities of base and extension field and
 /// the two_adic generators of the base field and the extension field.
 pub(crate) fn test_power_of_two_gen<
-    AF: AbstractField + TwoAdicField + HasTwoAdicBionmialExtension<D> + Sample,
+    AF: Field + TwoAdicField + HasTwoAdicBionmialExtension<D> + HasExtension<D> + Sample,
     const D: usize,
 >() {
     assert_eq!(
@@ -214,6 +214,7 @@ mod tests {
 
     mod goldilocks {
         use crate::test_field_arithmetic;
+
         test_field_arithmetic!(p3_goldilocks::Goldilocks);
     }
     mod goldilocks_ext {
@@ -227,6 +228,7 @@ mod tests {
 
     mod babybear {
         use crate::test_field_arithmetic;
+
         test_field_arithmetic!(p3_baby_bear::BabyBear);
     }
 

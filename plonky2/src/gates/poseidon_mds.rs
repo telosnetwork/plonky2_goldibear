@@ -5,11 +5,14 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use plonky2_field::extension_algebra::ExtensionAlgebra;
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use p3_field::{extension::{BinomialExtensionField, BinomiallyExtendable}, Field};
+use p3_field::{extension::{BinomialExtensionField}, Field};
+
+use plonky2_field::extension_algebra::ExtensionAlgebra;
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -25,9 +28,9 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// Poseidon MDS Gate
 #[derive(Debug, Default)]
-pub struct PoseidonMdsGate<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize>(PhantomData<F>);
+pub struct PoseidonMdsGate<F: RichField + HasExtension<D> + Poseidon, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> PoseidonMdsGate<F, D> {
+impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> PoseidonMdsGate<F, D> {
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -117,7 +120,7 @@ impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> Poseidon
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> Gate<F, D> for PoseidonMdsGate<F, D> {
+impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> Gate<F, D> for PoseidonMdsGate<F, D> {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -222,7 +225,7 @@ pub struct PoseidonMdsGenerator<const D: usize> {
     row: usize,
 }
 
-impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
     for PoseidonMdsGenerator<D>
 {
     fn id(&self) -> String {

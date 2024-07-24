@@ -2,8 +2,9 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
-use p3_field::extension::BinomiallyExtendable;
 use p3_field::Field;
+
+use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use crate::field::types::Sample;
@@ -22,7 +23,7 @@ const WITNESS_DEGREE: usize = WITNESS_SIZE - 1;
 
 /// Tests that the constraints imposed by the given gate are low-degree by applying them to random
 /// low-degree witness polynomials.
-pub fn test_low_degree<F: RichField + BinomiallyExtendable<D>, G: Gate<F, D>, const D: usize>(gate: G) {
+pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D>, const D: usize>(gate: G) {
     let rate_bits = log2_ceil(gate.degree() + 1);
 
     let wire_ldes = random_low_degree_matrix::<F::Extension>(gate.num_wires(), rate_bits);
@@ -88,7 +89,7 @@ fn random_low_degree_values<F: Field>(rate_bits: usize) -> Vec<F> {
 }
 
 pub fn test_eval_fns<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     G: Gate<F, D>,
     const D: usize,

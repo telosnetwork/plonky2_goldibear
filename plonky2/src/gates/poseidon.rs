@@ -7,7 +7,10 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::poseidon_mds::PoseidonMdsGate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -30,9 +33,9 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// It has a flag which can be used to swap the first four inputs with the next four, for ordering
 /// sibling digests.
 #[derive(Debug, Default)]
-pub struct PoseidonGate<F: RichField + BinomiallyExtendable<D>, const D: usize>(PhantomData<F>);
+pub struct PoseidonGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PoseidonGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> {
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -98,7 +101,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PoseidonGate<F, D> 
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -418,12 +421,12 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Pose
 }
 
 #[derive(Debug, Default)]
-pub struct PoseidonGenerator<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> {
+pub struct PoseidonGenerator<F: RichField + HasExtension<D> + Poseidon, const D: usize> {
     row: usize,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
     for PoseidonGenerator<F, D>
 {
     fn id(&self) -> String {
@@ -538,17 +541,18 @@ mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
 
-    use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
+    use super::*;
+
     #[test]
     fn wire_indices() {
         type F = Goldilocks;
-        type Gate = PoseidonGate<F, 4>;
+        type Gate = PoseidonGate<F, 2>;
 
         assert_eq!(Gate::wire_input(0), 0);
         assert_eq!(Gate::wire_input(11), 11);
@@ -621,7 +625,7 @@ mod tests {
     #[test]
     fn low_degree() {
         type F = Goldilocks;
-        let gate = PoseidonGate::<F, 4>::new();
+        let gate = PoseidonGate::<F, 2>::new();
         test_low_degree(gate)
     }
 

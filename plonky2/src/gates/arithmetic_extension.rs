@@ -4,8 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use core::ops::Range;
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -54,7 +55,7 @@ impl<const D: usize> ArithmeticExtensionGate<D> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ArithmeticExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticExtensionGate<D> {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -168,14 +169,14 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Arit
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticExtensionGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     const_0: F,
     const_1: F,
     i: usize,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ArithmeticExtensionGenerator<F, D>
 {
     fn id(&self) -> String {

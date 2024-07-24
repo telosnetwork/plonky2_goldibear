@@ -2,8 +2,9 @@ use alloc::vec::Vec;
 use core::cmp::{max, min};
 
 use p3_field::{Field, TwoAdicField};
-use plonky2_util::{log2_strict, reverse_index_bits_in_place};
 use unroll::unroll_for_loops;
+
+use plonky2_util::{log2_strict, reverse_index_bits_in_place};
 
 use crate::packable::Packable;
 use crate::packed::PackedField;
@@ -212,6 +213,7 @@ mod tests {
 
     use p3_field::{AbstractField, TwoAdicField};
     use p3_goldilocks::Goldilocks;
+
     use plonky2_util::{log2_ceil, log2_strict};
 
     use crate::fft::{fft, fft_with_options, ifft};

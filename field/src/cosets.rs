@@ -22,14 +22,14 @@ pub fn get_unique_coset_shifts<F: Field>(subgroup_size: usize, num_shifts: usize
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
-
-    use p3_goldilocks::Goldilocks;
-    extern crate std;
     use std::collections::HashSet;
 
     use p3_field::TwoAdicField;
+    use p3_goldilocks::Goldilocks;
 
     use crate::cosets::get_unique_coset_shifts;
+
+    extern crate std;
 
     fn cyclic_subgroup_coset_known_order<F: TwoAdicField>(
         generator: F,

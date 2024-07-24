@@ -8,7 +8,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use p3_field::ExtensionField;
 use core::fmt::Debug;
 
@@ -16,6 +16,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use p3_goldilocks::Goldilocks;
+use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
@@ -88,7 +89,7 @@ pub trait AlgebraicHasher<F: RichField>: Hasher<F, Hash = HashOut<F>> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self::AlgebraicPermutation
     where
-        F: RichField + BinomiallyExtendable<D>;
+        F: RichField + HasExtension<D>;
 }
 
 /// Generic configuration trait.
@@ -96,7 +97,7 @@ pub trait GenericConfig<const D: usize>:
     Debug + Clone + Sync + Sized + Send + Eq + PartialEq
 {
     /// Main field.
-    type F: RichField + BinomiallyExtendable<D>;
+    type F: RichField + HasExtension<D>;
     /// Field extension of degree D of the main field.
     type FE: ExtensionField<Self::F>;
     /// Hash function used for building Merkle trees.

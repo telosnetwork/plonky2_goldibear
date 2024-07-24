@@ -2,9 +2,10 @@
 
 #![allow(clippy::needless_range_loop)]
 
-use plonky2::field::goldilocks_field::Goldilocks;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
+
+use plonky2::field::goldilocks_field::Goldilocks;
 
 const SAMPLE_RANGE_END: u64 = Goldilocks::ORDER;
 

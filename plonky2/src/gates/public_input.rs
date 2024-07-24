@@ -2,7 +2,10 @@
 use alloc::{string::String, vec::Vec};
 use core::ops::Range;
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+
+use plonky2_field::types::HasExtension;
+
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -28,7 +31,7 @@ impl PublicInputGate {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for PublicInputGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputGate {
     fn id(&self) -> String {
         "PublicInputGate".into()
     }
@@ -99,7 +102,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Publ
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate {
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -116,6 +119,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase
 #[cfg(test)]
 mod tests {
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::public_input::PublicInputGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

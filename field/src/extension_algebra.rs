@@ -3,17 +3,19 @@ use core::fmt::{self, Debug, Display, Formatter};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use p3_field::AbstractExtensionField;
+use p3_field::extension::{BinomialExtensionField};
+
+use crate::types::HasExtension;
 
 /// Let `F_D` be the optimal extension field `F[X]/(X^D-W)`. Then `ExtensionAlgebra<F_D>` is the quotient `F_D[X]/(X^D-W)`.
 /// It's a `D`-dimensional algebra over `F_D` useful to lift the multiplication over `F_D` to a multiplication over `(F_D)^D`.
 #[derive(Copy, Clone)]
-pub struct ExtensionAlgebra<F: BinomiallyExtendable<D>, const D: usize>(
+pub struct ExtensionAlgebra<F: HasExtension<D>, const D: usize>(
     pub [BinomialExtensionField<F, D>; D],
 );
 
-impl<F: BinomiallyExtendable<D>, const D: usize> ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
     pub fn zero() -> Self {
         Self([<BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::zero()); D])
     }
@@ -41,7 +43,7 @@ impl<F: BinomiallyExtendable<D>, const D: usize> ExtensionAlgebra<F, D> {
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> From<BinomialExtensionField<F, D>>
+impl<F: HasExtension<D>, const D: usize> From<BinomialExtensionField<F, D>>
     for ExtensionAlgebra<F, D>
 {
     fn from(x: BinomialExtensionField<F, D>) -> Self {
@@ -52,7 +54,7 @@ impl<F: BinomiallyExtendable<D>, const D: usize> From<BinomialExtensionField<F, 
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Display for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Display for ExtensionAlgebra<F, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "({})", self.0[0])?;
         for i in 1..D {
@@ -62,13 +64,13 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Display for ExtensionAlgebra<F,
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Debug for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Debug for ExtensionAlgebra<F, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self, f)
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Neg for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Neg for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -79,7 +81,7 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Neg for ExtensionAlgebra<F, D> 
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Add for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Add for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -90,19 +92,19 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Add for ExtensionAlgebra<F, D> 
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> AddAssign for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> AddAssign for ExtensionAlgebra<F, D> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Sum for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Sum for ExtensionAlgebra<F, D> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::zero(), |acc, x| acc + x)
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Sub for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Sub for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -113,14 +115,14 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Sub for ExtensionAlgebra<F, D> 
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> SubAssign for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> SubAssign for ExtensionAlgebra<F, D> {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Mul for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Mul for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -140,14 +142,14 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Mul for ExtensionAlgebra<F, D> 
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> MulAssign for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> MulAssign for ExtensionAlgebra<F, D> {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> Product for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Product for ExtensionAlgebra<F, D> {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::one(), |acc, x| acc * x)
     }
@@ -155,11 +157,11 @@ impl<F: BinomiallyExtendable<D>, const D: usize> Product for ExtensionAlgebra<F,
 
 /// A polynomial in coefficient form.
 #[derive(Clone, Debug)]
-pub struct PolynomialCoeffsAlgebra<F: BinomiallyExtendable<D>, const D: usize> {
+pub struct PolynomialCoeffsAlgebra<F: HasExtension<D>, const D: usize> {
     pub(crate) coeffs: Vec<ExtensionAlgebra<F, D>>,
 }
 
-impl<F: BinomiallyExtendable<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
     pub fn new(coeffs: Vec<ExtensionAlgebra<F, D>>) -> Self {
         PolynomialCoeffsAlgebra { coeffs }
     }
@@ -201,17 +203,18 @@ impl<F: BinomiallyExtendable<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
     use alloc::vec::Vec;
 
     use itertools::Itertools;
-    use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
     use p3_field::AbstractExtensionField;
+    use p3_field::extension::BinomialExtensionField;
 
     use crate::extension_algebra::ExtensionAlgebra;
-    use crate::types::Sample;
+    use crate::types::{HasExtension, Sample};
 
     /// Tests that the multiplication on the extension algebra lifts that of the field extension.
-    fn test_extension_algebra<F: BinomiallyExtendable<D> + Sample, const D: usize>() {
+    fn test_extension_algebra<F: HasExtension<D> + Sample, const D: usize>() {
         #[derive(Copy, Clone, Debug)]
         enum ZeroOne {
             Zero,

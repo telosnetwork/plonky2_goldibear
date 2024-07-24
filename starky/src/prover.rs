@@ -6,6 +6,7 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+
 use plonky2::field::extension::BinomiallyExtendable;
 use plonky2::field::packable::Packable;
 use plonky2::field::packed::PackedField;
@@ -17,16 +18,16 @@ use plonky2::hash::hash_types::RichField;
 use plonky2::iop::challenger::Challenger;
 use plonky2::plonk::config::GenericConfig;
 use plonky2::timed;
-use plonky2::util::timing::TimingTree;
 use plonky2::util::{log2_ceil, log2_strict, transpose};
+use plonky2::util::timing::TimingTree;
 use plonky2_maybe_rayon::*;
 
 use crate::config::StarkConfig;
 use crate::constraint_consumer::ConstraintConsumer;
-use crate::cross_table_lookup::{get_ctl_auxiliary_polys, CtlCheckVars, CtlData};
+use crate::cross_table_lookup::{CtlCheckVars, CtlData, get_ctl_auxiliary_polys};
 use crate::evaluation_frame::StarkEvaluationFrame;
 use crate::lookup::{
-    get_grand_product_challenge_set, lookup_helper_columns, GrandProductChallengeSet, Lookup,
+    get_grand_product_challenge_set, GrandProductChallengeSet, Lookup, lookup_helper_columns,
     LookupCheckVars,
 };
 use crate::proof::{StarkOpeningSet, StarkProof, StarkProofWithPublicInputs};
@@ -42,7 +43,7 @@ pub fn prove<F, C, S, const D: usize>(
     timing: &mut TimingTree,
 ) -> Result<StarkProofWithPublicInputs<F, C, D>>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {
@@ -105,7 +106,7 @@ pub fn prove_with_commitment<F, C, S, const D: usize>(
     timing: &mut TimingTree,
 ) -> Result<StarkProofWithPublicInputs<F, C, D>>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {
@@ -355,7 +356,7 @@ fn compute_quotient_polys<'a, F, P, C, S, const D: usize>(
     config: &StarkConfig,
 ) -> Option<Vec<PolynomialCoeffs<F>>>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     P: PackedField<Scalar = F>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
@@ -547,7 +548,7 @@ fn check_constraints<'a, F, C, S, const D: usize>(
     num_lookup_columns: usize,
     num_ctl_helper_cols: &[usize],
 ) where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {

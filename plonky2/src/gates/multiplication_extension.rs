@@ -4,8 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use core::ops::Range;
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -51,7 +52,7 @@ impl<const D: usize> MulExtensionGate<D> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -155,13 +156,13 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for MulE
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct MulExtensionGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct MulExtensionGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     const_0: F,
     i: usize,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for MulExtensionGenerator<F, D>
 {
     fn id(&self) -> String {

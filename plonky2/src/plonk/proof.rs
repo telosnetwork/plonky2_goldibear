@@ -11,7 +11,8 @@ use anyhow::ensure;
 use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+use plonky2_field::types::HasExtension;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -31,7 +32,7 @@ use crate::util::serialization::{Buffer, Read, Write};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct Proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct Proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -53,7 +54,7 @@ pub struct ProofTarget<const D: usize> {
     pub opening_proof: FriProofTarget<D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> Proof<F, C, D> {
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> Proof<F, C, D> {
     /// Compress the proof.
     pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D> {
         let Proof {
@@ -77,7 +78,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct ProofWithPublicInputs<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -85,7 +86,7 @@ pub struct ProofWithPublicInputs<
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     ProofWithPublicInputs<F, C, D>
 {
     pub fn compress(
@@ -129,7 +130,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedProof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct CompressedProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
@@ -143,7 +144,7 @@ pub struct CompressedProof<F: RichField + BinomiallyExtendable<D>, C: GenericCon
     pub opening_proof: CompressedFriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     CompressedProof<F, C, D>
 {
     /// Decompress the proof.
@@ -174,7 +175,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct CompressedProofWithPublicInputs<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 > {
@@ -182,7 +183,7 @@ pub struct CompressedProofWithPublicInputs<
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     CompressedProofWithPublicInputs<F, C, D>
 {
     pub fn decompress(
@@ -257,7 +258,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
 }
 
 #[derive(Debug)]
-pub struct ProofChallenges<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize> {
     /// Random values used in Plonk's permutation argument.
     pub plonk_betas: Vec<F>,
 
@@ -271,7 +272,7 @@ pub struct ProofChallenges<F: RichField + BinomiallyExtendable<D>, const D: usiz
     pub plonk_deltas: Vec<F>,
 
     /// Point at which the PLONK polynomials are opened.
-    pub plonk_zeta: BinomialExtensionField<F,D>,
+    pub plonk_zeta: F::Extension,
 
     pub fri_challenges: FriChallenges<F, D>,
 }
@@ -286,7 +287,7 @@ pub(crate) struct ProofChallengesTarget<const D: usize> {
 }
 
 /// Coset elements that can be inferred in the FRI reduction steps.
-pub(crate) struct FriInferredElements<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) struct FriInferredElements<F: RichField + HasExtension<D>, const D: usize>(
     pub Vec<BinomialExtensionField<F,D>>,
 );
 
@@ -298,7 +299,7 @@ pub struct ProofWithPublicInputsTarget<const D: usize> {
 
 #[derive(Clone, Debug, Default, Serialize, /*Deserialize,*/ Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
-pub struct OpeningSet<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize> {
     pub constants: Vec<BinomialExtensionField<F,D>>,
     pub plonk_sigmas: Vec<BinomialExtensionField<F,D>>,
     pub wires: Vec<BinomialExtensionField<F,D>>,
@@ -310,17 +311,17 @@ pub struct OpeningSet<F: RichField + BinomiallyExtendable<D>, const D: usize> {
     pub lookup_zs_next: Vec<BinomialExtensionField<F,D>>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> OpeningSet<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D> {
     pub fn new<C: GenericConfig<D, F = F>>(
-        zeta: BinomialExtensionField<F,D>,
-        g: BinomialExtensionField<F,D>,
+        zeta: F::Extension,
+        g: F::Extension,
         constants_sigmas_commitment: &PolynomialBatch<F, C, D>,
         wires_commitment: &PolynomialBatch<F, C, D>,
         zs_partial_products_lookup_commitment: &PolynomialBatch<F, C, D>,
         quotient_polys_commitment: &PolynomialBatch<F, C, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> Self {
-        let eval_commitment = |z: BinomialExtensionField<F,D>, c: &PolynomialBatch<F, C, D>| {
+        let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D>| {
             c.polynomials
                 .par_iter()
                 .map(|p| p.to_extension().eval(z))

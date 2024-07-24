@@ -3,26 +3,27 @@ use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
 
-use p3_field::extension::BinomiallyExtendable;
+use plonky2_field::types::HasExtension;
+
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
-use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{flatten_target, ExtensionTarget};
+use crate::iop::ext_target::{ExtensionTarget, flatten_target};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
+use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
     fn compute_evaluation(
@@ -464,7 +465,7 @@ struct PrecomputedReducedOpeningsTarget<const D: usize> {
 }
 
 impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
-    fn from_os_and_alpha<F: RichField + BinomiallyExtendable<D>>(
+    fn from_os_and_alpha<F: RichField + HasExtension<D>>(
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
         builder: &mut CircuitBuilder<F, D>,

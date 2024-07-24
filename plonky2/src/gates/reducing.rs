@@ -5,8 +5,11 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
 use core::ops::Range;
+
+use p3_field::extension::{BinomialExtensionField};
+
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -60,7 +63,7 @@ impl<const D: usize> ReducingGate<D> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ReducingGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate<D> {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -188,7 +191,7 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingGate<D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
     fn id(&self) -> String {
         "ReducingGenerator".to_string()
     }
@@ -245,8 +248,8 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, 
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::reducing::ReducingGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

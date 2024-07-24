@@ -1,10 +1,11 @@
-use p3_field::extension::BinomiallyExtendable;
+
+use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Selects `x` or `y` based on `b`, i.e., this returns `if b { x } else { y }`.
     pub fn select_ext(
         &mut self,

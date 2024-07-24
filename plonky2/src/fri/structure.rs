@@ -5,13 +5,14 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 
-use p3_field::extension::BinomiallyExtendable;
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 
 /// Describes an instance of a FRI-based batch opening.
 #[derive(Debug)]
-pub struct FriInstanceInfo<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct FriInstanceInfo<F: RichField + HasExtension<D>, const D: usize> {
     /// The oracles involved, not counting oracles created during the commit phase.
     pub oracles: Vec<FriOracleInfo>,
     /// Batches of openings, where each batch is associated with a particular point.
@@ -35,7 +36,7 @@ pub struct FriOracleInfo {
 
 /// A batch of openings at a particular point.
 #[derive(Debug)]
-pub struct FriBatchInfo<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct FriBatchInfo<F: RichField + HasExtension<D>, const D: usize> {
     pub point: F::Extension,
     pub polynomials: Vec<FriPolynomialInfo>,
 }
@@ -71,13 +72,13 @@ impl FriPolynomialInfo {
 
 /// Opened values of each polynomial.
 #[derive(Debug)]
-pub struct FriOpenings<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct FriOpenings<F: RichField + HasExtension<D>, const D: usize> {
     pub batches: Vec<FriOpeningBatch<F, D>>,
 }
 
 /// Opened values of each polynomial that's opened at a particular point.
 #[derive(Debug)]
-pub struct FriOpeningBatch<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct FriOpeningBatch<F: RichField + HasExtension<D>, const D: usize> {
     pub values: Vec<F::Extension>,
 }
 

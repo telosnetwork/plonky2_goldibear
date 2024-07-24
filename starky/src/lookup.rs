@@ -9,6 +9,7 @@ use core::iter::repeat;
 
 use itertools::Itertools;
 use num_bigint::BigUint;
+
 use plonky2::field::batch_util::batch_add_inplace;
 use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::packed::PackedField;
@@ -82,7 +83,7 @@ impl<F: Field> Filter<F> {
         next_v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let prods = self
             .products
@@ -347,7 +348,7 @@ impl<F: Field> Column<F> {
         v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let pairs = self
             .linear_combination
@@ -372,7 +373,7 @@ impl<F: Field> Column<F> {
         next_v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let mut pairs = self
             .linear_combination
@@ -462,7 +463,7 @@ impl<F: Field> GrandProductChallenge<F> {
 }
 
 impl GrandProductChallenge<Target> {
-    pub(crate) fn combine_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+    pub(crate) fn combine_circuit<F: RichField + HasExtension<D>, const D: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
         terms: &[ExtensionTarget<D>],
@@ -475,7 +476,7 @@ impl GrandProductChallenge<Target> {
 
 impl GrandProductChallenge<Target> {
     /// Circuit version of `combine`.
-    pub fn combine_base_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+    pub fn combine_base_circuit<F: RichField + HasExtension<D>, const D: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
         terms: &[Target],
@@ -540,7 +541,7 @@ pub fn get_grand_product_challenge_set<F: RichField, H: Hasher<F>>(
 }
 
 fn get_grand_product_challenge_target<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     H: AlgebraicHasher<F>,
     const D: usize,
 >(
@@ -554,7 +555,7 @@ fn get_grand_product_challenge_target<
 
 /// Circuit version of `get_grand_product_challenge_set`.
 pub fn get_grand_product_challenge_set_target<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     H: AlgebraicHasher<F>,
     const D: usize,
 >(
@@ -659,7 +660,7 @@ pub(crate) fn eval_helper_columns<F, FE, P, const D: usize, const D2: usize>(
     challenges: &GrandProductChallenge<F>,
     consumer: &mut ConstraintConsumer<P>,
 ) where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     FE: FieldExtension<D2, BaseField = F>,
     P: PackedField<Scalar = FE>,
 {
@@ -705,7 +706,7 @@ pub(crate) fn eval_helper_columns<F, FE, P, const D: usize, const D2: usize>(
 
 /// Circuit version of `eval_helper_columns`.
 /// Given data associated to a lookup (either a CTL or a range-check), check the associated helper polynomials.
-pub(crate) fn eval_helper_columns_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) fn eval_helper_columns_circuit<F: RichField + HasExtension<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     filter: &[Option<Filter<F>>],
     columns: &[Vec<ExtensionTarget<D>>],
@@ -881,7 +882,7 @@ pub(crate) fn eval_packed_lookups_generic<F, FE, P, S, const D: usize, const D2:
     lookup_vars: LookupCheckVars<F, FE, P, D2>,
     yield_constr: &mut ConstraintConsumer<P>,
 ) where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     FE: FieldExtension<D2, BaseField = F>,
     P: PackedField<Scalar = FE>,
     S: Stark<F, D>,
@@ -943,7 +944,7 @@ pub(crate) struct LookupCheckVarsTarget<const D: usize> {
 }
 
 pub(crate) fn eval_ext_lookups_circuit<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     S: Stark<F, D>,
     const D: usize,
 >(

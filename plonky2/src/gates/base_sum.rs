@@ -1,9 +1,12 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, string::String, vec, vec::Vec};
-use p3_field::PrimeField64;
 use core::ops::Range;
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+use p3_field::PrimeField64;
+
+use plonky2_field::types::HasExtension;
+
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -49,7 +52,7 @@ impl<const B: usize> BaseSumGate<B> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize, const B: usize> Gate<F, D> for BaseSumGate<B> {
+impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> Gate<F, D> for BaseSumGate<B> {
     fn id(&self) -> String {
         format!("{self:?} + Base: {B}")
     }
@@ -145,7 +148,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize, const B: usize> Gat
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize, const B: usize> PackedEvaluableBase<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> PackedEvaluableBase<F, D>
     for BaseSumGate<B>
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
@@ -174,7 +177,7 @@ pub struct BaseSplitGenerator<const B: usize> {
     num_limbs: usize,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
     for BaseSplitGenerator<B>
 {
     fn id(&self) -> String {
@@ -225,8 +228,8 @@ impl<F: RichField + BinomiallyExtendable<D>, const B: usize, const D: usize> Sim
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::base_sum::BaseSumGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

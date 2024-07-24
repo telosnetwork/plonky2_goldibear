@@ -1,7 +1,8 @@
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, vec};
 
-use p3_field::extension::BinomiallyExtendable;
+
+use plonky2_field::types::HasExtension;
 use crate::gates::lookup::LookupGate;
 use crate::gates::lookup_table::{LookupTable, LookupTableGate};
 use crate::gates::noop::NoopGate;
@@ -46,7 +47,7 @@ pub const OTHER_TABLE: [u16; 256] = [
 /// This is a smaller lookup table with arbitrary values.
 pub const SMALLER_TABLE: [u16; 8] = [2, 24, 56, 100, 128, 16, 20, 49];
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Adds a lookup table to the list of stored lookup tables `self.luts` based on a table of (input, output) pairs. It returns the index of the LUT within `self.luts`.
     pub fn add_lookup_table_from_pairs(&mut self, table: LookupTable) -> usize {
         self.update_luts_from_pairs(table)

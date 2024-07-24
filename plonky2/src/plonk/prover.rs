@@ -10,9 +10,10 @@ use hashbrown::HashMap;
 use plonky2_maybe_rayon::*;
 
 use super::circuit_builder::{LookupChallenges, LookupWire};
-use p3_field::extension::BinomiallyExtendable;
+
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use p3_field::Field;
+use plonky2_field::types::HasExtension;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::fri::oracle::PolynomialBatch;
 use crate::gates::lookup::LookupGate;
@@ -39,7 +40,7 @@ use crate::util::{ceil_div_usize, log2_ceil, transpose};
 /// Warning: rows are in descending order: the first gate to appear is the last LU gate, and
 /// the last gate to appear is the first LUT gate.
 pub fn set_lookup_wires<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -109,7 +110,7 @@ pub fn set_lookup_wires<
     }
 }
 
-pub fn prove<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn prove<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     inputs: PartialWitness<F>,
@@ -129,7 +130,7 @@ where
 }
 
 pub fn prove_with_partition_witness<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -357,7 +358,7 @@ where
 
 /// Compute the partial products used in the `Z` polynomials.
 fn all_wires_permutation_partial_products<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -384,7 +385,7 @@ fn all_wires_permutation_partial_products<
 /// Returns the polynomials interpolating `partial_products(f / g)`
 /// where `f, g` are the products in the definition of `Z`: `Z(g^i) = f / g`.
 fn wires_permutation_partial_products_and_zs<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -450,7 +451,7 @@ fn wires_permutation_partial_products_and_zs<
 /// As another optimization, Sum and LDC polynomials are shared (in so called partial SLDC polynomials), and the last value
 /// of the last partial polynomial is Sum(end) - LDC(end). If the lookup argument is valid, then it must be equal to 0.
 fn compute_lookup_polys<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -569,7 +570,7 @@ fn compute_lookup_polys<
 
 /// Computes lookup polynomials for all challenges.
 fn compute_all_lookup_polys<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -602,7 +603,7 @@ const BATCH_SIZE: usize = 32;
 
 fn compute_quotient_polys<
     'a,
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(

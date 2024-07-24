@@ -1,6 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
-use p3_field::extension::BinomiallyExtendable;
+
+use plonky2_field::types::HasExtension;
 
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::hash::hash_types::RichField;
@@ -8,7 +9,7 @@ use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Interpolates a polynomial, whose points are a coset of the multiplicative subgroup with the
     /// given size, and whose values are given. Returns the evaluation of the interpolant at
     /// `evaluation_point`.
@@ -59,7 +60,7 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        type FF = BinomialExtensionField<F,D>;
+        type FF = F::Extension;
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
         let mut builder = CircuitBuilder::<F, D>::new(config);

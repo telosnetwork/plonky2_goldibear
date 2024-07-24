@@ -2,12 +2,12 @@ use core::arch::asm;
 use core::arch::x86_64::*;
 use core::mem::size_of;
 
+use p3_field::Field;
+use p3_goldilocks::Goldilocks;
 use static_assertions::const_assert;
 
-use p3_goldilocks::Goldilocks;
-use p3_field::Field;
 use crate::hash::poseidon::{
-    Poseidon, ALL_ROUND_CONSTANTS, HALF_N_FULL_ROUNDS, N_PARTIAL_ROUNDS, N_ROUNDS,
+    ALL_ROUND_CONSTANTS, HALF_N_FULL_ROUNDS, N_PARTIAL_ROUNDS, N_ROUNDS, Poseidon,
 };
 use crate::util::branch_hint;
 

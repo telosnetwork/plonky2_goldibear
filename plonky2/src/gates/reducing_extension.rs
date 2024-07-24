@@ -5,8 +5,9 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use core::ops::Range;
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -63,7 +64,7 @@ impl<const D: usize> ReducingExtensionGate<D> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D> {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -188,7 +189,7 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingExtensionGate<D>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
     fn id(&self) -> String {
         "ReducingExtensionGenerator".to_string()
     }

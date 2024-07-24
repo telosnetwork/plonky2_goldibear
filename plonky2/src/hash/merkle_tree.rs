@@ -3,8 +3,9 @@ use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 use core::slice;
 
-use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
+
+use plonky2_maybe_rayon::*;
 
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_proofs::MerkleProof;
@@ -227,18 +228,20 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_field::extension::BinomiallyExtendable;
 
-    use super::*;
+    use plonky2_field::types::HasExtension;
+
     use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+
+    use super::*;
 
     fn random_data<F: RichField>(n: usize, k: usize) -> Vec<Vec<F>> {
         (0..n).map(|_| F::rand_vec(k)).collect()
     }
 
     fn verify_all_leaves<
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(

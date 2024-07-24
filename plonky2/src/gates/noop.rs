@@ -1,7 +1,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
@@ -15,7 +18,7 @@ use crate::util::serialization::{Buffer, IoResult};
 #[derive(Debug)]
 pub struct NoopGate;
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for NoopGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for NoopGate {
     fn id(&self) -> String {
         "NoopGate".into()
     }
@@ -72,6 +75,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Noop
 #[cfg(test)]
 mod tests {
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::noop::NoopGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

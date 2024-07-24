@@ -5,7 +5,8 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+use plonky2_field::types::HasExtension;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -58,7 +59,7 @@ impl ArithmeticGate {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ArithmeticGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGate {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -162,7 +163,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Arit
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate {
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -184,14 +185,14 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticBaseGenerator<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     const_0: F,
     const_1: F,
     i: usize,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ArithmeticBaseGenerator<F, D>
 {
     fn id(&self) -> String {

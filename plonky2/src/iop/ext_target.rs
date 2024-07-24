@@ -1,8 +1,11 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
-use plonky2_field::extension_algebra::ExtensionAlgebra;
 use core::ops::Range;
+
+use p3_field::extension::BinomialExtensionField;
+
+use plonky2_field::extension_algebra::ExtensionAlgebra;
+use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
 use crate::iop::target::Target;
@@ -27,14 +30,14 @@ impl<const D: usize> ExtensionTarget<D> {
         self.0
     }
 
-    pub fn frobenius<F: RichField + BinomiallyExtendable<D>>(
+    pub fn frobenius<F: RichField + HasExtension<D>>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self {
         self.repeated_frobenius(1, builder)
     }
 
-    pub fn repeated_frobenius<F: RichField + BinomiallyExtendable<D>>(
+    pub fn repeated_frobenius<F: RichField + HasExtension<D>>(
         &self,
         count: usize,
         builder: &mut CircuitBuilder<F, D>,
@@ -86,8 +89,8 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
-    pub fn constant_extension(&mut self, c: BinomialExtensionField<F,D>) -> ExtensionTarget<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+    pub fn constant_extension(&mut self, c: F::Extension) -> ExtensionTarget<D> {
         let c_parts = c.to_basefield_array();
         let mut parts = [self.zero(); D];
         for i in 0..D {

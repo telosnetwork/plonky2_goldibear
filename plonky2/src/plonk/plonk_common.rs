@@ -3,9 +3,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use p3_field::extension::BinomiallyExtendable;
+
 use crate::field::packed::PackedField;
 use p3_field::Field;
+use plonky2_field::types::HasExtension;
 use crate::fri::oracle::SALT_SIZE;
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::hash::hash_types::RichField;
@@ -72,7 +73,7 @@ pub(crate) fn eval_l_0<F: Field>(n: usize, x: F) -> F {
 /// the order-`n` subgroup.
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound.
-pub(crate) fn eval_l_0_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) fn eval_l_0_circuit<F: RichField + HasExtension<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     n: usize,
     x: ExtensionTarget<D>,
@@ -129,7 +130,7 @@ where
     sum
 }
 
-pub fn reduce_with_powers_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub fn reduce_with_powers_circuit<F: RichField + HasExtension<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     terms: &[Target],
     alpha: Target,
@@ -146,7 +147,7 @@ pub fn reduce_with_powers_circuit<F: RichField + BinomiallyExtendable<D>, const 
     }
 }
 
-pub fn reduce_with_powers_ext_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub fn reduce_with_powers_ext_circuit<F: RichField + HasExtension<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     terms: &[ExtensionTarget<D>],
     alpha: Target,

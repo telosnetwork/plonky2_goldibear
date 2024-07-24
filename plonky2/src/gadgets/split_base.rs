@@ -4,7 +4,8 @@ use core::borrow::Borrow;
 
 use itertools::Itertools;
 
-use p3_field::extension::BinomiallyExtendable;
+
+use plonky2_field::types::HasExtension;
 use crate::gates::base_sum::BaseSumGate;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
@@ -15,7 +16,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::log_floor;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Split the given element into a list of targets, where each one represents a
     /// base-B limb of the element, with little-endian ordering.
     pub fn split_le_base<const B: usize>(&mut self, x: Target, num_limbs: usize) -> Vec<Target> {
@@ -86,7 +87,7 @@ pub struct BaseSumGenerator<const B: usize> {
     limbs: Vec<BoolTarget>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
     for BaseSumGenerator<B>
 {
     fn id(&self) -> String {

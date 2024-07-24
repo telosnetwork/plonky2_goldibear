@@ -4,7 +4,8 @@ use alloc::{vec, vec::Vec};
 use hashbrown::HashSet;
 
 use super::circuit_builder::NUM_COINS_LOOKUP;
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
+use plonky2_field::types::HasExtension;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::proof::{CompressedFriProof, FriChallenges, FriProof, FriProofTarget};
 use crate::fri::verifier::{compute_evaluation, fri_combine_initial, PrecomputedReducedOpenings};
@@ -23,7 +24,7 @@ use crate::plonk::proof::{
 };
 use crate::util::reverse_bits;
 
-fn get_challenges<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     public_inputs_hash: <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
     wires_cap: &MerkleCap<F, C::Hasher>,
     plonk_zs_partial_products_cap: &MerkleCap<F, C::Hasher>,
@@ -89,7 +90,7 @@ fn get_challenges<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F 
     })
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     ProofWithPublicInputs<F, C, D>
 {
     pub(crate) fn fri_query_indices(
@@ -139,7 +140,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     CompressedProofWithPublicInputs<F, C, D>
 {
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
@@ -253,7 +254,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     fn get_challenges<C: GenericConfig<D, F = F>>(
         &mut self,
         public_inputs_hash: HashOutTarget,
@@ -326,7 +327,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D
 }
 
 impl<const D: usize> ProofWithPublicInputsTarget<D> {
-    pub(crate) fn get_challenges<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>>(
+    pub(crate) fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
         public_inputs_hash: HashOutTarget,

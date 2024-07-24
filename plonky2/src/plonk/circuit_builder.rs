@@ -2,7 +2,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, sync::Arc, vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use p3_field::extension::{BinomialExtensionField};
 use core::cmp::max;
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
@@ -10,6 +10,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 use log::{debug, info, warn, Level};
+use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
 
 use crate::field::cosets::get_unique_coset_shifts;
@@ -136,7 +137,7 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize> {
     /// Circuit configuration to be used by this [`CircuitBuilder`].
     pub config: CircuitConfig,
 
@@ -200,7 +201,7 @@ pub struct CircuitBuilder<F: RichField + BinomiallyExtendable<D>, const D: usize
     pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Given a [`CircuitConfig`], generate a new [`CircuitBuilder`] instance.
     /// It will also check that the configuration provided is consistent, i.e.
     /// that the different parameters provided can achieve the targeted security

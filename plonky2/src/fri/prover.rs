@@ -1,12 +1,12 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use p3_field::extension::BinomiallyExtendable;
 
+use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::{FriConfig, FriParams};
+use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleTree;
@@ -18,7 +18,7 @@ use crate::util::reverse_index_bits_in_place;
 use crate::util::timing::TimingTree;
 
 /// Builds a FRI proof.
-pub fn fri_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn fri_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     // Coefficients of the polynomial on which the LDT is performed. Only the first `1/rate` coefficients are non-zero.
     lde_polynomial_coeffs: PolynomialCoeffs<F::Extension>,
@@ -64,10 +64,10 @@ pub fn fri_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F =
 
 type FriCommitedTrees<F, C, const D: usize> = (
     Vec<MerkleTree<F, <C as GenericConfig<D>>::Hasher>>,
-    PolynomialCoeffs<<F as BinomiallyExtendable<D>>::Extension>,
+    PolynomialCoeffs<<F as HasExtension<D>>::Extension>,
 );
 
-fn fri_committed_trees<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     mut coeffs: PolynomialCoeffs<F::Extension>,
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
@@ -113,7 +113,7 @@ fn fri_committed_trees<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<
 }
 
 /// Performs the proof-of-work (a.k.a. grinding) step of the FRI protocol. Returns the PoW witness.
-fn fri_proof_of_work<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
 ) -> F {
@@ -161,7 +161,7 @@ fn fri_proof_of_work<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D,
 }
 
 fn fri_prover_query_rounds<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -182,7 +182,7 @@ fn fri_prover_query_rounds<
 }
 
 fn fri_prover_query_round<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(

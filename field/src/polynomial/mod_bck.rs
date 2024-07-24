@@ -1,16 +1,15 @@
-use alloc::vec;
-use alloc::vec::Vec;
 use core::cmp::max;
 use core::iter::Sum;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
+use alloc::vec;
+use alloc::vec::Vec;
 use anyhow::{ensure, Result};
 use itertools::Itertools;
 use p3_field::ExtensionField as FieldExtension;
 use p3_field::Field;
-use serde::{Deserialize, Serialize};
-
 use plonky2_util::log2_strict;
+use serde::{Deserialize, Serialize};
 
 use crate::fft::{fft, fft_with_options, FftRootTable, ifft};
 
@@ -432,11 +431,11 @@ impl<F: Field, FE: FieldExtension<F>> Mul for &PolynomialCoeffs<F, FE> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use p3_goldilocks::Goldilocks;
     use rand::Rng;
     use rand::rngs::OsRng;
-
-    use std::time::Instant;
 
     use crate::types::Sample;
 

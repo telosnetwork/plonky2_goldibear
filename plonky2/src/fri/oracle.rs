@@ -2,32 +2,33 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-use p3_field::extension::BinomiallyExtendable;
-use p3_field::Field;
+use p3_field::TwoAdicField;
+
+use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::fft::FftRootTable;
 use crate::field::packed::PackedField;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
+use crate::fri::FriParams;
 use crate::fri::proof::FriProof;
 use crate::fri::prover::fri_proof;
 use crate::fri::structure::{FriBatchInfo, FriInstanceInfo};
-use crate::fri::FriParams;
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_tree::MerkleTree;
 use crate::iop::challenger::Challenger;
 use crate::plonk::config::GenericConfig;
 use crate::timed;
+use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
 use crate::util::reducing::ReducingFactor;
 use crate::util::timing::TimingTree;
-use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
 
 /// Four (~64 bit) field elements gives ~128 bit security.
 pub const SALT_SIZE: usize = 4;
 
 /// Represents a FRI oracle, i.e. a batch of polynomials which have been Merklized.
 #[derive(Eq, PartialEq, Debug)]
-pub struct PolynomialBatch<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct PolynomialBatch<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 {
     pub polynomials: Vec<PolynomialCoeffs<F>>,
     pub merkle_tree: MerkleTree<F, C::Hasher>,
@@ -36,7 +37,7 @@ pub struct PolynomialBatch<F: RichField + BinomiallyExtendable<D>, C: GenericCon
     pub blinding: bool,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize> Default
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> Default
     for PolynomialBatch<F, C, D>
 {
     fn default() -> Self {
@@ -50,7 +51,7 @@ impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     PolynomialBatch<F, C, D>
 {
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.

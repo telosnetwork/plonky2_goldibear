@@ -8,10 +8,11 @@
 use alloc::format;
 
 use anyhow::{anyhow, Result};
+
 use plonky2::field::extension::BinomiallyExtendable;
 use plonky2::field::types::Field;
-use plonky2::fri::reduction_strategies::FriReductionStrategy;
 use plonky2::fri::{FriConfig, FriParams};
+use plonky2::fri::reduction_strategies::FriReductionStrategy;
 use plonky2::hash::hash_types::RichField;
 
 /// A configuration containing the different parameters used by the STARK prover.
@@ -67,7 +68,7 @@ impl StarkConfig {
 
     /// Checks that this STARK configuration is consistent, i.e. that the different
     /// parameters meet the targeted security level.
-    pub fn check_config<F: RichField + BinomiallyExtendable<D>, const D: usize>(&self) -> Result<()> {
+    pub fn check_config<F: RichField + HasExtension<D>, const D: usize>(&self) -> Result<()> {
         let StarkConfig {
             security_bits,
             fri_config:

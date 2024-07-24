@@ -7,6 +7,7 @@ use core::iter::once;
 
 use anyhow::{anyhow, ensure, Result};
 use itertools::Itertools;
+
 use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::types::Field;
 use plonky2::fri::verifier::verify_fri_proof;
@@ -27,7 +28,7 @@ use crate::vanishing_poly::eval_vanishing_poly;
 
 /// Verifies a [`StarkProofWithPublicInputs`] against a STARK statement.
 pub fn verify_stark_proof<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
     const D: usize,
@@ -64,7 +65,7 @@ pub fn verify_stark_proof_with_challenges<F, C, S, const D: usize>(
     config: &StarkConfig,
 ) -> Result<()>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {
@@ -216,7 +217,7 @@ fn validate_proof_shape<F, C, S, const D: usize>(
     num_ctl_zs: usize,
 ) -> anyhow::Result<()>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {
@@ -291,15 +292,15 @@ fn eval_l_0_and_l_last<F: Field>(log_n: usize, x: F) -> (F, F) {
 fn check_lookup_options<F, C, S, const D: usize>(
     stark: &S,
     auxiliary_polys_cap: &Option<MerkleCap<F, <C as GenericConfig<D>>::Hasher>>,
-    auxiliary_polys: &Option<Vec<<F as BinomiallyExtendable<D>>::Extension>>,
-    auxiliary_polys_next: &Option<Vec<<F as BinomiallyExtendable<D>>::Extension>>,
+    auxiliary_polys: &Option<Vec<<F as HasExtension<D>>::Extension>>,
+    auxiliary_polys_next: &Option<Vec<<F as HasExtension<D>>::Extension>>,
     num_ctl_helpers: usize,
     num_ctl_zs: usize,
     ctl_zs_first: &Option<Vec<F>>,
     config: &StarkConfig,
 ) -> Result<()>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     S: Stark<F, D>,
 {

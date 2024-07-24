@@ -75,7 +75,7 @@ struct Options {
 }
 
 /// Creates a dummy proof which should have `2 ** log2_size` rows.
-fn dummy_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     config: &CircuitConfig,
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D>> {
@@ -104,7 +104,7 @@ fn dummy_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F
     Ok((proof, data.verifier_only, data.common))
 }
 
-fn dummy_lookup_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn dummy_lookup_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     config: &CircuitConfig,
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D>> {
@@ -149,7 +149,7 @@ fn dummy_lookup_proof<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D
 
 /// Creates a dummy proof which has more than 256 lookups to one LUT
 fn dummy_many_rows_proof<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     const D: usize,
 >(
@@ -200,7 +200,7 @@ fn dummy_many_rows_proof<
 }
 
 fn recursive_proof<
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     InnerC: GenericConfig<D, F = F>,
     const D: usize,
@@ -248,7 +248,7 @@ where
 }
 
 /// Test serialization and print some size info.
-fn test_serialization<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn test_serialization<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     proof: &ProofWithPublicInputs<F, C, D>,
     vd: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,

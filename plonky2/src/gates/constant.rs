@@ -1,9 +1,11 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, string::String, vec, vec::Vec};
 
+use p3_field::extension::{BinomialExtensionField};
 use serde::{Deserialize, Serialize};
 
-use p3_field::extension::{BinomialExtensionField, BinomiallyExtendable};
+use plonky2_field::types::HasExtension;
+
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -41,7 +43,7 @@ impl ConstantGate {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for ConstantGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ConstantGate {
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -117,7 +119,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Gate<F, D> for Cons
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase<F, D> for ConstantGate {
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ConstantGate {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -132,8 +134,8 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> PackedEvaluableBase
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::constant::ConstantGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;

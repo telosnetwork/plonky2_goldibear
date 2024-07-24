@@ -1,7 +1,9 @@
+use plonky2_field::types::HasExtension;
+
 use crate::field::polynomial::PolynomialCoeffs;
+use crate::fri::FriConfig;
 use crate::fri::proof::{FriChallenges, FriChallengesTarget};
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
-use crate::fri::FriConfig;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
@@ -13,7 +15,7 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig, Hasher};
 impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_openings<const D: usize>(&mut self, openings: &FriOpenings<F, D>)
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);
@@ -29,7 +31,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         config: &FriConfig,
     ) -> FriChallenges<F, D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
     {
         let num_fri_queries = config.num_query_rounds;
         let lde_size = 1 << (degree_bits + config.rate_bits);
@@ -51,7 +53,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         let fri_pow_response = self.get_challenge();
 
         let fri_query_indices = (0..num_fri_queries)
-            .map(|_| self.get_challenge().to_canonical_u64() as usize % lde_size)
+            .map(|_| self.get_challenge().as_canonical_u64() as usize % lde_size)
             .collect();
 
         FriChallenges {
@@ -63,7 +65,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     }
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, H: AlgebraicHasher<F>, const D: usize>
+impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
     RecursiveChallenger<F, H, D>
 {
     pub fn observe_openings(&mut self, openings: &FriOpeningsTarget<D>) {

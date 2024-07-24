@@ -37,7 +37,7 @@ fn get_challenges<F, C, const D: usize>(
     degree_bits: usize,
 ) -> StarkProofChallenges<F, D>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
 {
     let num_challenges = config.num_challenges;
@@ -83,7 +83,7 @@ where
 
 impl<F, C, const D: usize> StarkProof<F, C, D>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
 {
     /// Computes all Fiat-Shamir challenges used in the STARK proof.
@@ -140,7 +140,7 @@ where
 
 impl<F, C, const D: usize> StarkProofWithPublicInputs<F, C, D>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
 {
     /// Computes all Fiat-Shamir challenges used in the STARK proof.
@@ -178,7 +178,7 @@ fn get_challenges_target<F, C, const D: usize>(
     config: &StarkConfig,
 ) -> StarkProofChallengesTarget<D>
 where
-    F: RichField + BinomiallyExtendable<D>,
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
     C::Hasher: AlgebraicHasher<F>,
 {
@@ -241,7 +241,7 @@ impl<const D: usize> StarkProofTarget<D> {
         config: &StarkConfig,
     ) -> StarkProofChallengesTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
         C::Hasher: AlgebraicHasher<F>,
     {
@@ -298,7 +298,7 @@ impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
         config: &StarkConfig,
     ) -> StarkProofChallengesTarget<D>
     where
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
         C::Hasher: AlgebraicHasher<F>,
     {
@@ -308,7 +308,7 @@ impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
 }
 
 // TODO: Deal with the compressed stuff.
-// impl<F: RichField + BinomiallyExtendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+// impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 //     CompressedProofWithPublicInputs<F, C, D>
 // {
 //     /// Computes all Fiat-Shamir challenges used in the Plonk proof.

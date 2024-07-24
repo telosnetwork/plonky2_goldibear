@@ -4,8 +4,10 @@ use core::iter;
 
 use itertools::Itertools;
 
-use p3_field::extension::BinomiallyExtendable;
 use p3_field::Field;
+
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::plonk::circuit_builder::CircuitBuilder;
@@ -79,7 +81,7 @@ pub(crate) fn check_partial_products<F: Field>(
 /// Checks the relationship between each pair of partial product accumulators. In particular, this
 /// sequence of accumulators starts with `Z(x)`, then contains each partial product polynomials
 /// `p_i(x)`, and finally `Z(g x)`. See the partial products section of the Plonky2 paper.
-pub(crate) fn check_partial_products_circuit<F: RichField + BinomiallyExtendable<D>, const D: usize>(
+pub(crate) fn check_partial_products_circuit<F: RichField + HasExtension<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     numerators: &[ExtensionTarget<D>],
     denominators: &[ExtensionTarget<D>],
@@ -112,8 +114,9 @@ mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::vec;
 
-    use super::*;
     use p3_goldilocks::Goldilocks;
+
+    use super::*;
 
     #[test]
     fn test_partial_products() {

@@ -22,12 +22,12 @@ use crate::util::trace_rows_to_poly_values;
 /// Computes a Fibonacci sequence with state `[x0, x1]` using the state transition
 /// `x0' <- x1, x1' <- x0 + x1.
 #[derive(Copy, Clone)]
-struct FibonacciStark<F: RichField + BinomiallyExtendable<D>, const D: usize> {
+struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize> {
     num_rows: usize,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> FibonacciStark<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> FibonacciStark<F, D> {
     // The first public input is `x0`.
     const PI_INDEX_X0: usize = 0;
     // The second public input is `x1`.
@@ -60,7 +60,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> FibonacciStark<F, D
 const FIBONACCI_COLUMNS: usize = 2;
 const FIBONACCI_PUBLIC_INPUTS: usize = 3;
 
-impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, FIBONACCI_COLUMNS, FIBONACCI_PUBLIC_INPUTS>
     where
         FE: FieldExtension<D2, BaseField = F>,
@@ -134,6 +134,7 @@ impl<F: RichField + BinomiallyExtendable<D>, const D: usize> Stark<F, D> for Fib
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+
     use plonky2::field::extension::BinomiallyExtendable;
     use plonky2::field::types::Field;
     use plonky2::hash::hash_types::RichField;
@@ -235,7 +236,7 @@ mod tests {
     }
 
     fn recursive_proof<
-        F: RichField + BinomiallyExtendable<D>,
+        F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
         S: Stark<F, D> + Copy,
         InnerC: GenericConfig<D, F = F>,
