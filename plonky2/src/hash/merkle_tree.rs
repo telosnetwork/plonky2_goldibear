@@ -229,7 +229,7 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 mod tests {
     use anyhow::Result;
 
-    use plonky2_field::types::HasExtension;
+    use plonky2_field::types::{HasExtension, Sample};
 
     use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

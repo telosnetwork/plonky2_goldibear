@@ -48,7 +48,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputG
         Ok(Self)
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         Self::wires_public_inputs_hash()
             .zip(vars.public_inputs_hash.elements)
             .map(|(wire, hash_part)| vars.local_wires[wire] - hash_part.into())

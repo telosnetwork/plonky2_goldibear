@@ -53,7 +53,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     where
         F: RichField + HasExtension<D>,
     {
-        self.observe_elements(&element.to_basefield_array());
+        self.observe_elements(element.as_base_slice());
     }
 
     pub fn observe_elements(&mut self, elements: &[F]) {

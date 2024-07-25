@@ -127,8 +127,8 @@ impl<'a, F: Field> EvaluationVarsBase<'a, F> {
         F: RichField + HasExtension<D>,
     {
         debug_assert_eq!(wire_range.len(), D);
-        let arr = self.local_wires.view(wire_range).try_into().unwrap();
-        <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base_slice(&arr)
+        let arr: [_] = self.local_wires.view(wire_range).try_into().unwrap();
+        F::Extension::from_base_slice(&arr)
     }
 }
 

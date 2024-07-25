@@ -7,7 +7,7 @@ use std::vec::Vec;
 
 
 
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 
 use crate::gates::gate::GateRef;
 use crate::hash::hash_types::RichField;
@@ -99,7 +99,7 @@ macro_rules! impl_gate_serializer {
 pub mod default {
 
 
-    use plonky2_field::types::HasExtension;
+    use plonky2_field::types::{HasExtension, Sample};
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;

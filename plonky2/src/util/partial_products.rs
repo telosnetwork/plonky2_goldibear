@@ -114,6 +114,7 @@ mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::vec;
 
+    use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
 
     use super::*;
@@ -121,8 +122,8 @@ mod tests {
     #[test]
     fn test_partial_products() {
         type F = Goldilocks;
-        let denominators = vec![F::one(); 6];
-        let z_x = F::one();
+        let denominators = vec![<F as AbstractField>::one(); 6];
+        let z_x = <F as AbstractField>::one();
         let v = field_vec(&[1, 2, 3, 4, 5, 6]);
         let z_gx = F::from_canonical_u64(720);
         let quotient_chunks_prods = quotient_chunk_products(&v, 2);

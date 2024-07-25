@@ -8,14 +8,13 @@ use core::ops::Range;
 use std::{collections::BTreeMap, sync::Arc};
 
 use hashbrown::HashMap;
-use p3_field::{AbstractExtensionField, PrimeField64};
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
 
 pub use gate_serialization::default::DefaultGateSerializer;
 pub use gate_serialization::GateSerializer;
 pub use generator_serialization::default::DefaultGeneratorSerializer;
 pub use generator_serialization::WitnessGeneratorSerializer;
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::{FriConfig, FriParams};
@@ -177,7 +176,7 @@ pub trait Read {
 
     /// Reads an element from the field extension of `F` from `self.`
     #[inline]
-    fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<BinomialExtensionField<F,D>>
+    fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<F::Extension>
     where
         F: PrimeField64 + HasExtension<D>,
     {
@@ -185,7 +184,7 @@ pub trait Read {
         for a in arr.iter_mut() {
             *a = self.read_field()?;
         }
-        Ok(<F::Extension as AbstractExtensionField<D>>::from_base_slice(
+        Ok(F::Extension::from_base_slice(
             &arr,
         ))
     }
@@ -195,7 +194,7 @@ pub trait Read {
     fn read_field_ext_vec<F, const D: usize>(
         &mut self,
         length: usize,
-    ) -> IoResult<Vec<BinomialExtensionField<F,D>>>
+    ) -> IoResult<Vec<F::Extension>>
     where
         F: RichField + HasExtension<D>,
     {
@@ -569,6 +568,7 @@ pub trait Read {
     ) -> IoResult<FriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -721,7 +721,7 @@ pub trait Read {
     }
 
     fn read_polynomial_batch<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + TwoAdicField,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -807,7 +807,7 @@ pub trait Read {
     }
 
     fn read_circuit_data<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + TwoAdicField,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -826,7 +826,7 @@ pub trait Read {
     }
 
     fn read_prover_only_circuit_data<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + TwoAdicField,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -909,7 +909,7 @@ pub trait Read {
     }
 
     fn read_prover_circuit_data<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + TwoAdicField,
         C: GenericConfig<D, F = F>,
         const D: usize,
     >(
@@ -974,6 +974,7 @@ pub trait Read {
     ) -> IoResult<Proof<F, C, D>>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1016,7 +1017,8 @@ pub trait Read {
     ) -> IoResult<ProofWithPublicInputs<F, C, D>>
     where
         Self: Remaining,
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + TwoAdicField,
+        F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F>,
     {
         let proof = self.read_proof(common_data)?;
@@ -1097,6 +1099,7 @@ pub trait Read {
     ) -> IoResult<CompressedFriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1124,6 +1127,7 @@ pub trait Read {
     ) -> IoResult<CompressedProof<F, C, D>>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F>,
     {
         let config = &common_data.config;
@@ -1150,6 +1154,7 @@ pub trait Read {
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F>,
     {
         let proof = self.read_compressed_proof(common_data)?;
@@ -1257,7 +1262,7 @@ pub trait Write {
     where
         F: PrimeField64,
     {
-        self.write_all(&x.to_canonical_u64().to_le_bytes())
+        self.write_all(&x.as_canonical_u64().to_le_bytes())
     }
 
     /// Writes a vector `v` of elements from the field `F` to `self`.
@@ -1278,7 +1283,7 @@ pub trait Write {
     where
         F: RichField + HasExtension<D>,
     {
-        for &a in &x.to_basefield_array() {
+        for &a in x.as_base_slice() {
             self.write_field(a)?;
         }
         Ok(())

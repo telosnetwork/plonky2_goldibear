@@ -35,7 +35,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for NoopGate {
         Ok(Self)
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         Vec::new()
     }
 
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 4>(NoopGate)
+        test_low_degree::<Goldilocks, _, 2>(NoopGate)
     }
 
     #[test]

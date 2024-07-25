@@ -6,7 +6,7 @@ use alloc::{
 };
 
 use p3_field::extension::{BinomialExtensionField};
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -73,7 +73,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGa
         Ok(Self { num_ops })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let const_0 = vars.local_constants[0];
         let const_1 = vars.local_constants[1];
 
@@ -258,7 +258,7 @@ mod tests {
     #[test]
     fn low_degree() {
         let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<Goldilocks, _, 4>(gate);
+        test_low_degree::<Goldilocks, _, 2>(gate);
     }
 
     #[test]

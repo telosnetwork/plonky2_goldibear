@@ -106,7 +106,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for LookupGate {
         })
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         // No main trace constraints for lookups.
         vec![]
     }
@@ -196,7 +196,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for L
         let get_wire = |wire: usize| -> F { witness.get_target(Target::wire(self.row, wire)) };
 
         let input_val = get_wire(LookupGate::wire_ith_looking_inp(self.slot_nb));
-        let (input, output) = self.lut[input_val.to_canonical_u64() as usize];
+        let (input, output) = self.lut[input_val.as_canonical_u64() as usize];
         if input_val == F::from_canonical_u16(input) {
             let output_val = F::from_canonical_u16(output);
 

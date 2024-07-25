@@ -9,10 +9,10 @@ use std::sync::Arc;
 
 use hashbrown::HashMap;
 use p3_field::extension::BinomialExtensionField;
-use p3_field::Field;
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field};
 use serde::{Serialize, Serializer};
 
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 
 use crate::field::batch_util::batch_multiply_inplace;
 use crate::gates::selectors::UNUSED_SELECTOR;
@@ -68,7 +68,7 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send +
 
     /// Defines and evaluates the constraints that enforce the statement represented by this gate.
     /// Constraints must be defined in the extension of this custom gate base field.
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>>;
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension>;
 
     /// Like `eval_unfiltered`, but specialized for points in the base field.
     ///
@@ -88,12 +88,12 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send +
         let local_constants = &vars_base
             .local_constants
             .iter()
-            .map(|c| F::Extension::from_basefield(*c))
+            .map(|c| <F::Extension as AbstractExtensionField<F>>::from_base(*c))
             .collect::<Vec<_>>();
         let local_wires = &vars_base
             .local_wires
             .iter()
-            .map(|w| F::Extension::from_basefield(*w))
+            .map(|w| <F::Extension as AbstractExtensionField<F>>::from_base(*w))
             .collect::<Vec<_>>();
         let public_inputs_hash = &vars_base.public_inputs_hash;
         let vars = EvaluationVars {
@@ -105,8 +105,9 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send +
 
         // Each value should be in the base field, i.e. only the degree-zero part should be nonzero.
         values.into_iter().for_each(|value| {
-            debug_assert!(F::Extension::is_in_basefield(&value));
-            yield_constr.one(value.to_basefield_array()[0])
+            debug_assert!(<F::Extension as ExtensionField<F>>::is_in_basefield(&value));
+            let base_field_array = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&value); 
+            yield_constr.one(base_field_array[0])
         })
     }
 
@@ -141,7 +142,7 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send +
         group_range: Range<usize>,
         num_selectors: usize,
         num_lookup_selectors: usize,
-    ) -> Vec<BinomialExtensionField<F,D>> {
+    ) -> Vec<F::Extension> {
         let filter = compute_filter(
             row,
             group_range,
@@ -346,7 +347,7 @@ fn compute_filter_circuit<F: RichField + HasExtension<D>, const D: usize>(
         .filter(|&i| i != row)
         .chain(many_selectors.then_some(UNUSED_SELECTOR))
         .map(|i| {
-            let c = builder.constant_extension(F::Extension::from_canonical_usize(i));
+            let c = builder.constant_extension(<F::Extension as AbstractField>::from_canonical_usize(i));
             builder.sub_extension(c, s)
         })
         .collect::<Vec<_>>();

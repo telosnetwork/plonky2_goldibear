@@ -3,14 +3,12 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use p3_field::{AbstractField, ExtensionField, Field, PrimeField64};
+use plonky2_field::types::HasExtension;
 use core::fmt::Debug;
 
-use p3_field::{ExtensionField, PrimeField64};
-use p3_field::extension::{BinomialExtensionField};
-use unroll::unroll_for_loops;
-
 use plonky2_field::packed::PackedField;
-use plonky2_field::types::HasExtension;
+use unroll::unroll_for_loops;
 
 use crate::gates::gate::Gate;
 use crate::gates::poseidon::PoseidonGate;
@@ -45,11 +43,12 @@ const fn add_u160_u128((x_lo, x_hi): (u128, u32), y: u128) -> (u128, u32) {
     (res_lo, res_hi)
 }
 
+
 #[inline(always)]
-fn reduce_u160<F: PrimeField64>((n_lo, n_hi): (u128, u32)) -> F {
+fn reduce_u160<F: Poseidon>((n_lo, n_hi): (u128, u32)) -> F {
     let n_lo_hi = (n_lo >> 64) as u64;
     let n_lo_lo = n_lo as u64;
-    let reduced_hi: u64 = F::from_noncanonical_u96((n_lo_hi, n_hi)).to_noncanonical_u64();
+    let reduced_hi: u64 = F::from_noncanonical_u96((n_lo_hi, n_hi)).as_canonical_u64();
     let reduced128: u128 = ((reduced_hi as u128) << 64) + (n_lo_lo as u128);
     F::from_noncanonical_u128(reduced128)
 }
@@ -177,6 +176,14 @@ pub trait Poseidon: PrimeField64 {
     const FAST_PARTIAL_ROUND_W_HATS: [[u64; SPONGE_WIDTH - 1]; N_PARTIAL_ROUNDS];
     const FAST_PARTIAL_ROUND_INITIAL_MATRIX: [[u64; SPONGE_WIDTH - 1]; SPONGE_WIDTH - 1];
 
+    fn from_noncanonical_u96((n_lo, n_hi): (u64, u32)) -> Self {
+        // Default implementation.
+        let n: u128 = ((n_hi as u128) << 64) + (n_lo as u128);
+        Self::from_noncanonical_u128(n)
+    }
+
+    fn from_noncanonical_u128(n: u128) -> Self;
+
     #[inline(always)]
     #[unroll_for_loops]
     fn mds_row_shf(r: usize, v: &[u64; SPONGE_WIDTH]) -> u128 {
@@ -202,24 +209,24 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
-    fn mds_row_shf_field<F: HasExtension<D>, const D: usize>(
+    fn mds_row_shf_field<F: ExtensionField<Self>>(
         r: usize,
         v: &[F; SPONGE_WIDTH],
-    ) -> F::Extension {
+    ) -> F {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = F::zero();
 
         for i in 0..SPONGE_WIDTH {
-            res += v[(i + r) % SPONGE_WIDTH] * F::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
+            res += v[(i + r) % SPONGE_WIDTH] * Self::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
         }
-        res += v[r] * F::from_canonical_u64(Self::MDS_MATRIX_DIAG[r]);
+        res += v[r] * Self::from_canonical_u64(Self::MDS_MATRIX_DIAG[r]);
 
         res
     }
 
     /// Same as `mds_row_shf` for `PackedField`.
     fn mds_row_shf_packed_field<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
         const D2: usize,
@@ -228,17 +235,17 @@ pub trait Poseidon: PrimeField64 {
         v: &[P; SPONGE_WIDTH],
     ) -> P
     where
-        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>
     {
         debug_assert!(r < SPONGE_WIDTH);
-        let mut res = P::ZEROS;
+        let mut res = P::zeros();
 
         for i in 0..SPONGE_WIDTH {
             res +=
-                v[(i + r) % SPONGE_WIDTH] * P::Scalar::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
+                v[(i + r) % SPONGE_WIDTH] * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
         }
-        res += v[r] * P::Scalar::from_canonical_u64(Self::MDS_MATRIX_DIAG[r]);
-
+        res += v[r] * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_DIAG[r]);
+        
         res
     }
 
@@ -269,11 +276,11 @@ pub trait Poseidon: PrimeField64 {
     #[inline(always)]
     #[unroll_for_loops]
     fn mds_layer(state_: &[Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
-        let mut result = [Self::ZERO; SPONGE_WIDTH];
+        let mut result = [Self::zero(); SPONGE_WIDTH];
 
         let mut state = [0u64; SPONGE_WIDTH];
         for r in 0..SPONGE_WIDTH {
-            state[r] = state_[r].to_noncanonical_u64();
+            state[r] = state_[r].as_canonical_u64();
         }
 
         // This is a hacky way of fully unrolling the loop.
@@ -290,9 +297,9 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_layer` for field extensions of `Self`.
-    fn mds_layer_field<F: HasExtension<D>, const D: usize>(
+    fn mds_layer_field<F: ExtensionField<Self>>(
         state: &[F; SPONGE_WIDTH],
-    ) -> [F::Extension; SPONGE_WIDTH] {
+    ) -> [F; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
@@ -304,21 +311,20 @@ pub trait Poseidon: PrimeField64 {
 
     /// Same as `mds_layer` for `PackedField`.
     fn mds_layer_packed_field<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
-        FE,
         P,
         const D2: usize,
     >(
         state: &[P; SPONGE_WIDTH],
     ) -> [P; SPONGE_WIDTH]
     where
-        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
-        let mut result = [P::ZEROS; SPONGE_WIDTH];
+        let mut result = [P::zeros(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
-            result[r] = Self::mds_row_shf_packed_field(r, state);
+            result[r] = Self::mds_row_shf_packed_field::<F,D,P,D2>(r, state);
         }
 
         result
@@ -361,8 +367,8 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn partial_first_constant_layer<F: HasExtension<D>, const D: usize>(
-        state: &mut [F::Extension; SPONGE_WIDTH],
+    fn partial_first_constant_layer<F: ExtensionField<Self>>(
+        state: &mut [F; SPONGE_WIDTH],
     ) {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
@@ -375,19 +381,19 @@ pub trait Poseidon: PrimeField64 {
     #[inline(always)]
     #[unroll_for_loops]
     fn partial_first_constant_layer_packed_field<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
         const D2: usize,
     >(
         state: &mut [P; SPONGE_WIDTH],
     ) where
-        P: PackedField<Scalar = BinomialExtensionField<F,D2>>,
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>
     {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
                 state[i] +=
-                    P::Scalar::from_canonical_u64(Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i]);
+                    <P::Scalar as AbstractField>::from_canonical_u64(Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i]);
             }
         }
     }
@@ -409,9 +415,9 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn mds_partial_layer_init<F: HasExtension<D>, const D: usize>(
-        state: &[F::Extension; SPONGE_WIDTH],
-    ) -> [F::Extension; SPONGE_WIDTH] {
+    fn mds_partial_layer_init<F: ExtensionField<Self>>(
+        state: &[F; SPONGE_WIDTH],
+    ) -> [F; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
 
         // Initial matrix has first row/column = [1, 0, ..., 0];
@@ -441,7 +447,7 @@ pub trait Poseidon: PrimeField64 {
     #[inline(always)]
     #[unroll_for_loops]
     fn mds_partial_layer_init_packed_field<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
         const D2: usize,
@@ -449,9 +455,9 @@ pub trait Poseidon: PrimeField64 {
         state: &[P; SPONGE_WIDTH],
     ) -> [P; SPONGE_WIDTH]
     where
-        P: PackedField<Scalar = BinomialExtensionField<F,D2>>,
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
-        let mut result = [P::ZEROS; SPONGE_WIDTH];
+        let mut result = [P::zeros(); SPONGE_WIDTH];
 
         // Initial matrix has first row/column = [1, 0, ..., 0];
 
@@ -465,7 +471,7 @@ pub trait Poseidon: PrimeField64 {
                         // NB: FAST_PARTIAL_ROUND_INITIAL_MATRIX is stored in
                         // row-major order so that this dot product is cache
                         // friendly.
-                        let t = P::Scalar::from_canonical_u64(
+                        let t = <P::Scalar as AbstractField>::from_canonical_u64(
                             Self::FAST_PARTIAL_ROUND_INITIAL_MATRIX[r - 1][c - 1],
                         );
                         result[c] += state[r] * t;
@@ -515,37 +521,37 @@ pub trait Poseidon: PrimeField64 {
         for i in 1..12 {
             if i < SPONGE_WIDTH {
                 let t = Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1] as u128;
-                let si = state[i].to_noncanonical_u64() as u128;
+                let si = state[i].as_canonical_u64() as u128;
                 d_sum = add_u160_u128(d_sum, si * t);
             }
         }
-        let s0 = state[0].to_noncanonical_u64() as u128;
+        let s0 = state[0].as_canonical_u64() as u128;
         let mds0to0 = (Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0]) as u128;
         d_sum = add_u160_u128(d_sum, s0 * mds0to0);
         let d = reduce_u160::<Self>(d_sum);
 
         // result = [d] concat [state[0] * v + state[shift up by 1]]
-        let mut result = [Self::ZERO; SPONGE_WIDTH];
+        let mut result = [Self::zero(); SPONGE_WIDTH];
         result[0] = d;
         for i in 1..12 {
             if i < SPONGE_WIDTH {
                 let t = Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_VS[r][i - 1]);
-                result[i] = state[i].multiply_accumulate(state[0], t);
+                result[i] = state[i] + state[0] * t;
             }
         }
         result
     }
 
     /// Same as `mds_partial_layer_fast` for field extensions of `Self`.
-    fn mds_partial_layer_fast_field<F: HasExtension<D>, const D: usize>(
-        state: &[F::Extension; SPONGE_WIDTH],
+    fn mds_partial_layer_fast_field<F: ExtensionField<Self>>(
+        state: &[F; SPONGE_WIDTH],
         r: usize,
-    ) -> [F::Extension; SPONGE_WIDTH] {
+    ) -> [F; SPONGE_WIDTH] {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
         let mut d = s0 * F::from_canonical_u64(mds0to0);
         for i in 1..SPONGE_WIDTH {
-            let t = F::from_canonical_u64(Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1]);
+            let t = Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1]);
             d += state[i] * t;
         }
 
@@ -561,7 +567,7 @@ pub trait Poseidon: PrimeField64 {
 
     /// Same as `mds_partial_layer_fast` for `PackedField.
     fn mds_partial_layer_fast_packed_field<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
         const D2: usize,
@@ -570,21 +576,21 @@ pub trait Poseidon: PrimeField64 {
         r: usize,
     ) -> [P; SPONGE_WIDTH]
     where
-        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
-        let mut d = s0 * P::Scalar::from_canonical_u64(mds0to0);
+        let mut d = s0 * <P::Scalar as AbstractField>::from_canonical_u64(mds0to0);
         for i in 1..SPONGE_WIDTH {
-            let t = P::Scalar::from_canonical_u64(Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1]);
+            let t = <P::Scalar as AbstractField>::from_canonical_u64(Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1]);
             d += state[i] * t;
         }
 
         // result = [d] concat [state[0] * v + state[shift up by 1]]
-        let mut result = [P::ZEROS; SPONGE_WIDTH];
+        let mut result = [P::zeros(); SPONGE_WIDTH];
         result[0] = d;
         for i in 1..SPONGE_WIDTH {
-            let t = P::Scalar::from_canonical_u64(Self::FAST_PARTIAL_ROUND_VS[r][i - 1]);
+            let t = <P::Scalar as AbstractField>::from_canonical_u64(Self::FAST_PARTIAL_ROUND_VS[r][i - 1]);
             result[i] = state[0] * t + state[i];
         }
         result
@@ -627,25 +633,25 @@ pub trait Poseidon: PrimeField64 {
             if i < SPONGE_WIDTH {
                 let round_constant = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
                 unsafe {
-                    state[i] = state[i].add_canonical_u64(round_constant);
+                    state[i] = state[i] + Self::from_canonical_u64(round_constant);
                 }
             }
         }
     }
 
     /// Same as `constant_layer` for field extensions of `Self`.
-    fn constant_layer_field<F: HasExtension<D>, const D: usize>(
-        state: &mut [F::Extension; SPONGE_WIDTH],
+    fn constant_layer_field<F: ExtensionField<Self>>(
+        state: &mut [F; SPONGE_WIDTH],
         round_ctr: usize,
     ) {
         for i in 0..SPONGE_WIDTH {
-            state[i] += F::from_canonical_u64(ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr]);
+            state[i] += Self::from_canonical_u64(ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr]);
         }
     }
 
     /// Same as `constant_layer` for PackedFields.
     fn constant_layer_packed_field<
-        F: RichField + HasExtension<D>,
+        F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
         const D2: usize,
@@ -653,11 +659,11 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [P; SPONGE_WIDTH],
         round_ctr: usize,
     ) where
-        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
         for i in 0..SPONGE_WIDTH {
             state[i] +=
-                P::Scalar::from_canonical_u64(ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr]);
+                <P::Scalar as AbstractField>::from_canonical_u64(ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr]);
         }
     }
 
@@ -678,7 +684,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     #[inline(always)]
-    fn sbox_monomial<F: HasExtension<D>, const D: usize>(x: F::Extension) -> F::Extension {
+    fn sbox_monomial<F: ExtensionField<Self>>(x: F) -> F {
         // x |--> x^7
         let x2 = x.square();
         let x4 = x2.square();
@@ -709,8 +715,8 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `sbox_layer` for field extensions of `Self`.
-    fn sbox_layer_field<F: HasExtension<D>, const D: usize>(
-        state: &mut [F::Extension; SPONGE_WIDTH],
+    fn sbox_layer_field<F: ExtensionField<Self>>(
+        state: &mut [F; SPONGE_WIDTH],
     ) {
         for i in 0..SPONGE_WIDTH {
             state[i] = Self::sbox_monomial(state[i]);
@@ -747,7 +753,7 @@ pub trait Poseidon: PrimeField64 {
         for i in 0..N_PARTIAL_ROUNDS {
             state[0] = Self::sbox_monomial(state[0]);
             unsafe {
-                state[0] = state[0].add_canonical_u64(Self::FAST_PARTIAL_ROUND_CONSTANTS[i]);
+                state[0] = state[0] + Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_CONSTANTS[i]);
             }
             *state = Self::mds_partial_layer_fast(state, i);
         }

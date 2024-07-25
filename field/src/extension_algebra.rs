@@ -3,7 +3,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use p3_field::AbstractExtensionField;
+use p3_field::{AbstractExtensionField, ExtensionField, Field, PrimeField64};
 use p3_field::extension::{BinomialExtensionField};
 
 use crate::types::HasExtension;
@@ -12,29 +12,29 @@ use crate::types::HasExtension;
 /// It's a `D`-dimensional algebra over `F_D` useful to lift the multiplication over `F_D` to a multiplication over `(F_D)^D`.
 #[derive(Copy, Clone)]
 pub struct ExtensionAlgebra<F: HasExtension<D>, const D: usize>(
-    pub [BinomialExtensionField<F, D>; D],
+    pub [F::Extension; D],
 );
 
 impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
     pub fn zero() -> Self {
-        Self([<BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::zero()); D])
+        Self([<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D])
     }
 
     pub fn one() -> Self {
         let mut res = Self::zero();
-        res.0[0] = <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::one());
+        res.0[0] = <F::Extension as AbstractExtensionField<F>>::from_base(F::one());
         res
     }
 
-    pub const fn from_basefield_array(arr: [BinomialExtensionField<F, D>; D]) -> Self {
+    pub const fn from_basefield_array(arr: [F::Extension; D]) -> Self {
         Self(arr)
     }
 
-    pub const fn to_basefield_array(self) -> [BinomialExtensionField<F, D>; D] {
+    pub const fn to_basefield_array(self) -> [F::Extension; D] {
         self.0
     }
 
-    pub fn scalar_mul(&self, scalar: F) -> Self {
+    pub fn scalar_mul(&self, scalar: F::Extension) -> Self {
         let mut res = self.0;
         res.iter_mut().for_each(|x| {
             *x *= scalar;
@@ -43,16 +43,16 @@ impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
     }
 }
 
-impl<F: HasExtension<D>, const D: usize> From<BinomialExtensionField<F, D>>
-    for ExtensionAlgebra<F, D>
-{
-    fn from(x: BinomialExtensionField<F, D>) -> Self {
-        let mut arr =
-            [<BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::zero()); D];
-        arr[0] = x;
-        Self(arr)
-    }
-}
+// impl<F: HasExtension<D>, const D: usize> From<F::Extension>
+//     for ExtensionAlgebra<F, D>
+// {
+//     fn from(x: F::Extension) -> Self {
+//         let mut arr =
+//             [F::Extension::from_base(F::zero()); D];
+//         arr[0] = x;
+//         Self(arr)
+//     }
+// }
 
 impl<F: HasExtension<D>, const D: usize> Display for ExtensionAlgebra<F, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -128,7 +128,7 @@ impl<F: HasExtension<D>, const D: usize> Mul for ExtensionAlgebra<F, D> {
     #[inline]
     fn mul(self, rhs: Self) -> Self {
         let mut res = Self::zero();
-        let w = <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::w());
+        let w = <F::Extension as AbstractExtensionField<F>>::from_base(F::w());
         for i in 0..D {
             for j in 0..D {
                 res.0[(i + j) % D] += if i + j < D {
@@ -183,7 +183,7 @@ impl<F: HasExtension<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
             .fold(acc, |acc, (&x, &c)| acc + c * x)
     }
 
-    pub fn eval_base(&self, x: F) -> ExtensionAlgebra<F, D> {
+    pub fn eval_base(&self, x: F::Extension) -> ExtensionAlgebra<F, D> {
         self.coeffs
             .iter()
             .rev()
@@ -191,7 +191,7 @@ impl<F: HasExtension<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
-    pub fn eval_base_with_powers(&self, powers: &[F]) -> ExtensionAlgebra<F, D> {
+    pub fn eval_base_with_powers(&self, powers: &[F::Extension]) -> ExtensionAlgebra<F, D> {
         debug_assert_eq!(self.coeffs.len(), powers.len() + 1);
         let acc = self.coeffs[0];
         self.coeffs[1..]
@@ -214,7 +214,9 @@ mod tests {
     use crate::types::{HasExtension, Sample};
 
     /// Tests that the multiplication on the extension algebra lifts that of the field extension.
-    fn test_extension_algebra<F: HasExtension<D> + Sample, const D: usize>() {
+    fn test_extension_algebra<F: HasExtension<D> + Sample, const D: usize>()
+    where
+        F::Extension: Sample {
         #[derive(Copy, Clone, Debug)]
         enum ZeroOne {
             Zero,
@@ -227,25 +229,25 @@ mod tests {
         };
         let to_fields = |x: &[ZeroOne],
                          y: &[ZeroOne]|
-         -> (BinomialExtensionField<F, D>, BinomialExtensionField<F, D>) {
+         -> (F::Extension, F::Extension) {
             let mut arr0 = [F::zero(); D];
             let mut arr1 = [F::zero(); D];
             arr0.copy_from_slice(&x.iter().map(to_field).collect::<Vec<_>>());
             arr1.copy_from_slice(&y.iter().map(to_field).collect::<Vec<_>>());
             (
-                <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base_slice(&arr0),
-                <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base_slice(&arr1),
+                <F::Extension as AbstractExtensionField<F>>::from_base_slice(&arr0),
+                <F::Extension as AbstractExtensionField<F>>::from_base_slice(&arr1),
             )
         };
 
         // Standard MLE formula.
         let selector = |xs: Vec<ZeroOne>,
-                        ts: &[BinomialExtensionField<F, D>]|
-         -> BinomialExtensionField<F, D> {
+                        ts: &[F::Extension]|
+         -> F::Extension {
             (0..2 * D)
                 .map(|i| match xs[i] {
                     ZeroOne::Zero => {
-                        <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(
+                        <F::Extension as AbstractExtensionField<F>>::from_base(
                             F::one(),
                         ) - ts[i]
                     }
@@ -254,9 +256,9 @@ mod tests {
                 .product()
         };
 
-        let mul_mle = |ts: Vec<BinomialExtensionField<F, D>>| -> [BinomialExtensionField<F, D>; D] {
+        let mul_mle = |ts: Vec<F::Extension>| -> [F::Extension; D] {
             let mut ans =
-                [<BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::zero());
+                [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero());
                     D];
             for xs in (0..2 * D)
                 .map(|_| vec![ZeroOne::Zero, ZeroOne::One])
@@ -268,7 +270,7 @@ mod tests {
                 let c_slice: &[F] = c.as_base_slice();
                 for i in 0..D {
                     ans[i] += res
-                        * <BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(
+                        * <F::Extension as AbstractExtensionField<F>>::from_base(
                             c_slice[i],
                         );
                 }
@@ -276,16 +278,16 @@ mod tests {
             ans
         };
 
-        let ts = <BinomialExtensionField<F, D> as Sample>::rand_vec(2 * D);
+        let ts = <F::Extension as Sample>::rand_vec(2 * D);
         let mut arr0 =
-            [<BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::zero()); D];
+            [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
         let mut arr1 =
-            [<BinomialExtensionField<F, D> as AbstractExtensionField<F>>::from_base(F::zero()); D];
+            [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
         arr0.copy_from_slice(&ts[..D]);
         arr1.copy_from_slice(&ts[D..]);
-        let x = ExtensionAlgebra::from_basefield_array(arr0);
-        let y = ExtensionAlgebra::from_basefield_array(arr1);
-        let z = x * y;
+        let x: ExtensionAlgebra<F, D> = ExtensionAlgebra::from_basefield_array(arr0);
+        let y: ExtensionAlgebra<F, D> = ExtensionAlgebra::from_basefield_array(arr1);
+        let z: ExtensionAlgebra<F, D> = x * y;
 
         assert_eq!(z.0, mul_mle(ts));
     }

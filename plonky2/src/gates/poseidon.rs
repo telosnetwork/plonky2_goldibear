@@ -118,7 +118,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate
         Ok(PoseidonGate::new())
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         // Assert that `swap` is binary.

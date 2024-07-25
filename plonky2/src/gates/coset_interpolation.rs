@@ -198,7 +198,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
         })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         let shift = vars.local_wires[self.wire_shift()];

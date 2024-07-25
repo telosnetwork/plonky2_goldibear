@@ -57,7 +57,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ConstantGate
         Ok(Self { num_consts })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         (0..self.num_consts)
             .map(|i| {
                 vars.local_constants[self.const_input(i)] - vars.local_wires[self.wire_output(i)]

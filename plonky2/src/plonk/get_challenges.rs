@@ -31,7 +31,7 @@ fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, co
     quotient_polys_cap: &MerkleCap<F, C::Hasher>,
     openings: &OpeningSet<F, D>,
     commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
-    final_poly: &PolynomialCoeffs<BinomialExtensionField<F,D>>,
+    final_poly: &PolynomialCoeffs<F::Extension>,
     pow_witness: F,
     circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
     common_data: &CommonCircuitData<F, D>,

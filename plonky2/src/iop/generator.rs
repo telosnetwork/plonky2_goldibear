@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 
 use p3_field::Field;
 
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
@@ -189,7 +189,7 @@ impl<F: Field> GeneratedValues<F> {
 
     pub fn singleton_extension_target<const D: usize>(
         et: ExtensionTarget<D>,
-        value: p3_field::extension::BinomialExtensionField<F, D>,
+        value: F::Extension,
     ) -> Self
     where
         F: RichField + HasExtension<D>,

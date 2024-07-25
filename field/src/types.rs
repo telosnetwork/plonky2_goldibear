@@ -1,3 +1,5 @@
+use core::hash::Hash;
+
 use alloc::vec::Vec;
 
 use p3_baby_bear::BabyBear;
@@ -12,17 +14,26 @@ pub fn two_adic_subgroup<F: TwoAdicField>(n_log: usize) -> Vec<F> {
     generator.powers().take(1 << n_log).collect()
 }
 
-pub trait HasExtension<const D: usize>: BinomiallyExtendable<D> + Field {
+pub trait HasExtension<const D: usize>: BinomiallyExtendable<D> {
     type Extension: ExtensionField<Self::F>;
 }
 
-impl HasExtension<2> for Goldilocks {
-    type Extension = BinomialExtensionField<Self::F, 2>;
+// impl HasExtension<1> for Goldilocks {
+//     type Extension = Self;
+// }
+
+impl<T: BinomiallyExtendable<D>, const D: usize> HasExtension<D> for  T {
+    type Extension = BinomialExtensionField<T::F,D>;
 }
 
-impl HasExtension<4> for BabyBear {
-    type Extension = BinomialExtensionField<Self::F, 4>;
+impl<F: HasExtension<D> + Sample, const D: usize> Sample for BinomialExtensionField<F,D> {
+    fn sample<R>(rng: &mut R) -> Self
+    where
+        R: rand::RngCore + ?Sized {
+        Self::from_base_slice(&(0..D).map(|_| F::sample(&mut OsRng)).collect::<Vec<_>>())
+    }
 }
+
 /// Sampling
 pub trait Sample: Sized {
     /// Samples a single value using `rng`.
@@ -59,20 +70,6 @@ impl Sample for Goldilocks {
     {
         use rand::Rng;
         Self::from_canonical_u64(rng.gen_range(0..Self::ORDER_U64))
-    }
-}
-
-impl<const D: usize, F: AbstractField + Sample + HasExtension<D>> Sample
-    for BinomialExtensionField<F, D>
-{
-    #[inline]
-    fn sample<R>(_rng: &mut R) -> Self
-    where
-        R: rand::RngCore + ?Sized,
-    {
-        <Self as AbstractExtensionField<F>>::from_base_slice(
-            &(0..D).map(|_| F::rand()).collect::<Vec<_>>(),
-        )
     }
 }
 

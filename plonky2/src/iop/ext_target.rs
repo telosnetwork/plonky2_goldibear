@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use p3_field::{AbstractExtensionField, AbstractField};
 use core::ops::Range;
 
 use p3_field::extension::BinomialExtensionField;
@@ -48,8 +49,8 @@ impl<const D: usize> ExtensionTarget<D> {
             return self.repeated_frobenius(count % D, builder);
         }
         let arr = self.to_target_array();
-        let k = (F::order() - 1u32) / (D as u64);
-        let z0 = F::Extension::W.exp_biguint(&(k * count as u64));
+        let k = (F::ORDER_U64 - 1) / (D as u64);
+        let z0 = F::w().exp_u64(k * count as u64);
         #[allow(clippy::needless_collect)]
         let zs = z0
             .powers()
@@ -91,7 +92,7 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
 
 impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn constant_extension(&mut self, c: F::Extension) -> ExtensionTarget<D> {
-        let c_parts = c.to_basefield_array();
+        let c_parts = c.as_base_slice();
         let mut parts = [self.zero(); D];
         for i in 0..D {
             parts[i] = self.constant(c_parts[i]);
@@ -112,19 +113,19 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     pub fn zero_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::ZERO)
+        self.constant_extension(<F::Extension as AbstractField>::zero())
     }
 
     pub fn one_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::ONE)
+        self.constant_extension(<F::Extension as AbstractField>::one())
     }
 
     pub fn two_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::TWO)
+        self.constant_extension(<F::Extension as AbstractField>::two())
     }
 
     pub fn neg_one_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::NEG_ONE)
+        self.constant_extension(<F::Extension as AbstractField>::neg_one())
     }
 
     pub fn zero_ext_algebra(&mut self) -> ExtensionAlgebraTarget<D> {

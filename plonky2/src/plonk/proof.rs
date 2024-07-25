@@ -288,7 +288,7 @@ pub(crate) struct ProofChallengesTarget<const D: usize> {
 
 /// Coset elements that can be inferred in the FRI reduction steps.
 pub(crate) struct FriInferredElements<F: RichField + HasExtension<D>, const D: usize>(
-    pub Vec<BinomialExtensionField<F,D>>,
+    pub Vec<F::Extension>,
 );
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -300,15 +300,15 @@ pub struct ProofWithPublicInputsTarget<const D: usize> {
 #[derive(Clone, Debug, Default, Serialize, /*Deserialize,*/ Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
 pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize> {
-    pub constants: Vec<BinomialExtensionField<F,D>>,
-    pub plonk_sigmas: Vec<BinomialExtensionField<F,D>>,
-    pub wires: Vec<BinomialExtensionField<F,D>>,
-    pub plonk_zs: Vec<BinomialExtensionField<F,D>>,
-    pub plonk_zs_next: Vec<BinomialExtensionField<F,D>>,
-    pub partial_products: Vec<BinomialExtensionField<F,D>>,
-    pub quotient_polys: Vec<BinomialExtensionField<F,D>>,
-    pub lookup_zs: Vec<BinomialExtensionField<F,D>>,
-    pub lookup_zs_next: Vec<BinomialExtensionField<F,D>>,
+    pub constants: Vec<F::Extension>,
+    pub plonk_sigmas: Vec<F::Extension>,
+    pub wires: Vec<F::Extension>,
+    pub plonk_zs: Vec<F::Extension>,
+    pub plonk_zs_next: Vec<F::Extension>,
+    pub partial_products: Vec<F::Extension>,
+    pub quotient_polys: Vec<F::Extension>,
+    pub lookup_zs: Vec<F::Extension>,
+    pub lookup_zs_next: Vec<F::Extension>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D> {

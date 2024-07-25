@@ -3,7 +3,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
 use p3_field::extension::{BinomialExtensionField};
-use p3_field::PrimeField64;
+use p3_field::{AbstractExtensionField, AbstractField, PrimeField64};
 
 use plonky2_field::types::HasExtension;
 
@@ -39,7 +39,7 @@ impl<const B: usize> BaseSumGate<B> {
 
     pub fn new_from_config<F: PrimeField64>(config: &CircuitConfig) -> Self {
         let num_limbs =
-            log_floor(F::ORDER - 1, B as u64).min(config.num_routed_wires - Self::START_LIMBS);
+            log_floor(F::ORDER_U64 - 1, B as u64).min(config.num_routed_wires - Self::START_LIMBS);
         Self::new(num_limbs)
     }
 
@@ -66,15 +66,15 @@ impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> Gate<F, D> 
         Ok(Self { num_limbs })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let sum = vars.local_wires[Self::WIRE_SUM];
         let limbs = vars.local_wires[self.limbs()].to_vec();
-        let computed_sum = reduce_with_powers(&limbs, F::Extension::from_canonical_usize(B));
+        let computed_sum = reduce_with_powers(&limbs, <F::Extension as AbstractField>::from_canonical_usize(B));
         let mut constraints = vec![computed_sum - sum];
         for limb in limbs {
             constraints.push(
                 (0..B)
-                    .map(|i| limb - F::Extension::from_canonical_usize(i))
+                    .map(|i| limb - <F::Extension as AbstractField>::from_canonical_usize(i))
                     .product(),
             );
         }
@@ -191,7 +191,7 @@ impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGener
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
         let sum_value = witness
             .get_target(Target::wire(self.row, BaseSumGate::<B>::WIRE_SUM))
-            .to_canonical_u64() as usize;
+            .as_canonical_u64() as usize;
         debug_assert_eq!(
             (0..self.num_limbs).fold(sum_value, |acc, _| acc / B),
             0,
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 4>(BaseSumGate::<6>::new(11))
+        test_low_degree::<Goldilocks, _, 2>(BaseSumGate::<6>::new(11))
     }
 
     #[test]

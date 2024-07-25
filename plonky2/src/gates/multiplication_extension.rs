@@ -4,7 +4,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractExtensionField};
 use core::ops::Range;
 use plonky2_field::types::HasExtension;
 
@@ -66,7 +66,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtension
         Ok(Self { num_ops })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let const_0 = vars.local_constants[0];
 
         let mut constraints = Vec::with_capacity(self.num_ops * D);
@@ -93,9 +93,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtension
             let multiplicand_0 = vars.get_local_ext(Self::wires_ith_multiplicand_0(i));
             let multiplicand_1 = vars.get_local_ext(Self::wires_ith_multiplicand_1(i));
             let output = vars.get_local_ext(Self::wires_ith_output(i));
-            let computed_output = (multiplicand_0 * multiplicand_1).scalar_mul(const_0);
-
-            yield_constr.many((output - computed_output).to_basefield_array());
+            let computed_output = multiplicand_0 * multiplicand_1 * const_0;
+            let base_field_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&((output - computed_output))).try_into().unwrap();
+            yield_constr.many(base_field_array);
         }
     }
 
@@ -190,7 +190,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
         let output_target =
             ExtensionTarget::from_range(self.row, MulExtensionGate::<D>::wires_ith_output(self.i));
 
-        let computed_output = (multiplicand_0 * multiplicand_1).scalar_mul(self.const_0);
+        let computed_output = (multiplicand_0 * multiplicand_1 * self.const_0);
 
         out_buffer.set_extension_target(output_target, computed_output)
     }
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn low_degree() {
         let gate = MulExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<Goldilocks, _, 4>(gate);
+        test_low_degree::<Goldilocks, _, 2>(gate);
     }
 
     #[test]

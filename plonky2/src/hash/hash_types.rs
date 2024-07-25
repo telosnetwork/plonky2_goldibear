@@ -12,7 +12,7 @@ use crate::iop::target::Target;
 use crate::plonk::config::GenericHashOut;
 
 /// A prime order field with the features we need to use it as a base field in our argument system.
-pub trait RichField: PrimeField64 + Poseidon {}
+pub trait RichField: PrimeField64 + Sample + Poseidon {}
 
 impl RichField for Goldilocks {}
 
@@ -26,9 +26,9 @@ pub struct HashOut<F: Field> {
 }
 
 impl<F: Field> HashOut<F> {
-    pub const ZERO: Self = Self {
-        elements: [F::zero(); NUM_HASH_OUT_ELTS],
-    };
+    pub fn zero() -> Self {
+        Self {elements: [F::zero(); NUM_HASH_OUT_ELTS]}
+    }
 
     // TODO: Switch to a TryFrom impl.
     pub fn from_vec(elements: Vec<F>) -> Self {
@@ -64,7 +64,7 @@ impl<F: Field> TryFrom<&[F]> for HashOut<F> {
 
 impl<F> Sample for HashOut<F>
 where
-    F: Field,
+    F: Field + Sample,
 {
     #[inline]
     fn sample<R>(rng: &mut R) -> Self
@@ -86,7 +86,7 @@ impl<F: RichField> GenericHashOut<F> for HashOut<F> {
     fn to_bytes(&self) -> Vec<u8> {
         self.elements
             .into_iter()
-            .flat_map(|x| x.to_canonical_u64().to_le_bytes())
+            .flat_map(|x| x.as_canonical_u64().to_le_bytes())
             .collect()
     }
 
@@ -109,7 +109,7 @@ impl<F: RichField> GenericHashOut<F> for HashOut<F> {
 
 impl<F: Field> Default for HashOut<F> {
     fn default() -> Self {
-        Self::ZERO
+        Self::zero()
     }
 }
 

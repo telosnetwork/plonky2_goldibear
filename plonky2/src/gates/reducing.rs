@@ -81,7 +81,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate
         Ok(Self::new(num_coeffs))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let alpha = vars.get_local_ext_algebra(Self::wires_alpha());
         let old_acc = vars.get_local_ext_algebra(Self::wires_old_acc());
         let coeffs = self

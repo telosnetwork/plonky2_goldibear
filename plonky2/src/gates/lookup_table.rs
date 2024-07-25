@@ -122,7 +122,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for LookupTableG
         })
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         // No main trace constraints for the lookup table.
         vec![]
     }

@@ -45,7 +45,7 @@ pub trait WitnessWrite<F: Field> {
     where
         F: RichField + HasExtension<D>,
     {
-        self.set_target_arr(&et.0, &value.to_basefield_array());
+        self.set_target_arr(&et.0, value.as_base_slice());
     }
 
     fn set_target_arr(&mut self, targets: &[Target], values: &[F]) {
@@ -167,7 +167,7 @@ pub trait WitnessWrite<F: Field> {
         F: RichField + HasExtension<D>,
         W: IntoIterator<Item = Wire>,
     {
-        self.set_wires(wires, &value.to_basefield_array());
+        self.set_wires(wires, value.as_base_slice());
     }
 
     fn extend<I: Iterator<Item = (Target, F)>>(&mut self, pairs: I) {
@@ -198,7 +198,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         )
     }
 
-    fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<BinomialExtensionField<F,D>>
+    fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<F::Extension>
     where
         F: RichField + HasExtension<D>,
     {

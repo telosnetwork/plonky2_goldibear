@@ -90,7 +90,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for Exponentiati
         Ok(Self::new(num_power_bits))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<BinomialExtensionField<F,D>> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         let base = vars.local_wires[self.wire_base()];
 
         let power_bits: Vec<_> = (0..self.num_power_bits)

@@ -63,7 +63,7 @@ pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize
     gammas: &[F],
     alphas: &[F],
     deltas: &[F],
-) -> Vec<BinomialExtensionField<F,D>> {
+) -> Vec<F::Extension> {
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
@@ -341,7 +341,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
     next_lookup_zs: &[F::Extension],
     lookup_selectors: &[F::Extension],
     deltas: &[F; 4],
-) -> Vec<BinomialExtensionField<F,D>> {
+) -> Vec<F::Extension> {
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;
@@ -362,7 +362,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
     let delta_challenge_b = F::Extension::from_base(deltas[LookupChallenges::ChallengeB as usize]);
 
     // Compute all current looked and looking combos, i.e. the combos we need for the SLDC polynomials.
-    let current_looked_combos: Vec<BinomialExtensionField<F,D>> = (0..num_lut_slots)
+    let current_looked_combos: Vec<F::Extension> = (0..num_lut_slots)
         .map(|s| {
             let input_wire = vars.local_wires[LookupTableGate::wire_ith_looked_inp(s)];
             let output_wire = vars.local_wires[LookupTableGate::wire_ith_looked_out(s)];
@@ -370,7 +370,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
         })
         .collect();
 
-    let current_looking_combos: Vec<BinomialExtensionField<F,D>> = (0..num_lu_slots)
+    let current_looking_combos: Vec<F::Extension> = (0..num_lu_slots)
         .map(|s| {
             let input_wire = vars.local_wires[LookupGate::wire_ith_looking_inp(s)];
             let output_wire = vars.local_wires[LookupGate::wire_ith_looking_out(s)];
@@ -379,7 +379,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
         .collect();
 
     // Compute all current lookup combos, i.e. the combos used to check that the LUT is correct.
-    let current_lookup_combos: Vec<BinomialExtensionField<F,D>> = (0..num_lut_slots)
+    let current_lookup_combos: Vec<F::Extension> = (0..num_lut_slots)
         .map(|s| {
             let input_wire = vars.local_wires[LookupTableGate::wire_ith_looked_inp(s)];
             let output_wire = vars.local_wires[LookupTableGate::wire_ith_looked_out(s)];
@@ -666,7 +666,7 @@ pub fn check_lookup_constraints_batch<F: RichField + HasExtension<D>, const D: u
 pub fn evaluate_gate_constraints<F: RichField + HasExtension<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVars<F, D>,
-) -> Vec<BinomialExtensionField<F,D>> {
+) -> Vec<F::Extension> {
     let mut constraints = vec![F::Extension::from_base(F::zero()); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];

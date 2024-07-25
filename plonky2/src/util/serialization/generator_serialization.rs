@@ -7,7 +7,7 @@ pub use std::vec::Vec;
 
 
 
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::WitnessGeneratorRef;

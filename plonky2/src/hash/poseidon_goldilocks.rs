@@ -4,9 +4,36 @@
 //! `poseidon_constants.sage` script in the `0xPolygonZero/hash-constants`
 //! repository.
 
+use p3_field::AbstractField;
 use p3_goldilocks::Goldilocks;
+use plonky2_util::{assume, branch_hint};
 
 use crate::hash::poseidon::{N_PARTIAL_ROUNDS, Poseidon};
+
+unsafe fn add_no_canonicalize_trashing_input(x: u64, y: u64) -> u64 {
+    let res_wrapped: u64;
+    let adjustment: u64;
+    core::arch::asm!(
+        "add {0}, {1}",
+        // Trick. The carry flag is set iff the addition overflowed.
+        // sbb x, y does x := x - y - CF. In our case, x and y are both {1:e}, so it simply does
+        // {1:e} := 0xffffffff on overflow and {1:e} := 0 otherwise. {1:e} is the low 32 bits of
+        // {1}; the high 32-bits are zeroed on write. In the end, we end up with 0xffffffff in {1}
+        // on overflow; this happens be EPSILON.
+        // Note that the CPU does not realize that the result of sbb x, x does not actually depend
+        // on x. We must write the result to a register that we know to be ready. We have a
+        // dependency on {1} anyway, so let's use it.
+        "sbb {1:e}, {1:e}",
+        inlateout(reg) x => res_wrapped,
+        inlateout(reg) y => adjustment,
+        options(pure, nomem, nostack),
+    );
+    assume(x != 0 || (res_wrapped == y && adjustment == 0));
+    assume(y != 0 || (res_wrapped == x && adjustment == 0));
+    // Add EPSILON == subtract ORDER.
+    // Cannot overflow unless the assumption if x + y < 2**64 + ORDER is incorrect.
+    res_wrapped + adjustment
+}
 
 #[rustfmt::skip]
 impl Poseidon for Goldilocks {
@@ -216,7 +243,9 @@ impl Poseidon for Goldilocks {
     #[inline(always)]
     #[unroll::unroll_for_loops]
     fn mds_layer(state: &[Self; 12]) -> [Self; 12] {
-        let mut result = [Goldilocks::ZERO; 12];
+        use p3_field::PrimeField64;
+
+        let mut result = [Goldilocks::zero(); 12];
 
         // Using the linearity of the operations we can split the state into a low||high decomposition
         // and operate on each with no overflow and then combine/reduce the result to a field element.
@@ -224,7 +253,7 @@ impl Poseidon for Goldilocks {
         let mut state_h = [0u64; 12];
 
         for r in 0..12 {
-            let s = state[r].0;
+            let s = <Goldilocks as PrimeField64>::as_canonical_u64(&state[r]);
             state_h[r] = s >> 32;
             state_l[r] = (s as u32) as u64;
         }
@@ -239,7 +268,7 @@ impl Poseidon for Goldilocks {
         }
 
         // Add first element with the only non-zero diagonal matrix coefficient.
-        let s = Self::MDS_MATRIX_DIAG[0] as u128 * (state[0].0 as u128);
+        let s = Self::MDS_MATRIX_DIAG[0] as u128 * (<Goldilocks as PrimeField64>::as_canonical_u64(&state[0]) as u128);
         result[0] += Goldilocks::from_noncanonical_u96((s as u64, (s >> 64) as u32));
 
         result
@@ -299,6 +328,22 @@ impl Poseidon for Goldilocks {
         unsafe {
             crate::hash::arch::aarch64::poseidon_goldilocks_neon::mds_layer(state)
         }
+    }
+    
+    fn from_noncanonical_u128(x: u128) -> Self {
+        let epsilon = (1 << 32) - 1;
+        let (x_lo, x_hi) = (x as u64, (x >> 64) as u64); // This is a no-op
+        let x_hi_hi = x_hi >> 32;
+        let x_hi_lo = x_hi & epsilon;
+
+        let (mut t0, borrow) = x_lo.overflowing_sub(x_hi_hi);
+        if borrow {
+            branch_hint(); // A borrow is exceedingly rare. It is faster to branch.
+            t0 -= epsilon; // Cannot underflow.
+        }
+        let t1 = x_hi_lo * epsilon;
+        let t2 = unsafe { add_no_canonicalize_trashing_input(t0, t1) };
+        <Self as AbstractField>::from_canonical_u64(t2)
     }
 }
 
@@ -445,6 +490,7 @@ mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{vec, vec::Vec};
 
+    use p3_field::{AbstractField, PrimeField64};
     use p3_goldilocks::Goldilocks;
 
     use crate::hash::poseidon::test_helpers::{check_consistency, check_test_vectors};
@@ -459,7 +505,7 @@ mod tests {
         // 4. random elements of Goldilocks.
         // expected output calculated with (modified) hadeshash reference implementation.
 
-        let neg_one: u64 = F::NEG_ONE.to_canonical_u64();
+        let neg_one: u64 = <F as PrimeField64>::ORDER_U64 - 1;
 
         #[rustfmt::skip]
         let test_vectors12: Vec<([u64; 12], [u64; 12])> = vec![

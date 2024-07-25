@@ -173,7 +173,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 
 #[cfg(test)]
 mod tests {
-    use p3_field::Field;
+    use p3_field::{AbstractField, Field};
+    use plonky2_field::types::Sample;
     use rand::Rng;
     use rand::rngs::OsRng;
 
@@ -185,7 +186,7 @@ mod tests {
 
     use super::*;
 
-    fn random_data<F: Field>(n: usize, k: usize) -> Vec<Vec<F>> {
+    fn random_data<F: Field + Sample>(n: usize, k: usize) -> Vec<Vec<F>> {
         (0..n).map(|_| F::rand_vec(k)).collect()
     }
 
@@ -216,7 +217,7 @@ mod tests {
         let cap_t = builder.add_virtual_cap(cap_height);
         pw.set_cap_target(&cap_t, &tree.cap);
 
-        let i_c = builder.constant(F::from_canonical_usize(i));
+        let i_c = builder.constant(<F as AbstractField>::from_canonical_usize(i));
         let i_bits = builder.split_le(i_c, log_n);
 
         let data = builder.add_virtual_targets(tree.leaves[i].len());

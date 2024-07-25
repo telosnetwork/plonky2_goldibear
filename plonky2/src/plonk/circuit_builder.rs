@@ -661,7 +661,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// If the given [`ExtensionTarget`] is a constant (i.e. it was created by the
     /// `constant_extension(F)` method), returns its constant value. Otherwise, returns `None`.
-    pub fn target_as_constant_ext(&self, target: ExtensionTarget<D>) -> Option<BinomialExtensionField<F,D>> {
+    pub fn target_as_constant_ext(&self, target: ExtensionTarget<D>) -> Option<F::Extension> {
         // Get a Vec of any coefficients that are constant. If we end up with exactly D of them,
         // then the `ExtensionTarget` as a whole is constant.
         let const_coeffs: Vec<F> = target

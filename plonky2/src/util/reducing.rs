@@ -2,7 +2,7 @@
 use alloc::{vec, vec::Vec};
 use core::borrow::Borrow;
 
-use p3_field::{AbstractExtensionField, ExtensionField, Field};
+use p3_field::{AbstractExtensionField, ExtensionField, Field, TwoAdicField};
 use p3_field::extension::{BinomialExtensionField};
 
 use plonky2_field::types::HasExtension;
@@ -42,14 +42,17 @@ impl<F: Field> ReducingFactor<F> {
 
     fn mul_ext<P, const D: usize>(&mut self, x: P) -> P
     where
-        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
+    F: HasExtension<D>,
+        P: PackedField<Scalar = F::Extension>,
     {
         self.count += 1;
         // TODO: Would like to use `FE::scalar_mul`, but it doesn't work with Packed currently.
         x * F::Extension::from_base(self.base)
     }
 
-    fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>) {
+    fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>)
+    where 
+    F: TwoAdicField {
         self.count += 1;
         *p *= self.base;
     }
@@ -64,16 +67,20 @@ impl<F: Field> ReducingFactor<F> {
         iter: impl DoubleEndedIterator<Item = impl Borrow<P>>,
     ) -> P
     where
-        P: PackedField<Scalar = BinomialExtensionField<F,D>>,
+    F: HasExtension<D>,
+        P: PackedField<Scalar = F::Extension>,
     {
         iter.rev()
-            .fold(P::ZEROS, |acc, x| self.mul_ext(acc) + *x.borrow())
+            .fold(P::zeros(), |acc, x| self.mul_ext(acc) + *x.borrow())
     }
 
     pub fn reduce_polys(
         &mut self,
         polys: impl DoubleEndedIterator<Item = impl Borrow<PolynomialCoeffs<F>>>,
-    ) -> PolynomialCoeffs<F> {
+    ) -> PolynomialCoeffs<F> 
+    where 
+    F: TwoAdicField
+    {
         polys.rev().fold(PolynomialCoeffs::empty(), |mut acc, x| {
             self.mul_poly(&mut acc);
             acc += x.borrow();
@@ -81,10 +88,11 @@ impl<F: Field> ReducingFactor<F> {
         })
     }
 
-    pub fn reduce_polys_base<BF: HasExtension<D>, const D: usize>(
+    pub fn reduce_polys_base<BF: HasExtension<D> + TwoAdicField, const D: usize>(
         &mut self,
         polys: impl IntoIterator<Item = impl Borrow<PolynomialCoeffs<BF>>>,
-    ) -> PolynomialCoeffs<F> {
+    ) -> PolynomialCoeffs<F>
+    where F: ExtensionField<BF> + TwoAdicField{
         self.base
             .powers()
             .zip(polys)
@@ -101,7 +109,8 @@ impl<F: Field> ReducingFactor<F> {
         tmp
     }
 
-    pub fn shift_poly(&mut self, p: &mut PolynomialCoeffs<F>) {
+    pub fn shift_poly(&mut self, p: &mut PolynomialCoeffs<F>)
+    where  F: TwoAdicField {
         *p *= self.base.exp_u64(self.count);
         self.count = 0;
     }
@@ -276,6 +285,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::AbstractField;
 
     use crate::field::types::Sample;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
@@ -329,7 +339,7 @@ mod tests {
         let mut builder = CircuitBuilder::<F, D>::new(config);
 
         let alpha = FF::rand();
-        let vs = (0..n).map(FF::from_canonical_usize).collect::<Vec<_>>();
+        let vs = (0..n).map(<FF as AbstractField>::from_canonical_usize).collect::<Vec<_>>();
 
         let manual_reduce = ReducingFactor::new(alpha).reduce(vs.iter());
         let manual_reduce = builder.constant_extension(manual_reduce);
