@@ -23,7 +23,7 @@ use crate::plonk::proof::{FriInferredElements, ProofChallenges};
 /// Evaluations and Merkle proof produced by the prover in a FRI query step.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct FriQueryStep<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
+pub struct FriQueryStep<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> where  F::Extension: TwoAdicField{
     pub evals: Vec<F::Extension>,
     pub merkle_proof: MerkleProof<F, H>,
 }
@@ -91,7 +91,7 @@ pub struct FriQueryRoundTarget<const D: usize> {
 /// Compressed proof of the FRI query rounds.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedFriQueryRounds<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
+pub struct CompressedFriQueryRounds<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> where F::Extension: TwoAdicField{
     /// Query indices.
     pub indices: Vec<usize>,
     /// Map from initial indices `i` to the `FriInitialProof` for the `i`th leaf.
@@ -102,7 +102,7 @@ pub struct CompressedFriQueryRounds<F: RichField + HasExtension<D>, H: Hasher<F>
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct FriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
+pub struct FriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> where F::Extension: TwoAdicField{
     /// A Merkle cap for each reduced polynomial in the commit phase.
     pub commit_phase_merkle_caps: Vec<MerkleCap<F, H>>,
     /// Query rounds proofs
@@ -123,7 +123,7 @@ pub struct FriProofTarget<const D: usize> {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedFriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
+pub struct CompressedFriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> where F::Extension: TwoAdicField{
     /// A Merkle cap for each reduced polynomial in the commit phase.
     pub commit_phase_merkle_caps: Vec<MerkleCap<F, H>>,
     /// Compressed query rounds proof.
@@ -236,7 +236,7 @@ impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> FriProof<F, H
     }
 }
 
-impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> CompressedFriProof<F, H, D> {
+impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> CompressedFriProof<F, H, D> where F::Extension: TwoAdicField {
     /// Decompress all the Merkle paths in the FRI proof and reinsert duplicate indices.
     pub(crate) fn decompress(
         self,
@@ -362,7 +362,7 @@ impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> CompressedFri
 }
 
 #[derive(Debug)]
-pub struct FriChallenges<F: RichField + HasExtension<D>, const D: usize> {
+pub struct FriChallenges<F: RichField + HasExtension<D>, const D: usize> where  F::Extension: TwoAdicField{
     // Scaling factor to combine polynomials.
     pub fri_alpha: F::Extension,
 

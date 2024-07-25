@@ -3,6 +3,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, sync::Arc, vec, vec::Vec};
 use p3_field::extension::{BinomialExtensionField};
+use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 use core::cmp::max;
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
@@ -10,7 +11,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 use log::{debug, info, warn, Level};
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use plonky2_util::ceil_div_usize;
 
 use crate::field::cosets::get_unique_coset_shifts;
@@ -137,7 +138,7 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize> {
+pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     /// Circuit configuration to be used by this [`CircuitBuilder`].
     pub config: CircuitConfig,
 
@@ -201,7 +202,7 @@ pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize> {
     pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     /// Given a [`CircuitConfig`], generate a new [`CircuitBuilder`] instance.
     /// It will also check that the configuration provided is consistent, i.e.
     /// that the different parameters provided can achieve the targeted security
@@ -249,7 +250,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         } = &self.config;
 
         // Conjectured FRI security; see the ethSTARK paper.
-        let fri_field_bits = F::Extension::order().bits() as usize;
+        let fri_field_bits = <F::Extension as Field>::order().bits() as usize;
         let fri_query_security_bits = num_query_rounds * rate_bits + proof_of_work_bits as usize;
         let fri_security_bits = fri_field_bits.min(fri_query_security_bits);
         assert!(
@@ -584,7 +585,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Returns a routable target with a value of `order() - 1`.
     pub fn neg_one(&mut self) -> Target {
-        self.constant(F::NEG_ONE)
+        self.constant(F::neg_one())
     }
 
     /// Returns a routable boolean target set to false.
@@ -670,8 +671,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
             .filter_map(|&t| self.target_as_constant(t))
             .collect();
 
-        if let Ok(d_const_coeffs) = const_coeffs.try_into() {
-            Some(F::Extension::from_basefield_array(d_const_coeffs))
+        if const_coeffs.len() == D {
+            Some(<F::Extension as AbstractExtensionField<F>>::from_base_slice(&const_coeffs))
         } else {
             None
         }
@@ -1030,10 +1031,11 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build_with_options<C: GenericConfig<D, F = F>>(
+    pub fn build_with_options<C: GenericConfig<D, F = F, FE = F::Extension>>(
         self,
         commit_to_sigma: bool,
-    ) -> CircuitData<F, C, D> {
+    ) -> CircuitData<F, C, D> 
+    where F::Extension: TwoAdicField{
         let (circuit_data, success) = self.try_build_with_options(commit_to_sigma);
         if !success {
             panic!("Failed to build circuit");
@@ -1041,10 +1043,12 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         circuit_data
     }
 
-    pub fn try_build_with_options<C: GenericConfig<D, F = F>>(
+    pub fn try_build_with_options<C: GenericConfig<D, F = F, FE = F::Extension>>(
         mut self,
         commit_to_sigma: bool,
-    ) -> (CircuitData<F, C, D>, bool) {
+    ) -> (CircuitData<F, C, D>, bool)
+    where 
+        F::Extension: TwoAdicField {
         let mut timing = TimingTree::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]
@@ -1089,7 +1093,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
             .into_iter()
             // We need to enumerate constants_to_targets in some deterministic order to ensure that
             // building a circuit is deterministic.
-            .sorted_by_key(|(c, _t)| c.to_canonical_u64())
+            .sorted_by_key(|(c, _t)| c.as_canonical_u64())
             .zip(self.constant_generators.clone())
         {
             // Set the constant in the constant polynomial.
@@ -1138,7 +1142,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         constant_vecs.extend(self.constant_polys());
         let num_constants = constant_vecs.len();
 
-        let subgroup = F::two_adic_subgroup(degree_bits);
+        let subgroup = two_adic_subgroup::<F>(degree_bits);
 
         let k_is = get_unique_coset_shifts(degree, self.config.num_routed_wires);
         let (sigma_vecs, forest) = timed!(
@@ -1293,11 +1297,15 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build<C: GenericConfig<D, F = F>>(self) -> CircuitData<F, C, D> {
+    pub fn build<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> CircuitData<F, C, D>
+    where 
+    F::Extension: TwoAdicField{
         self.build_with_options(true)
     }
 
-    pub fn mock_build<C: GenericConfig<D, F = F>>(self) -> MockCircuitData<F, C, D> {
+    pub fn mock_build<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> MockCircuitData<F, C, D>
+    where
+        F::Extension: TwoAdicField {
         let circuit_data = self.build_with_options(false);
         MockCircuitData {
             prover_only: circuit_data.prover_only,
@@ -1305,14 +1313,17 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         }
     }
     /// Builds a "prover circuit", with data needed to generate proofs but not verify them.
-    pub fn build_prover<C: GenericConfig<D, F = F>>(self) -> ProverCircuitData<F, C, D> {
+    pub fn build_prover<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> ProverCircuitData<F, C, D>
+    where 
+        F::Extension: TwoAdicField{
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.prover_data()
     }
 
     /// Builds a "verifier circuit", with data needed to verify proofs but not generate them.
-    pub fn build_verifier<C: GenericConfig<D, F = F>>(self) -> VerifierCircuitData<F, C, D> {
+    pub fn build_verifier<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> VerifierCircuitData<F, C, D>
+    where F::Extension: TwoAdicField {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.verifier_data()

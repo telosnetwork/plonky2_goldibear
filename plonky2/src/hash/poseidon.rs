@@ -3,7 +3,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::{AbstractField, ExtensionField, Field, PrimeField64};
+use p3_field::{AbstractField, ExtensionField, TwoAdicField, PrimeField64};
 use plonky2_field::types::HasExtension;
 use core::fmt::Debug;
 
@@ -893,6 +893,7 @@ impl<F: RichField> AlgebraicHasher<F> for PoseidonHash {
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);

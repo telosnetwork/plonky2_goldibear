@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use itertools::Itertools;
 
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use crate::fri::proof::{
     FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget, FriQueryStepTarget,
@@ -22,7 +23,7 @@ use crate::with_context;
 impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
-    pub fn conditionally_verify_proof<C: GenericConfig<D, F = F>>(
+    pub fn conditionally_verify_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
         condition: BoolTarget,
         proof_with_pis0: &ProofWithPublicInputsTarget<D>,
@@ -32,6 +33,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         inner_common_data: &CommonCircuitData<F, D>,
     ) where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let selected_proof =
             self.select_proof_with_pis(condition, proof_with_pis0, proof_with_pis1);
@@ -52,7 +54,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Conditionally verify a proof with a new generated dummy proof.
-    pub fn conditionally_verify_proof_or_dummy<C: GenericConfig<D, F = F> + 'static>(
+    pub fn conditionally_verify_proof_or_dummy<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
         &mut self,
         condition: BoolTarget,
         proof_with_pis: &ProofWithPublicInputsTarget<D>,
@@ -61,6 +63,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     ) -> anyhow::Result<()>
     where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(inner_common_data)?;
@@ -343,6 +346,7 @@ mod tests {
 
     use anyhow::Result;
     use hashbrown::HashMap;
+    use p3_field::{AbstractField, PrimeField64};
 
     use super::*;
     use crate::field::types::Sample;
@@ -391,7 +395,7 @@ mod tests {
         let dummy_inner_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         pw.set_verifier_data_target(&dummy_inner_data, &dummy_data.verifier_only);
-        let b = builder.constant_bool(F::rand().0 % 2 == 0);
+        let b = builder.constant_bool(<F as PrimeField64>::as_canonical_u64(&F::rand()) % 2 == 0);
         builder.conditionally_verify_proof::<C>(
             b,
             &pt,

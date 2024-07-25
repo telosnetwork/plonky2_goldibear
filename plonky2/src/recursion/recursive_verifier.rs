@@ -2,6 +2,7 @@
 use alloc::vec;
 
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOutTarget, RichField};
 use crate::plonk::circuit_builder::CircuitBuilder;
@@ -16,7 +17,7 @@ use crate::plonk::vars::EvaluationTargets;
 use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     /// Recursively verifies an inner proof.
     pub fn verify_proof<C: GenericConfig<D, F = F>>(
         &mut self,
@@ -200,6 +201,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{sync::Arc, vec};
+    use p3_field::TwoAdicField;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
@@ -422,7 +424,7 @@ mod tests {
     fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
         config: &CircuitConfig,
         num_dummy_gates: u64,
-    ) -> Result<Proof<F, C, D>> {
+    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         for _ in 0..num_dummy_gates {
             builder.add_gate(NoopGate, vec![]);
@@ -440,11 +442,11 @@ mod tests {
     fn dummy_lookup_proof<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F>,
-        const D: usize,
+        const D: usize
     >(
         config: &CircuitConfig,
         num_dummy_gates: u64,
-    ) -> Result<Proof<F, C, D>> {
+    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -501,7 +503,7 @@ mod tests {
         const D: usize,
     >(
         config: &CircuitConfig,
-    ) -> Result<Proof<F, C, D>> {
+    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -578,7 +580,7 @@ mod tests {
         const D: usize,
     >(
         config: &CircuitConfig,
-    ) -> Result<Proof<F, C, D>> {
+    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
 
         let initial_a = builder.add_virtual_target();
@@ -643,6 +645,7 @@ mod tests {
     ) -> Result<Proof<F, C, D>>
     where
         InnerC::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         let mut pw = PartialWitness::new();
@@ -694,7 +697,7 @@ mod tests {
         proof: &ProofWithPublicInputs<F, C, D>,
         vd: &VerifierOnlyCircuitData<C, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> Result<()> {
+    ) -> Result<()> where F::Extension: TwoAdicField{
         let proof_bytes = proof.to_bytes();
         info!("Proof length: {} bytes", proof_bytes.len());
         let proof_from_bytes = ProofWithPublicInputs::from_bytes(proof_bytes, common_data)?;

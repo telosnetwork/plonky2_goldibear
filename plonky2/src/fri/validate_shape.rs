@@ -17,7 +17,8 @@ pub(crate) fn validate_fri_proof_shape<F, C, const D: usize>(
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F>,
-{
+    F::Extension: TwoAdicField
+    {
     let FriProof {
         commit_phase_merkle_caps,
         query_round_proofs,

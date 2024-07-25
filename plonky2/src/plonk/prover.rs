@@ -2,6 +2,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
+use p3_field::extension::HasTwoAdicBionmialExtension;
 use core::cmp::min;
 use core::mem::swap;
 
@@ -12,8 +13,8 @@ use plonky2_maybe_rayon::*;
 use super::circuit_builder::{LookupChallenges, LookupWire};
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use p3_field::Field;
-use plonky2_field::types::HasExtension;
+use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField, Field, TwoAdicField};
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::fri::oracle::PolynomialBatch;
 use crate::gates::lookup::LookupGate;
@@ -41,13 +42,13 @@ use crate::util::{ceil_div_usize, log2_ceil, transpose};
 /// the last gate to appear is the first LUT gate.
 pub fn set_lookup_wires<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     pw: &mut PartitionWitness<F>,
-) {
+) where F::Extension: TwoAdicField{
     for (
         lut_index,
         &LookupWire {
@@ -73,7 +74,7 @@ pub fn set_lookup_wires<
         for (inp_target, _) in prover_data.lut_to_lookups[lut_index].iter() {
             let inp_value = pw.get_target(*inp_target);
             let idx = table_value_to_idx
-                .get(&u16::try_from(inp_value.to_canonical_u64()).unwrap())
+                .get(&u16::try_from(inp_value.as_canonical_u64()).unwrap())
                 .unwrap();
 
             multiplicities[*idx] += 1;
@@ -110,7 +111,7 @@ pub fn set_lookup_wires<
     }
 }
 
-pub fn prove<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn prove<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     inputs: PartialWitness<F>,
@@ -119,6 +120,7 @@ pub fn prove<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
+    F::Extension: TwoAdicField
 {
     let partition_witness = timed!(
         timing,
@@ -131,7 +133,7 @@ where
 
 pub fn prove_with_partition_witness<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
@@ -142,6 +144,7 @@ pub fn prove_with_partition_witness<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
+    F::Extension: TwoAdicField
 {
     let has_lookup = !common_data.luts.is_empty();
     let config = &common_data.config;
@@ -304,9 +307,9 @@ where
     // To avoid leaking witness data, we want to ensure that our opening locations, `zeta` and
     // `g * zeta`, are not in our subgroup `H`. It suffices to check `zeta` only, since
     // `(g * zeta)^n = zeta^n`, where `n` is the order of `g`.
-    let g = F::Extension::primitive_root_of_unity(common_data.degree_bits());
+    let g = <F::Extension as AbstractExtensionField<F>>::from_base_slice(&<F as HasTwoAdicBionmialExtension<D>>::ext_two_adic_generator(common_data.degree_bits()));
     ensure!(
-        zeta.exp_power_of_2(common_data.degree_bits()) != F::Extension::ONE,
+        zeta.exp_power_of_2(common_data.degree_bits()) != <F::Extension as AbstractField>::one(),
         "Opening point is in the subgroup."
     );
 
@@ -359,7 +362,7 @@ where
 /// Compute the partial products used in the `Z` polynomials.
 fn all_wires_permutation_partial_products<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -367,7 +370,8 @@ fn all_wires_permutation_partial_products<
     gammas: &[F],
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Vec<Vec<PolynomialValues<F>>> {
+) -> Vec<Vec<PolynomialValues<F>>> 
+where F::Extension: TwoAdicField {
     (0..common_data.config.num_challenges)
         .map(|i| {
             wires_permutation_partial_products_and_zs(
@@ -386,7 +390,7 @@ fn all_wires_permutation_partial_products<
 /// where `f, g` are the products in the definition of `Z`: `Z(g^i) = f / g`.
 fn wires_permutation_partial_products_and_zs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -394,7 +398,8 @@ fn wires_permutation_partial_products_and_zs<
     gamma: F,
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Vec<PolynomialValues<F>> {
+) -> Vec<PolynomialValues<F>>
+where F::Extension: TwoAdicField{
     let degree = common_data.quotient_degree_factor;
     let subgroup = &prover_data.subgroup;
     let k_is = &common_data.k_is;
@@ -417,7 +422,7 @@ fn wires_permutation_partial_products_and_zs<
                     wire_value + beta * s_sigma + gamma
                 })
                 .collect::<Vec<_>>();
-            let denominator_invs = F::batch_multiplicative_inverse(&denominators);
+            let denominator_invs = batch_multiplicative_inverse::<F>(&denominators);
             let quotient_values = numerators
                 .zip(denominator_invs)
                 .map(|(num, den_inv)| num * den_inv)
@@ -452,14 +457,14 @@ fn wires_permutation_partial_products_and_zs<
 /// of the last partial polynomial is Sum(end) - LDC(end). If the lookup argument is valid, then it must be equal to 0.
 fn compute_lookup_polys<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
     deltas: &[F; 4],
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Vec<PolynomialValues<F>> {
+) -> Vec<PolynomialValues<F>> where F::Extension: TwoAdicField{
     let degree = common_data.degree();
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let max_lookup_degree = common_data.config.max_quotient_degree_factor - 1;
@@ -495,7 +500,7 @@ fn compute_lookup_polys<
                 .map(|s| deltas[LookupChallenges::ChallengeAlpha as usize] - looked_combos[s])
                 .collect();
             // Get 1/(alpha - combo).
-            let looked_combo_inverses = F::batch_multiplicative_inverse(&minus_looked_combos);
+            let looked_combo_inverses = batch_multiplicative_inverse::<F>(&minus_looked_combos);
 
             // Get lookup combos, used to check the well formation of the LUT.
             let lookup_combos: Vec<F> = (0..num_lut_slots)
@@ -548,7 +553,7 @@ fn compute_lookup_polys<
                 .map(|s| deltas[LookupChallenges::ChallengeAlpha as usize] - looking_combos[s])
                 .collect();
             // Get 1 / (alpha - combo).
-            let looking_combo_inverses = F::batch_multiplicative_inverse(&minus_looking_combos);
+            let looking_combo_inverses = batch_multiplicative_inverse::<F>(&minus_looking_combos);
 
             for slot in 0..num_partial_lookups {
                 let prev = if slot == 0 {
@@ -571,7 +576,7 @@ fn compute_lookup_polys<
 /// Computes lookup polynomials for all challenges.
 fn compute_all_lookup_polys<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -579,7 +584,7 @@ fn compute_all_lookup_polys<
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     lookup: bool,
-) -> Vec<PolynomialValues<F>> {
+) -> Vec<PolynomialValues<F>> where F::Extension: TwoAdicField{
     if lookup {
         let polys: Vec<Vec<PolynomialValues<F>>> = (0..common_data.config.num_challenges)
             .map(|c| {
@@ -604,7 +609,7 @@ const BATCH_SIZE: usize = 32;
 fn compute_quotient_polys<
     'a,
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     common_data: &CommonCircuitData<F, D>,
@@ -616,7 +621,7 @@ fn compute_quotient_polys<
     gammas: &[F],
     deltas: &[F],
     alphas: &[F],
-) -> Vec<PolynomialCoeffs<F>> {
+) -> Vec<PolynomialCoeffs<F>> where F::Extension: TwoAdicField{
     let num_challenges = common_data.config.num_challenges;
 
     let has_lookup = common_data.num_lookup_polys != 0;
@@ -635,7 +640,7 @@ fn compute_quotient_polys<
     // steps away since we work on an LDE of degree `max_filtered_constraint_degree`.
     let next_step = 1 << quotient_degree_bits;
 
-    let points = F::two_adic_subgroup(common_data.degree_bits() + quotient_degree_bits);
+    let points = two_adic_subgroup::<F>(common_data.degree_bits() + quotient_degree_bits);
     let lde_size = points.len();
 
     let z_h_on_coset = ZeroPolyOnCoset::new(common_data.degree_bits(), quotient_degree_bits);
@@ -705,7 +710,7 @@ fn compute_quotient_polys<
             let mut local_wires_batch_refs = Vec::with_capacity(xs_batch.len());
 
             for (&i, &x) in indices_batch.iter().zip(xs_batch) {
-                let shifted_x = F::coset_shift() * x;
+                let shifted_x = F::generator() * x;
                 let i_next = (i + next_step) % lde_size;
                 let local_constants_sigmas = prover_data
                     .constants_sigmas_commitment
@@ -805,6 +810,6 @@ fn compute_quotient_polys<
     transpose(&quotient_values)
         .into_par_iter()
         .map(PolynomialValues::new)
-        .map(|values| values.coset_ifft(F::coset_shift()))
+        .map(|values| values.coset_ifft(F::generator()))
         .collect()
 }

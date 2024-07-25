@@ -78,7 +78,7 @@ struct Options {
 fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     config: &CircuitConfig,
     log2_size: usize,
-) -> Result<ProofTuple<F, C, D>> {
+) -> Result<ProofTuple<F, C, D>> where F::Extension: TwoAdicField{
     // 'size' is in degree, but we want number of noop gates. A non-zero amount of padding will be added and size will be rounded to the next power of two. To hit our target size, we go just under the previous power of two and hope padding is less than half the proof.
     let num_dummy_gates = match log2_size {
         0 => return Err(anyhow!("size must be at least 1")),
@@ -107,7 +107,7 @@ fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const
 fn dummy_lookup_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     config: &CircuitConfig,
     log2_size: usize,
-) -> Result<ProofTuple<F, C, D>> {
+) -> Result<ProofTuple<F, C, D>> where F::Extension: TwoAdicField{
     let mut builder = CircuitBuilder::<F, D>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
     let inps = 0..256;
@@ -155,7 +155,7 @@ fn dummy_many_rows_proof<
 >(
     config: &CircuitConfig,
     log2_size: usize,
-) -> Result<ProofTuple<F, C, D>> {
+) -> Result<ProofTuple<F, C, D>> where F::Extension: TwoAdicField{
     let mut builder = CircuitBuilder::<F, D>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
     let inps: Vec<u16> = (0..256).collect();
@@ -211,6 +211,7 @@ fn recursive_proof<
 ) -> Result<ProofTuple<F, C, D>>
 where
     InnerC::Hasher: AlgebraicHasher<F>,
+    F::Extension: TwoAdicField
 {
     let (inner_proof, inner_vd, inner_cd) = inner;
     let mut builder = CircuitBuilder::<F, D>::new(config.clone());
@@ -252,7 +253,7 @@ fn test_serialization<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>
     proof: &ProofWithPublicInputs<F, C, D>,
     vd: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Result<()> {
+) -> Result<()> where F::Extension: TwoAdicField{
     let proof_bytes = proof.to_bytes();
     info!("Proof length: {} bytes", proof_bytes.len());
     let proof_from_bytes = ProofWithPublicInputs::from_bytes(proof_bytes, common_data)?;

@@ -1,6 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use crate::gates::coset_interpolation::CosetInterpolationGate;
@@ -9,7 +10,7 @@ use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
     /// Interpolates a polynomial, whose points are a coset of the multiplicative subgroup with the
     /// given size, and whose values are given. Returns the evaluation of the interpolant at
     /// `evaluation_point`.
@@ -44,7 +45,8 @@ mod tests {
 
     use anyhow::Result;
     use p3_field::extension::BinomialExtensionField;
-    use p3_field::AbstractExtensionField;
+    use p3_field::{cyclic_subgroup_coset_known_order, AbstractExtensionField, TwoAdicField};
+    use plonky2_field::types::HasExtension;
 
     use crate::field::interpolation::interpolant;
     use crate::field::types::{Sample};
@@ -60,7 +62,7 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        type FF = F::Extension;
+        type FF = <F as HasExtension<D>>::Extension;
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
         let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -68,14 +70,13 @@ mod tests {
         let subgroup_bits = 2;
         let len = 1 << subgroup_bits;
         let coset_shift = F::rand();
-        let g = F::primitive_root_of_unity(subgroup_bits);
-        let points = F::cyclic_subgroup_coset_known_order(g, coset_shift, len);
+        let g = <F as TwoAdicField>::two_adic_generator(subgroup_bits);
+        let points = cyclic_subgroup_coset_known_order::<F>(g, coset_shift, len);
         let values = FF::rand_vec(len);
 
         let homogeneous_points = points
-            .iter()
             .zip(values.iter())
-            .map(|(&a, &b)| (<FF as AbstractExtensionField<F>>::from_base(a), b))
+            .map(|(a, &b)| (<FF as AbstractExtensionField<F>>::from_base(a), b))
             .collect::<Vec<_>>();
 
         let true_interpolant = interpolant(&homogeneous_points);

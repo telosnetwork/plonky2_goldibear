@@ -2,6 +2,7 @@
 use alloc::vec::Vec;
 
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
@@ -52,6 +53,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -67,6 +69,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -83,6 +86,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         debug_assert_eq!(self.0.len(), powers.len() + 1);
         let acc = self.0[0];

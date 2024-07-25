@@ -72,7 +72,7 @@ fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
-) -> FriCommitedTrees<F, C, D> {
+) -> FriCommitedTrees<F, C, D> F::Extension: TwoAdicField{
     let mut trees = Vec::with_capacity(fri_params.reduction_arity_bits.len());
 
     let mut shift = F::MULTIPLICATIVE_GROUP_GENERATOR;
@@ -116,7 +116,7 @@ fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F
 fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
-) -> F {
+) -> F F::Extension: TwoAdicField{
     let min_leading_zeros = config.proof_of_work_bits + (64 - F::order().bits()) as u32;
 
     // The easiest implementation would be repeatedly clone our Challenger. With each clone, we'd
@@ -170,7 +170,7 @@ fn fri_prover_query_rounds<
     challenger: &mut Challenger<F, C::Hasher>,
     n: usize,
     fri_params: &FriParams,
-) -> Vec<FriQueryRound<F, C::Hasher, D>> {
+) -> Vec<FriQueryRound<F, C::Hasher, D>> where F::Extension: TwoAdicField{
     challenger
         .get_n_challenges(fri_params.config.num_query_rounds)
         .into_par_iter()
@@ -190,7 +190,7 @@ fn fri_prover_query_round<
     trees: &[MerkleTree<F, C::Hasher>],
     mut x_index: usize,
     fri_params: &FriParams,
-) -> FriQueryRound<F, C::Hasher, D> {
+) -> FriQueryRound<F, C::Hasher, D> where  F::Extension: TwoAdicField{
     let mut query_steps = Vec::new();
     let initial_proof = initial_merkle_trees
         .iter()

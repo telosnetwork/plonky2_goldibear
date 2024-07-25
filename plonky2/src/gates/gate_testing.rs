@@ -2,7 +2,7 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
-use p3_field::Field;
+use p3_field::{AbstractExtensionField, Field, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 
@@ -23,7 +23,10 @@ const WITNESS_DEGREE: usize = WITNESS_SIZE - 1;
 
 /// Tests that the constraints imposed by the given gate are low-degree by applying them to random
 /// low-degree witness polynomials.
-pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D>, const D: usize>(gate: G) {
+pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D>, const D: usize>(gate: G)
+where
+    F::Extension: TwoAdicField + Sample,
+    F::Extension: TwoAdicField{
     let rate_bits = log2_ceil(gate.degree() + 1);
 
     let wire_ldes = random_low_degree_matrix::<F::Extension>(gate.num_wires(), rate_bits);
@@ -68,7 +71,7 @@ pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D>, const D: u
     );
 }
 
-fn random_low_degree_matrix<F: Field>(num_polys: usize, rate_bits: usize) -> Vec<Vec<F>> {
+fn random_low_degree_matrix<F: TwoAdicField + Sample>(num_polys: usize, rate_bits: usize) -> Vec<Vec<F>> {
     let polys = (0..num_polys)
         .map(|_| random_low_degree_values(rate_bits))
         .collect::<Vec<_>>();
@@ -81,7 +84,7 @@ fn random_low_degree_matrix<F: Field>(num_polys: usize, rate_bits: usize) -> Vec
     }
 }
 
-fn random_low_degree_values<F: Field>(rate_bits: usize) -> Vec<F> {
+fn random_low_degree_values<F: TwoAdicField + Sample>(rate_bits: usize) -> Vec<F> {
     PolynomialCoeffs::new(F::rand_vec(WITNESS_SIZE))
         .lde(rate_bits)
         .fft()
@@ -90,22 +93,25 @@ fn random_low_degree_values<F: Field>(rate_bits: usize) -> Vec<F> {
 
 pub fn test_eval_fns<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     G: Gate<F, D>,
     const D: usize,
 >(
     gate: G,
-) -> Result<()> {
+) -> Result<()> 
+where 
+    F::Extension: Sample + TwoAdicField,
+    F::Extension: TwoAdicField {
     // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
     let wires_base = F::rand_vec(gate.num_wires());
     let constants_base = F::rand_vec(gate.num_constants());
     let wires = wires_base
         .iter()
-        .map(|&x| F::Extension::from_basefield(x))
+        .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
         .collect::<Vec<_>>();
     let constants = constants_base
         .iter()
-        .map(|&x| F::Extension::from_basefield(x))
+        .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
         .collect::<Vec<_>>();
     let public_inputs_hash = HashOut::rand();
 
@@ -125,7 +131,7 @@ pub fn test_eval_fns<
         evals
             == evals_base
                 .into_iter()
-                .map(F::Extension::from_basefield)
+                .map(<F::Extension as AbstractExtensionField<F>>::from_base)
                 .collect::<Vec<_>>()
     );
 

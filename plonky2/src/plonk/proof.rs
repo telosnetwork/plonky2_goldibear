@@ -8,6 +8,7 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::ensure;
+use p3_field::TwoAdicField;
 use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +33,7 @@ use crate::util::serialization::{Buffer, Read, Write};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct Proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct Proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> where F::Extension: TwoAdicField{
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -54,7 +55,7 @@ pub struct ProofTarget<const D: usize> {
     pub opening_proof: FriProofTarget<D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> Proof<F, C, D> {
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> Proof<F, C, D> where F::Extension: TwoAdicField{
     /// Compress the proof.
     pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D> {
         let Proof {
@@ -79,15 +80,17 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[serde(bound = "")]
 pub struct ProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
-> {
+> where F::Extension: TwoAdicField{
     pub proof: Proof<F, C, D>,
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     ProofWithPublicInputs<F, C, D>
+where
+    F::Extension: TwoAdicField
 {
     pub fn compress(
         self,
@@ -130,7 +133,7 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct CompressedProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
 {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
@@ -144,9 +147,9 @@ pub struct CompressedProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F
     pub opening_proof: CompressedFriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     CompressedProof<F, C, D>
-{
+    where F::Extension: TwoAdicField{
     /// Decompress the proof.
     pub(crate) fn decompress(
         self,
@@ -176,15 +179,16 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[serde(bound = "")]
 pub struct CompressedProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 > {
     pub proof: CompressedProof<F, C, D>,
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     CompressedProofWithPublicInputs<F, C, D>
+where F::Extension: TwoAdicField
 {
     pub fn decompress(
         self,
@@ -258,7 +262,7 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 }
 
 #[derive(Debug)]
-pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize> {
+pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     /// Random values used in Plonk's permutation argument.
     pub plonk_betas: Vec<F>,
 
@@ -297,9 +301,9 @@ pub struct ProofWithPublicInputsTarget<const D: usize> {
     pub public_inputs: Vec<Target>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, /*Deserialize,*/ Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
-pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize> {
+pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     pub constants: Vec<F::Extension>,
     pub plonk_sigmas: Vec<F::Extension>,
     pub wires: Vec<F::Extension>,
@@ -311,8 +315,9 @@ pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize> {
     pub lookup_zs_next: Vec<F::Extension>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D> {
-    pub fn new<C: GenericConfig<D, F = F>>(
+impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D>
+where F::Extension: TwoAdicField {
+    pub fn new<C: GenericConfig<D, F = F, FE = F::Extension>>(
         zeta: F::Extension,
         g: F::Extension,
         constants_sigmas_commitment: &PolynomialBatch<F, C, D>,
@@ -455,6 +460,7 @@ impl<const D: usize> OpeningSetTarget<D> {
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::sync::Arc;
+    use p3_field::AbstractField;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
@@ -545,7 +551,7 @@ mod tests {
 
         // Build dummy circuit with a lookup to get a valid proof.
         let x = F::two();
-        let out = builder.constant(F::from_canonical_usize(26));
+        let out = builder.constant(<F as AbstractField>::from_canonical_usize(26));
 
         let xt = builder.constant(x);
         let look_out = builder.add_lookup_from_index(xt, lut_index);

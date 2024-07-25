@@ -66,7 +66,7 @@ pub trait Hasher<F: RichField>: Sized + Copy + Debug + Eq + PartialEq {
             let mut inputs_bytes = vec![0u8; Self::HASH_SIZE];
             for i in 0..inputs.len() {
                 inputs_bytes[i * 8..(i + 1) * 8]
-                    .copy_from_slice(&inputs[i].to_canonical_u64().to_le_bytes());
+                    .copy_from_slice(&inputs[i].as_canonical_u64().to_le_bytes());
             }
             Self::Hash::from_bytes(&inputs_bytes)
         } else {

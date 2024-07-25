@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractField, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 
@@ -35,7 +35,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 #[derive(Debug, Default)]
 pub struct PoseidonGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> where F::Extension: TwoAdicField{
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -101,7 +101,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -123,7 +124,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate
 
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
-        constraints.push(swap * (swap - F::Extension::ONE));
+        constraints.push(swap * (swap - <F::Extension as AbstractField>::one()));
 
         // Assert that each delta wire is set properly: `delta_i = swap * (rhs - lhs)`.
         for i in 0..4 {
@@ -134,7 +135,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate
         }
 
         // Compute the possibly-swapped input layer.
-        let mut state = [F::Extension::ZERO; SPONGE_WIDTH];
+        let mut state = [F::Extension::one(); SPONGE_WIDTH];
         for i in 0..4 {
             let delta_i = vars.local_wires[Self::wire_delta(i)];
             let input_lhs = Self::wire_input(i);
@@ -208,7 +209,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate
     ) {
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
-        yield_constr.one(swap * swap.sub_one());
+        yield_constr.one(swap * (swap - F::one()));
 
         // Assert that each delta wire is set properly: `delta_i = swap * (rhs - lhs)`.
         for i in 0..4 {
@@ -428,7 +429,7 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D> + Poseidon, const D:
 
 impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
     for PoseidonGenerator<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "PoseidonGenerator".to_string()
     }

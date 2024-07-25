@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
-use p3_field::AbstractExtensionField;
+use p3_field::{AbstractExtensionField, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 
@@ -52,6 +52,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_extension_element<const D: usize>(&mut self, element: &F::Extension)
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         self.observe_elements(element.as_base_slice());
     }
@@ -65,6 +66,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_extension_elements<const D: usize>(&mut self, elements: &[F::Extension])
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         for element in elements {
             self.observe_extension_element(element);
@@ -111,6 +113,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn get_extension_challenge<const D: usize>(&mut self) -> F::Extension
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let mut arr = [F::zero(); D];
         arr.copy_from_slice(&self.get_n_challenges(D));
@@ -120,6 +123,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn get_n_extension_challenges<const D: usize>(&mut self, n: usize) -> Vec<F::Extension>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         (0..n)
             .map(|_| self.get_extension_challenge::<D>())
@@ -165,7 +169,7 @@ impl<F: RichField, H: AlgebraicHasher<F>> Default for Challenger<F, H> {
 /// to the `CircuitBuilder`.
 #[derive(Debug)]
 pub struct RecursiveChallenger<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
-{
+where F::Extension: TwoAdicField{
     sponge_state: H::AlgebraicPermutation,
     input_buffer: Vec<Target>,
     output_buffer: Vec<Target>,
@@ -174,7 +178,7 @@ pub struct RecursiveChallenger<F: RichField + HasExtension<D>, H: AlgebraicHashe
 
 impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
     RecursiveChallenger<F, H, D>
-{
+    where F::Extension: TwoAdicField{
     pub fn new(builder: &mut CircuitBuilder<F, D>) -> Self {
         let zero = builder.zero();
         Self {

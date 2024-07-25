@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use anyhow::{ensure, Result};
 
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
@@ -65,7 +66,7 @@ impl VerifierCircuitTarget {
     fn from_slice<F: RichField + HasExtension<D>, const D: usize>(
         slice: &[Target],
         common_data: &CommonCircuitData<F, D>,
-    ) -> Result<Self> {
+    ) -> Result<Self> where F::Extension: TwoAdicField{
         let cap_len = common_data.config.fri_config.num_cap_elements();
         let len = slice.len();
         ensure!(len >= 4 + 4 * cap_len, "Not enough public inputs");
@@ -87,7 +88,7 @@ impl VerifierCircuitTarget {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
     ///
@@ -101,7 +102,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     /// that the verification key matches.
     ///
     /// WARNING: Do not register any public input after calling this! TODO: relax this
-    pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, F = F>>(
+    pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
         condition: BoolTarget,
         cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
@@ -111,6 +112,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField,
     {
         let verifier_data = self
             .verifier_data_public_input
@@ -155,7 +157,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         Ok(())
     }
 
-    pub fn conditionally_verify_cyclic_proof_or_dummy<C: GenericConfig<D, F = F> + 'static>(
+    pub fn conditionally_verify_cyclic_proof_or_dummy<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
         &mut self,
         condition: BoolTarget,
         cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
@@ -163,6 +165,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(common_data)?;
@@ -181,7 +184,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 /// Checks that the purported verifier data in the public inputs match the real verifier data.
 pub fn check_cyclic_proof_verifier_data<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     proof: &ProofWithPublicInputs<F, C, D>,
@@ -204,6 +207,7 @@ mod tests {
     use alloc::vec;
 
     use anyhow::Result;
+    use p3_field::{AbstractField, PrimeField64, TwoAdicField};
     use plonky2_field::types::HasExtension;
 
 
@@ -221,11 +225,12 @@ mod tests {
     // Generates `CommonCircuitData` usable for recursion.
     fn common_data_for_recursion<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >() -> CommonCircuitData<F, D>
     where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let config = CircuitConfig::standard_recursion_config();
         let builder = CircuitBuilder::<F, D>::new(config);
@@ -311,7 +316,7 @@ mod tests {
         let cyclic_circuit_data = builder.build::<C>();
 
         let mut pw = PartialWitness::new();
-        let initial_hash = [F::zero(), F::one(), F::two(), F::from_canonical_usize(3)];
+        let initial_hash = [<F as AbstractField>::zero(), F::one(), F::two(), F::from_canonical_usize(3)];
         let initial_hash_pis = initial_hash.into_iter().enumerate().collect();
         pw.set_bool_target(condition, false);
         pw.set_proof_with_pis_target::<C, D>(
@@ -362,7 +367,7 @@ mod tests {
         let counter = proof.public_inputs[8];
         let expected_hash: [F; 4] = iterate_poseidon(
             initial_hash.try_into().unwrap(),
-            counter.to_canonical_u64() as usize,
+            counter.as_canonical_u64() as usize,
         );
         assert_eq!(hash, expected_hash);
 

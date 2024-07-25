@@ -7,9 +7,9 @@ use alloc::{
 };
 use core::ops::Range;
 
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, TwoAdicField};
 
-use plonky2_field::types::HasExtension;
+use plonky2_field::{extension_algebra::ExtensionAlgebra, types::HasExtension};
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -63,7 +63,8 @@ impl<const D: usize> ReducingGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate<D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -95,7 +96,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate
         let mut constraints = Vec::with_capacity(<Self as Gate<F, D>>::num_constraints(self));
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            constraints.push(acc * alpha + coeffs[i].into() - accs[i]);
+            constraints.push(acc * alpha + ExtensionAlgebra::from_base(coeffs[i]) - accs[i]);
             acc = accs[i];
         }
 
@@ -122,7 +123,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate
 
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            yield_constr.many((acc * alpha + coeffs[i].into() - accs[i]).to_basefield_array());
+            let basefield_array: [F; D]= <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(acc * alpha + coeffs[i] - accs[i])).try_into().unwrap();
+            yield_constr.many(basefield_array);
             acc = accs[i];
         }
     }
@@ -158,7 +160,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> 
+    {
         vec![WitnessGeneratorRef::new(
             ReducingGenerator {
                 row,
@@ -191,7 +194,8 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingGate<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "ReducingGenerator".to_string()
     }
@@ -226,7 +230,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for R
 
         let mut acc = old_acc;
         for i in 0..self.gate.num_coeffs {
-            let computed_acc = acc * alpha + coeffs[i].into();
+            let computed_acc = acc * alpha + coeffs[i];
             out_buffer.set_extension_target(accs[i], computed_acc);
             acc = computed_acc;
         }
@@ -256,7 +260,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 4>(ReducingGate::new(22));
+        test_low_degree::<Goldilocks, _, 2>(ReducingGate::new(22));
     }
 
     #[test]

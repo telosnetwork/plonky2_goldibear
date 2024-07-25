@@ -3,7 +3,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use p3_field::{AbstractExtensionField, ExtensionField, Field, PrimeField64};
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field, PrimeField64};
 use p3_field::extension::{BinomialExtensionField};
 
 use crate::types::HasExtension;
@@ -40,6 +40,12 @@ impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
             *x *= scalar;
         });
         Self(res)
+    }
+
+    pub fn from_base(x: F::Extension) -> Self {
+        let mut arr = [<F::Extension as AbstractField>::zero(); D];
+        arr[1] = x;
+        Self(arr)
     }
 }
 

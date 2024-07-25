@@ -87,7 +87,7 @@ impl<P: PackedField> ConstraintConsumer<P> {
 
 /// Circuit version of [`ConstraintConsumer`].
 #[derive(Debug)]
-pub struct RecursiveConstraintConsumer<F: RichField + HasExtension<D>, const D: usize> {
+pub struct RecursiveConstraintConsumer<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     /// A random value used to combine multiple constraints into one.
     alphas: Vec<Target>,
 
@@ -108,7 +108,7 @@ pub struct RecursiveConstraintConsumer<F: RichField + HasExtension<D>, const D: 
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer<F, D> where F::Extension: TwoAdicField{
     /// Creates a new instance of [`RecursiveConstraintConsumer`].
     pub fn new(
         zero: ExtensionTarget<D>,

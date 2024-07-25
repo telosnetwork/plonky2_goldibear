@@ -116,55 +116,55 @@ pub(crate) fn bench_field<F: Field>(c: &mut Criterion) {
     });
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-tiny<{}>", type_name::<F>()),
+        &format!("batch_multiplicative_inverse::<F>-tiny<{}>", type_name::<F>()),
         |b| {
             b.iter_batched(
                 || (0..2).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| F::batch_multiplicative_inverse::<F>(&x),
                 BatchSize::SmallInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-small<{}>", type_name::<F>()),
+        &format!("batch_multiplicative_inverse::<F>-small<{}>", type_name::<F>()),
         |b| {
             b.iter_batched(
                 || (0..4).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| F::batch_multiplicative_inverse::<F>(&x),
                 BatchSize::SmallInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-medium<{}>", type_name::<F>()),
+        &format!("batch_multiplicative_inverse::<F>-medium<{}>", type_name::<F>()),
         |b| {
             b.iter_batched(
                 || (0..16).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| F::batch_multiplicative_inverse::<F>(&x),
                 BatchSize::SmallInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-large<{}>", type_name::<F>()),
+        &format!("batch_multiplicative_inverse::<F>-large<{}>", type_name::<F>()),
         |b| {
             b.iter_batched(
                 || (0..256).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| F::batch_multiplicative_inverse::<F>(&x),
                 BatchSize::LargeInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-huge<{}>", type_name::<F>()),
+        &format!("batch_multiplicative_inverse::<F>-huge<{}>", type_name::<F>()),
         |b| {
             b.iter_batched(
                 || (0..65536).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| F::batch_multiplicative_inverse::<F>(&x),
                 BatchSize::LargeInput,
             )
         },

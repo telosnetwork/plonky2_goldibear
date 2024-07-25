@@ -5,7 +5,7 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, TwoAdicField};
 use plonky2_field::types::{HasExtension, Sample};
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
@@ -59,7 +59,8 @@ impl ArithmeticGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGate 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -163,7 +164,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGa
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate {
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate 
+where F::Extension: TwoAdicField{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -185,7 +187,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> f
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize> {
+pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     row: usize,
     const_0: F,
     const_1: F,
@@ -194,7 +196,7 @@ pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usiz
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ArithmeticBaseGenerator<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "ArithmeticBaseGenerator".to_string()
     }

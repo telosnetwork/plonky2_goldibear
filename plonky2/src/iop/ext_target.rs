@@ -1,6 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use p3_field::{AbstractExtensionField, AbstractField};
+use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use core::ops::Range;
 
 use p3_field::extension::BinomialExtensionField;
@@ -90,7 +90,7 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     pub fn constant_extension(&mut self, c: F::Extension) -> ExtensionTarget<D> {
         let c_parts = c.as_base_slice();
         let mut parts = [self.zero(); D];

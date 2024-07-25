@@ -27,7 +27,7 @@ impl<F: TwoAdicField> ZeroPolyOnCoset<F> {
             .into_iter()
             .map(|x| g_pow_n * x - F::one())
             .collect::<Vec<_>>();
-        let inverses = batch_multiplicative_inverse(&evals);
+        let inverses = batch_multiplicative_inverse::<F>(&evals);
         Self {
             n: F::from_canonical_usize(1 << n_log),
             rate: 1 << rate_bits,

@@ -3,7 +3,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
 use p3_field::extension::{BinomialExtensionField};
-use p3_field::{AbstractExtensionField, AbstractField, PrimeField64};
+use p3_field::{AbstractExtensionField, AbstractField, PrimeField64, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 
@@ -52,7 +52,8 @@ impl<const B: usize> BaseSumGate<B> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> Gate<F, D> for BaseSumGate<B> {
+impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> Gate<F, D> for BaseSumGate<B> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?} + Base: {B}")
     }
@@ -150,7 +151,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> Gate<F, D> 
 
 impl<F: RichField + HasExtension<D>, const D: usize, const B: usize> PackedEvaluableBase<F, D>
     for BaseSumGate<B>
-{
+    where F::Extension: TwoAdicField{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -179,7 +180,7 @@ pub struct BaseSplitGenerator<const B: usize> {
 
 impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
     for BaseSplitGenerator<B>
-{
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("BaseSplitGenerator + Base: {B}")
     }

@@ -139,6 +139,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let l = terms.len();
 
@@ -194,6 +195,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let l = terms.len();
 
@@ -247,6 +249,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         self.count += terms.len() as u64;
         terms
@@ -264,6 +267,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let zero_ext = builder.zero_extension();
         let exp = if x == zero_ext {

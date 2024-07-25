@@ -4,7 +4,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, ExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, ExtensionField, TwoAdicField};
 use core::ops::Range;
 use plonky2_field::types::{HasExtension, Sample};
 
@@ -55,7 +55,8 @@ impl<const D: usize> ArithmeticExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticExtensionGate<D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -102,7 +103,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticEx
             let addend = vars.get_local_ext(Self::wires_ith_addend(i));
             let output = vars.get_local_ext(Self::wires_ith_output(i));
             let computed_output =
-                (multiplicand_0 * multiplicand_1 * const_0) + addend *const_1;
+                (multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0)) + addend * F::Extension::from_base(const_1);
             let base_field_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(output - computed_output)).try_into().unwrap(); 
             yield_constr.many(base_field_array);
         }
@@ -169,7 +170,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticEx
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D: usize> {
+pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     row: usize,
     const_0: F,
     const_1: F,
@@ -178,7 +179,7 @@ pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D:
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ArithmeticExtensionGenerator<F, D>
-{
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "ArithmeticExtensionGenerator".to_string()
     }

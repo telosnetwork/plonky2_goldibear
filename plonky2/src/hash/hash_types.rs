@@ -2,7 +2,8 @@
 use alloc::vec::Vec;
 
 use anyhow::ensure;
-use p3_field::{Field, PrimeField64};
+use p3_field::extension::HasTwoAdicBionmialExtension;
+use p3_field::{Field, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -12,7 +13,7 @@ use crate::iop::target::Target;
 use crate::plonk::config::GenericHashOut;
 
 /// A prime order field with the features we need to use it as a base field in our argument system.
-pub trait RichField: PrimeField64 + Sample + Poseidon {}
+pub trait RichField: PrimeField64 + Sample + Poseidon + TwoAdicField {}
 
 impl RichField for Goldilocks {}
 

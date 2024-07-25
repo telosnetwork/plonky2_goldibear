@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, string::String, vec, vec::Vec};
+use p3_field::TwoAdicField;
 use core::borrow::Borrow;
 
 use itertools::Itertools;
@@ -16,7 +17,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::log_floor;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     /// Split the given element into a list of targets, where each one represents a
     /// base-B limb of the element, with little-endian ordering.
     pub fn split_le_base<const B: usize>(&mut self, x: Target, num_limbs: usize) -> Vec<Target> {
@@ -39,7 +40,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         let bits = bits.map(|b| *b.borrow()).collect_vec();
         let num_bits = bits.len();
         assert!(
-            num_bits <= log_floor(F::ORDER, 2),
+            num_bits <= log_floor(F::ORDER_U64, 2),
             "{} bits may overflow the field",
             num_bits
         );
@@ -89,7 +90,7 @@ pub struct BaseSumGenerator<const B: usize> {
 
 impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
     for BaseSumGenerator<B>
-{
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("BaseSumGenerator + Base: {B}")
     }
@@ -126,7 +127,7 @@ impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGener
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_field::Field;
+    use p3_field::{AbstractField, Field};
     use rand::rngs::OsRng;
     use rand::Rng;
 
@@ -144,7 +145,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
         let mut builder = CircuitBuilder::<F, D>::new(config);
-        let x = F::from_canonical_usize(0b110100000); // 416 = 1532 in base 6.
+        let x = <F as AbstractField>::from_canonical_usize(0b110100000); // 416 = 1532 in base 6.
         let xt = builder.constant(x);
         let limbs = builder.split_le_base::<6>(xt, 24);
         let one = builder.one();

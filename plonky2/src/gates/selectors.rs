@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use p3_field::TwoAdicField;
 use core::ops::Range;
 
 use serde::Serialize;
@@ -51,7 +52,7 @@ pub(crate) fn selectors_lookup<F: RichField + HasExtension<D>, const D: usize>(
     _gates: &[GateRef<F, D>],
     instances: &[GateInstance<F, D>],
     lookup_rows: &[LookupWire],
-) -> Vec<PolynomialValues<F>> {
+) -> Vec<PolynomialValues<F>> where F::Extension: TwoAdicField{
     let n = instances.len();
     let mut lookup_selectors = Vec::with_capacity(LookupSelectors::StartEnd as usize);
     for _ in 0..LookupSelectors::StartEnd as usize {
@@ -81,7 +82,7 @@ pub(crate) fn selectors_lookup<F: RichField + HasExtension<D>, const D: usize>(
 pub(crate) fn selector_ends_lookups<F: RichField + HasExtension<D>, const D: usize>(
     lookup_rows: &[LookupWire],
     instances: &[GateInstance<F, D>],
-) -> Vec<PolynomialValues<F>> {
+) -> Vec<PolynomialValues<F>> where F::Extension: TwoAdicField{
     let n = instances.len();
     let mut lookups_ends = Vec::with_capacity(lookup_rows.len());
     for &LookupWire {
@@ -113,7 +114,7 @@ pub(crate) fn selector_polynomials<F: RichField + HasExtension<D>, const D: usiz
     gates: &[GateRef<F, D>],
     instances: &[GateInstance<F, D>],
     max_degree: usize,
-) -> (Vec<PolynomialValues<F>>, SelectorsInfo) {
+) -> (Vec<PolynomialValues<F>>, SelectorsInfo) where F::Extension: TwoAdicField{
     let n = instances.len();
     let num_gates = gates.len();
     let max_gate_degree = gates.last().expect("No gates?").0.degree();

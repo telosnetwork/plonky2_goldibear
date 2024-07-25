@@ -4,7 +4,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::{extension::BinomialExtensionField, AbstractExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
 use plonky2_field::types::HasExtension;
 
@@ -52,7 +52,7 @@ impl<const D: usize> MulExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -164,7 +164,7 @@ pub struct MulExtensionGenerator<F: RichField + HasExtension<D>, const D: usize>
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for MulExtensionGenerator<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "MulExtensionGenerator".to_string()
     }

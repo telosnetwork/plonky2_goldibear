@@ -229,6 +229,7 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 mod tests {
     use anyhow::Result;
 
+    use p3_field::TwoAdicField;
     use plonky2_field::types::{HasExtension, Sample};
 
     use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
@@ -247,7 +248,7 @@ mod tests {
     >(
         leaves: Vec<Vec<F>>,
         cap_height: usize,
-    ) -> Result<()> {
+    ) -> Result<()> where F::Extension: TwoAdicField{
         let tree = MerkleTree::<F, C::Hasher>::new(leaves.clone(), cap_height);
         for (i, leaf) in leaves.into_iter().enumerate() {
             let proof = tree.prove(i);

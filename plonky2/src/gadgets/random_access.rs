@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 
 
 use plonky2_field::types::HasExtension;
+use p3_field::TwoAdicField;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::iop::ext_target::ExtensionTarget;
@@ -11,7 +12,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::VerifierCircuitTarget;
 use crate::util::log2_strict;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
     /// Checks that a `Target` matches a vector at a particular index.
     pub fn random_access(&mut self, access_index: Target, v: Vec<Target>) -> Target {
         let vec_size = v.len();
@@ -104,6 +105,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::AbstractField;
 
     use super::*;
     use crate::field::types::Sample;
@@ -125,7 +127,7 @@ mod tests {
         let v: Vec<_> = vec.iter().map(|x| builder.constant_extension(*x)).collect();
 
         for i in 0..len {
-            let it = builder.constant(F::from_canonical_usize(i));
+            let it = builder.constant(<F as AbstractField>::from_canonical_usize(i));
             let elem = builder.constant_extension(vec[i]);
             let res = builder.random_access_extension(it, v.clone());
             builder.connect_extension(elem, res);

@@ -8,7 +8,7 @@ use alloc::{
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-use p3_field::Field;
+use p3_field::{Field, TwoAdicField};
 
 use plonky2_field::types::{HasExtension, Sample};
 
@@ -26,13 +26,13 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 pub fn generate_partial_witness<
     'a,
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     inputs: PartialWitness<F>,
     prover_data: &'a ProverOnlyCircuitData<F, C, D>,
     common_data: &'a CommonCircuitData<F, D>,
-) -> PartitionWitness<'a, F> {
+) -> PartitionWitness<'a, F> where F::Extension: TwoAdicField{
     let config = &common_data.config;
     let generators = &prover_data.generators;
     let generator_indices_by_watches = &prover_data.generator_indices_by_watches;
@@ -107,7 +107,7 @@ pub fn generate_partial_witness<
 /// A generator participates in the generation of the witness.
 pub trait WitnessGenerator<F: RichField + HasExtension<D>, const D: usize>:
     'static + Send + Sync + Debug
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String;
 
     /// Targets to be "watched" by this generator. Whenever a target in the watch list is populated,
@@ -132,21 +132,21 @@ pub struct WitnessGeneratorRef<F: RichField + HasExtension<D>, const D: usize>(
     pub Box<dyn WitnessGenerator<F, D>>,
 );
 
-impl<F: RichField + HasExtension<D>, const D: usize> WitnessGeneratorRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> WitnessGeneratorRef<F, D> where F::Extension: TwoAdicField{
     pub fn new<G: WitnessGenerator<F, D>>(generator: G) -> WitnessGeneratorRef<F, D> {
         WitnessGeneratorRef(Box::new(generator))
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PartialEq for WitnessGeneratorRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> PartialEq for WitnessGeneratorRef<F, D> where F::Extension: TwoAdicField{
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Eq for WitnessGeneratorRef<F, D> {}
+impl<F: RichField + HasExtension<D>, const D: usize> Eq for WitnessGeneratorRef<F, D> where F::Extension: TwoAdicField{}
 
-impl<F: RichField + HasExtension<D>, const D: usize> Debug for WitnessGeneratorRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Debug for WitnessGeneratorRef<F, D> where F::Extension: TwoAdicField{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0.id())
     }
@@ -193,6 +193,7 @@ impl<F: Field> GeneratedValues<F> {
     ) -> Self
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let mut witness = Self::with_capacity(D);
         witness.set_extension_target(et, value);
@@ -203,7 +204,8 @@ impl<F: Field> GeneratedValues<F> {
 /// A generator which runs once after a list of dependencies is present in the witness.
 pub trait SimpleGenerator<F: RichField + HasExtension<D>, const D: usize>:
     'static + Send + Sync + Debug
-{
+where 
+    F::Extension: TwoAdicField{
     fn id(&self) -> String;
 
     fn dependencies(&self) -> Vec<Target>;
@@ -232,13 +234,17 @@ pub struct SimpleGeneratorAdapter<
     F: RichField + HasExtension<D>,
     SG: SimpleGenerator<F, D> + ?Sized,
     const D: usize,
-> {
+> 
+where 
+    F::Extension: TwoAdicField{
     _phantom: PhantomData<F>,
     inner: SG,
 }
 
 impl<F: RichField + HasExtension<D>, SG: SimpleGenerator<F, D>, const D: usize> WitnessGenerator<F, D>
     for SimpleGeneratorAdapter<F, SG, D>
+where 
+    F::Extension: TwoAdicField
 {
     fn id(&self) -> String {
         self.inner.id()
@@ -276,7 +282,9 @@ pub struct CopyGenerator {
     pub(crate) dst: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for CopyGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for CopyGenerator 
+where 
+    F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "CopyGenerator".to_string()
     }
@@ -308,7 +316,8 @@ pub struct RandomValueGenerator {
     pub(crate) target: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for RandomValueGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for RandomValueGenerator
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "RandomValueGenerator".to_string()
     }
@@ -339,7 +348,8 @@ pub struct NonzeroTestGenerator {
     pub(crate) dummy: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for NonzeroTestGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for NonzeroTestGenerator 
+where  F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "NonzeroTestGenerator".to_string()
     }
@@ -387,7 +397,8 @@ impl<F: Field> ConstantGenerator<F> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ConstantGenerator<F> {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ConstantGenerator<F> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "ConstantGenerator".to_string()
     }

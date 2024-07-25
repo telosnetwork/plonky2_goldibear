@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use hashbrown::HashMap;
 use p3_field::extension::BinomialExtensionField;
-use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field};
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field, TwoAdicField};
 use serde::{Serialize, Serializer};
 
 use plonky2_field::types::{HasExtension, Sample};
@@ -52,7 +52,7 @@ use crate::util::serialization::{Buffer, IoResult};
 ///
 /// Note however that extending the number of wires necessary for a custom gate comes at a price, and may
 /// impact the overall performances when generating proofs for a circuit containing them.
-pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send + Sync {
+pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send + Sync where F::Extension: TwoAdicField{
     /// Defines a unique identifier for this custom gate.
     ///
     /// This is used as differentiating tag in gate serializers.
@@ -257,11 +257,11 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize>: 'static + Send +
 }
 
 /// A wrapper trait over a `Gate`, to allow for gate serialization.
-pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize>: Gate<F, D> {
+pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize>: Gate<F, D> where F::Extension: TwoAdicField{
     fn as_any(&self) -> &dyn Any;
 }
 
-impl<T: Gate<F, D>, F: RichField + HasExtension<D>, const D: usize> AnyGate<F, D> for T {
+impl<T: Gate<F, D>, F: RichField + HasExtension<D>, const D: usize> AnyGate<F, D> for T where F::Extension: TwoAdicField{
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -271,33 +271,33 @@ impl<T: Gate<F, D>, F: RichField + HasExtension<D>, const D: usize> AnyGate<F, D
 #[derive(Clone)]
 pub struct GateRef<F: RichField + HasExtension<D>, const D: usize>(pub Arc<dyn AnyGate<F, D>>);
 
-impl<F: RichField + HasExtension<D>, const D: usize> GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> GateRef<F, D> where F::Extension: TwoAdicField{
     pub fn new<G: Gate<F, D>>(gate: G) -> GateRef<F, D> {
         GateRef(Arc::new(gate))
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PartialEq for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> PartialEq for GateRef<F, D> where F::Extension: TwoAdicField{
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Hash for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Hash for GateRef<F, D> where F::Extension: TwoAdicField{
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.id().hash(state)
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Eq for GateRef<F, D> {}
+impl<F: RichField + HasExtension<D>, const D: usize> Eq for GateRef<F, D> where F::Extension: TwoAdicField{}
 
-impl<F: RichField + HasExtension<D>, const D: usize> Debug for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Debug for GateRef<F, D> where F::Extension: TwoAdicField{
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", self.0.id())
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Serialize for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Serialize for GateRef<F, D> where F::Extension: TwoAdicField{
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0.id())
     }
@@ -313,14 +313,14 @@ pub struct CurrentSlot<F: RichField + HasExtension<D>, const D: usize> {
 
 /// A gate along with any constants used to configure it.
 #[derive(Clone, Debug)]
-pub struct GateInstance<F: RichField + HasExtension<D>, const D: usize> {
+pub struct GateInstance<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     pub gate_ref: GateRef<F, D>,
     pub constants: Vec<F>,
 }
 
 /// Map each gate to a boolean prefix used to construct the gate's selector polynomial.
 #[derive(Debug, Clone)]
-pub struct PrefixedGate<F: RichField + HasExtension<D>, const D: usize> {
+pub struct PrefixedGate<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     pub gate: GateRef<F, D>,
     pub prefix: Vec<bool>,
 }
@@ -341,7 +341,7 @@ fn compute_filter_circuit<F: RichField + HasExtension<D>, const D: usize>(
     group_range: Range<usize>,
     s: ExtensionTarget<D>,
     many_selectors: bool,
-) -> ExtensionTarget<D> {
+) -> ExtensionTarget<D> where F::Extension: TwoAdicField{
     debug_assert!(group_range.contains(&row));
     let v = group_range
         .filter(|&i| i != row)

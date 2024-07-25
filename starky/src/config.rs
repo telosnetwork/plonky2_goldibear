@@ -68,7 +68,7 @@ impl StarkConfig {
 
     /// Checks that this STARK configuration is consistent, i.e. that the different
     /// parameters meet the targeted security level.
-    pub fn check_config<F: RichField + HasExtension<D>, const D: usize>(&self) -> Result<()> {
+    pub fn check_config<F: RichField + HasExtension<D>, const D: usize>(&self) -> Result<()> where F::Extension: TwoAdicField{
         let StarkConfig {
             security_bits,
             fri_config:

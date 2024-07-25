@@ -9,7 +9,7 @@ use plonky2_util::ceil_div_usize;
 use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
 use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
-use p3_field::{AbstractExtensionField, Field};
+use p3_field::{AbstractExtensionField, Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;
@@ -34,7 +34,7 @@ pub(crate) fn get_lut_poly<F: RichField + HasExtension<D>, const D: usize>(
     lut_index: usize,
     deltas: &[F],
     degree: usize,
-) -> PolynomialCoeffs<F> {
+) -> PolynomialCoeffs<F> where F::Extension: TwoAdicField{
     let b = deltas[LookupChallenges::ChallengeB as usize];
     let mut coeffs = Vec::with_capacity(common_data.luts[lut_index].len());
     let n = common_data.luts[lut_index].len();
@@ -63,7 +63,7 @@ pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize
     gammas: &[F],
     alphas: &[F],
     deltas: &[F],
-) -> Vec<F::Extension> {
+) -> Vec<F::Extension> where F::Extension: TwoAdicField{
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
@@ -120,15 +120,15 @@ pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize
             .map(|j| {
                 let wire_value = vars.local_wires[j];
                 let k_i = common_data.k_is[j];
-                let s_id = x.scalar_mul(k_i);
-                wire_value + s_id.scalar_mul(betas[i]) + gammas[i].into()
+                let s_id = x * k_i;
+                wire_value + s_id * betas[i] + gammas[i]
             })
             .collect::<Vec<_>>();
         let denominator_values = (0..common_data.config.num_routed_wires)
             .map(|j| {
                 let wire_value = vars.local_wires[j];
                 let s_sigma = s_sigmas[j];
-                wire_value + s_sigma.scalar_mul(betas[i]) + gammas[i].into()
+                wire_value + s_sigma * betas[i] + gammas[i]
             })
             .collect::<Vec<_>>();
 
@@ -176,7 +176,7 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + HasExtension<D>, con
     alphas: &[F],
     z_h_on_coset: &ZeroPolyOnCoset<F>,
     lut_re_poly_evals: &[&[F]],
-) -> Vec<Vec<F>> {
+) -> Vec<Vec<F>> where F::Extension: TwoAdicField{
     let has_lookup = common_data.num_lookup_polys != 0;
 
     let n = indices_batch.len();
@@ -257,7 +257,7 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + HasExtension<D>, con
         for i in 0..num_challenges {
             let z_x = local_zs[i];
             let z_gx = next_zs[i];
-            vanishing_z_1_terms.push(l_0_x * z_x.sub_one());
+            vanishing_z_1_terms.push(l_0_x * (z_x - F::one()));
 
             // If there are lookups in the circuit, then we add the lookup constraints.
             if has_lookup {
@@ -341,7 +341,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
     next_lookup_zs: &[F::Extension],
     lookup_selectors: &[F::Extension],
     deltas: &[F; 4],
-) -> Vec<F::Extension> {
+) -> Vec<F::Extension> where F::Extension: TwoAdicField{
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;
@@ -415,7 +415,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
         )
         .eval(current_delta);
 
-        constraints.push(cur_ends_selector * (z_re - cur_function_eval.into()))
+        constraints.push(cur_ends_selector * (z_re - cur_function_eval))
     }
 
     // Check RE row transition constraint.
@@ -457,7 +457,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
                         F::Extension::from_base(F::one())
                     }
                 })
-                .product()
+                .product::<F::Extension>()
         };
 
         // Function which computes, given index i: prod_{j!=i}(alpha - combo_j) for LDC.
@@ -471,7 +471,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
                         F::Extension::from_base(F::one())
                     }
                 })
-                .product()
+                .product::<F::Extension>()
         };
         // Compute sum_i(prod_{j!=i}(alpha - combo_j)) for LDC.
         let lu_sum_prods = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
@@ -515,7 +515,7 @@ pub fn check_lookup_constraints_batch<F: RichField + HasExtension<D>, const D: u
     lookup_selectors: &[F],
     deltas: &[F; 4],
     lut_re_poly_evals: &[F],
-) -> Vec<F> {
+) -> Vec<F> where F::Extension: TwoAdicField{
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;
@@ -666,7 +666,7 @@ pub fn check_lookup_constraints_batch<F: RichField + HasExtension<D>, const D: u
 pub fn evaluate_gate_constraints<F: RichField + HasExtension<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationVars<F, D>,
-) -> Vec<F::Extension> {
+) -> Vec<F::Extension> where F::Extension: TwoAdicField{
     let mut constraints = vec![F::Extension::from_base(F::zero()); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
@@ -697,7 +697,7 @@ pub fn evaluate_gate_constraints<F: RichField + HasExtension<D>, const D: usize>
 pub fn evaluate_gate_constraints_base_batch<F: RichField + HasExtension<D>, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
     vars_batch: EvaluationVarsBaseBatch<F>,
-) -> Vec<F> {
+) -> Vec<F> where F::Extension: TwoAdicField{
     let mut constraints_batch = vec![F::zero(); common_data.num_gate_constraints * vars_batch.len()];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
@@ -726,7 +726,7 @@ pub fn evaluate_gate_constraints_circuit<F: RichField + HasExtension<D>, const D
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationTargets<D>,
-) -> Vec<ExtensionTarget<D>> {
+) -> Vec<ExtensionTarget<D>> where F::Extension: TwoAdicField{
     let mut all_gate_constraints = vec![builder.zero_extension(); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
@@ -754,7 +754,7 @@ pub(crate) fn get_lut_poly_circuit<F: RichField + HasExtension<D>, const D: usiz
     lut_index: usize,
     deltas: &[Target],
     degree: usize,
-) -> Target {
+) -> Target where F::Extension: TwoAdicField{
     let b = deltas[LookupChallenges::ChallengeB as usize];
     let delta = deltas[LookupChallenges::ChallengeDelta as usize];
     let n = common_data.luts[lut_index].len();
@@ -800,7 +800,7 @@ pub(crate) fn eval_vanishing_poly_circuit<F: RichField + HasExtension<D>, const 
     gammas: &[Target],
     alphas: &[Target],
     deltas: &[Target],
-) -> Vec<ExtensionTarget<D>> {
+) -> Vec<ExtensionTarget<D>> where F::Extension: TwoAdicField{
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
@@ -927,7 +927,7 @@ pub fn check_lookup_constraints_circuit<F: RichField + HasExtension<D>, const D:
     next_lookup_zs: &[ExtensionTarget<D>],
     lookup_selectors: &[ExtensionTarget<D>],
     deltas: &[Target],
-) -> Vec<ExtensionTarget<D>> {
+) -> Vec<ExtensionTarget<D>> where F::Extension: TwoAdicField{
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;

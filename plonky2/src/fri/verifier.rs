@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
-use p3_field::Field;
+use p3_field::{Field, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 
@@ -50,7 +50,7 @@ pub(crate) fn compute_evaluation<F: Field + HasExtension<D>, const D: usize>(
 pub(crate) fn fri_verify_proof_of_work<F: RichField + HasExtension<D>, const D: usize>(
     fri_pow_response: F,
     config: &FriConfig,
-) -> Result<()> {
+) -> Result<()> where F::Extension: TwoAdicField{
     ensure!(
         fri_pow_response.to_canonical_u64().leading_zeros()
             >= config.proof_of_work_bits + (64 - F::order().bits()) as u32,
@@ -71,7 +71,7 @@ pub fn verify_fri_proof<
     initial_merkle_caps: &[MerkleCap<F, C::Hasher>],
     proof: &FriProof<F, C::Hasher, D>,
     params: &FriParams,
-) -> Result<()> {
+) -> Result<()> where  F::Extension: TwoAdicField{
     validate_fri_proof_shape::<F, C, D>(proof, instance, params)?;
 
     // Size of the LDE domain.
@@ -132,7 +132,7 @@ pub(crate) fn fri_combine_initial<
     subgroup_x: F,
     precomputed_reduced_evals: &PrecomputedReducedOpenings<F, D>,
     params: &FriParams,
-) -> F::Extension {
+) -> F::Extension where  F::Extension: TwoAdicField{
     assert!(D > 1, "Not implemented for D=1.");
     let subgroup_x = F::Extension::from_basefield(subgroup_x);
     let mut alpha = ReducingFactor::new(alpha);
@@ -176,7 +176,7 @@ fn fri_verifier_query_round<
     n: usize,
     round_proof: &FriQueryRound<F, C::Hasher, D>,
     params: &FriParams,
-) -> Result<()> {
+) -> Result<()> where  F::Extension: TwoAdicField{
     fri_verify_initial_proof::<F, C::Hasher>(
         x_index,
         &round_proof.initial_trees_proof,
@@ -244,7 +244,7 @@ fn fri_verifier_query_round<
 /// For each opening point, holds the reduced (by `alpha`) evaluations of each polynomial that's
 /// opened at that point.
 #[derive(Clone, Debug)]
-pub(crate) struct PrecomputedReducedOpenings<F: RichField + HasExtension<D>, const D: usize> {
+pub(crate) struct PrecomputedReducedOpenings<F: RichField + HasExtension<D>, const D: usize> where  F::Extension: TwoAdicField{
     pub reduced_openings_at_point: Vec<F::Extension>,
 }
 

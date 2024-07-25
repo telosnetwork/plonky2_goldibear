@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use p3_field::PrimeField64;
+use p3_field::{AbstractField, Field, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
@@ -21,7 +21,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     pub fn arithmetic_extension(
         &mut self,
         const_0: F,
@@ -53,7 +53,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
             return result;
         }
 
-        let result = if self.target_as_constant_ext(addend) == Some(F::Extension::ZERO) {
+        let result = if self.target_as_constant_ext(addend) == Some(<F::Extension as AbstractField>::zero()) {
             // If the addend is zero, we use a multiplication gate.
             self.compute_mul_extension_operation(operation)
         } else {
@@ -131,16 +131,16 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 
         // If both terms are constant, return their (constant) sum.
         let first_term_const = if first_term_zero {
-            Some(F::Extension::ZERO)
+            Some(<F::Extension as AbstractField>::zero())
         } else if let (Some(x), Some(y)) = (mul_0_const, mul_1_const) {
-            Some((x * y).scalar_mul(const_0))
+            Some((x * y * const_0))
         } else {
             None
         };
         let second_term_const = if second_term_zero {
-            Some(F::Extension::ZERO)
+            Some(<F::Extension as AbstractField>::zero())
         } else {
-            addend_const.map(|x| x.scalar_mul(const_1))
+            addend_const.map(|x| x * const_1)
         };
         if let (Some(x), Some(y)) = (first_term_const, second_term_const) {
             return Some(self.constant_extension(x + y));
@@ -152,12 +152,12 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 
         if second_term_zero {
             if let Some(x) = mul_0_const {
-                if x.scalar_mul(const_0).is_one() {
+                if (x * const_0).is_one() {
                     return Some(multiplicand_1);
                 }
             }
             if let Some(x) = mul_1_const {
-                if x.scalar_mul(const_0).is_one() {
+                if (x * const_0).is_one() {
                     return Some(multiplicand_0);
                 }
             }
@@ -231,7 +231,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let one = self.one_extension();
-        self.arithmetic_extension(F::one(), F::NEG_ONE, one, a, b)
+        self.arithmetic_extension(F::one(), F::neg_one(), one, a, b)
     }
 
     pub fn sub_ext_algebra(
@@ -295,7 +295,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
             .zip(inner)
             .zip(c.0)
             .map(|((pairs_w, pairs), ci)| {
-                let acc = self.inner_product_extension(F::Extension::W, ci, pairs_w);
+                let acc = self.inner_product_extension(F::w(), ci, pairs_w);
                 self.inner_product_extension(F::one(), acc, pairs)
             })
             .collect::<Vec<_>>();
@@ -377,7 +377,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.arithmetic_extension(F::one(), F::NEG_ONE, a, b, c)
+        self.arithmetic_extension(F::one(), F::neg_one(), a, b, c)
     }
 
     /// Like `mul_sub`, but for `ExtensionTarget`s.
@@ -388,7 +388,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let a_ext = self.convert_to_ext(a);
-        self.arithmetic_extension(F::one(), F::NEG_ONE, a_ext, b, c)
+        self.arithmetic_extension(F::one(), F::neg_one(), a_ext, b, c)
     }
 
     /// Returns `a * b`, where `b` is in the extension field and `a` is in the base field.
@@ -509,7 +509,7 @@ pub struct QuotientGeneratorExtension<const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for QuotientGeneratorExtension<D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "QuotientGeneratorExtension".to_string()
     }
@@ -556,7 +556,7 @@ impl<const D: usize> PowersTarget<D> {
     pub fn next<F: RichField + HasExtension<D>>(
         &mut self,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> ExtensionTarget<D> {
+    ) -> ExtensionTarget<D> where F::Extension: TwoAdicField{
         let result = self.current;
         self.current = builder.mul_extension(self.base, self.current);
         result
@@ -575,7 +575,7 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
         PowersTarget {
             base,
@@ -599,6 +599,7 @@ mod tests {
     use anyhow::Result;
     use p3_field::extension::BinomialExtensionField;
     use plonky2_field::extension_algebra::ExtensionAlgebra;
+    use plonky2_field::types::HasExtension;
 
     use crate::field::types::Sample;
     use crate::iop::ext_target::ExtensionAlgebraTarget;
@@ -676,7 +677,7 @@ mod tests {
         const D: usize = 2;
         type C = KeccakGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        type FF = F::Extension;
+        type FF = <F as HasExtension<D>>::Extension;
 
         let config = CircuitConfig::standard_recursion_config();
 
@@ -694,8 +695,8 @@ mod tests {
             builder.connect_extension(zt.0[i], comp_zt.0[i]);
         }
 
-        let x = ExtensionAlgebra::<F, D>(F::rand_array());
-        let y = ExtensionAlgebra::<F, D>(F::rand_array());
+        let x = ExtensionAlgebra::<F, D>(FF::rand_array());
+        let y = ExtensionAlgebra::<F, D>(FF::rand_array());
         let z = x * y;
         for i in 0..D {
             pw.set_extension_target(xt.0[i], x.0[i]);

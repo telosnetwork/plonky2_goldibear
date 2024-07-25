@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 
 use itertools::Itertools;
 
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractField, TwoAdicField};
 use crate::field::packed::PackedField;
 use p3_field::Field;
 use plonky2_field::types::HasExtension;
@@ -45,7 +45,7 @@ pub struct RandomAccessGate<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D> where F::Extension: TwoAdicField{
     const fn new(num_copies: usize, bits: usize, num_extra_constants: usize) -> Self {
         Self {
             bits,
@@ -122,7 +122,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -156,14 +157,14 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccess
 
             // Assert that each bit wire value is indeed boolean.
             for &b in &bits {
-                constraints.push(b * (b - F::Extension::ONE));
+                constraints.push(b * (b - <F::Extension as AbstractField>::one()));
             }
 
             // Assert that the binary decomposition was correct.
             let reconstructed_index = bits
                 .iter()
                 .rev()
-                .fold(F::Extension::ZERO, |acc, &b| acc.double() + b);
+                .fold(<F::Extension as AbstractField>::zero(), |acc, &b| acc.double() + b);
             constraints.push(reconstructed_index - access_index);
 
             // Repeatedly fold the list, selecting the left or right item from each pair based on
@@ -298,7 +299,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccess
 
 impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
     for RandomAccessGate<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -320,7 +321,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
             }
 
             // Assert that the binary decomposition was correct.
-            let reconstructed_index = bits.iter().rev().fold(P::ZEROS, |acc, &b| acc + acc + b);
+            let reconstructed_index = bits.iter().rev().fold(P::zeros(), |acc, &b| acc + acc + b);
             yield_constr.one(reconstructed_index - access_index);
 
             // Repeatedly fold the list, selecting the left or right item from each pair based on
@@ -344,7 +345,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize> {
+pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     row: usize,
     gate: RandomAccessGate<F, D>,
     copy: usize,
@@ -352,7 +353,7 @@ pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize>
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for RandomAccessGenerator<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "RandomAccessGenerator".to_string()
     }
@@ -380,7 +381,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
         let vec_size = self.gate.vec_size();
 
         let access_index_f = get_local_wire(self.gate.wire_access_index(copy));
-        let access_index = access_index_f.to_canonical_u64() as usize;
+        let access_index = access_index_f.as_canonical_u64() as usize;
         debug_assert!(
             access_index < vec_size,
             "Access index {} is larger than the vector size {}",
@@ -428,7 +429,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 4>(RandomAccessGate::new(4, 4, 1));
+        test_low_degree::<Goldilocks, _, 2>(RandomAccessGate::new(4, 4, 1));
     }
 
     #[test]

@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use p3_field::{extension::{BinomialExtensionField}, Field};
+use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, AbstractField, Field, TwoAdicField};
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -30,7 +30,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 #[derive(Debug, Default)]
 pub struct PoseidonMdsGate<F: RichField + HasExtension<D> + Poseidon, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> PoseidonMdsGate<F, D> {
+impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> PoseidonMdsGate<F, D> where F::Extension: TwoAdicField{
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -53,14 +53,14 @@ impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> PoseidonMdsGate<
         v: &[ExtensionAlgebra<F, D>; SPONGE_WIDTH],
     ) -> ExtensionAlgebra<F, D> {
         debug_assert!(r < SPONGE_WIDTH);
-        let mut res = ExtensionAlgebra::ZERO;
+        let mut res = ExtensionAlgebra::zero();
 
         for i in 0..SPONGE_WIDTH {
-            let coeff = F::Extension::from_canonical_u64(<F as Poseidon>::MDS_MATRIX_CIRC[i]);
+            let coeff = <F::Extension as AbstractField>::from_canonical_u64(<F as Poseidon>::MDS_MATRIX_CIRC[i]);
             res += v[(i + r) % SPONGE_WIDTH].scalar_mul(coeff);
         }
         {
-            let coeff = F::Extension::from_canonical_u64(<F as Poseidon>::MDS_MATRIX_DIAG[r]);
+            let coeff = <F::Extension as AbstractField>::from_canonical_u64(<F as Poseidon>::MDS_MATRIX_DIAG[r]);
             res += v[r].scalar_mul(coeff);
         }
 
@@ -96,7 +96,7 @@ impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> PoseidonMdsGate<
     fn mds_layer_algebra(
         state: &[ExtensionAlgebra<F, D>; SPONGE_WIDTH],
     ) -> [ExtensionAlgebra<F, D>; SPONGE_WIDTH] {
-        let mut result = [ExtensionAlgebra::ZERO; SPONGE_WIDTH];
+        let mut result = [ExtensionAlgebra::zero(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
             result[r] = Self::mds_row_shf_algebra(r, state);
@@ -120,7 +120,7 @@ impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> PoseidonMdsGate<
     }
 }
 
-impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> Gate<F, D> for PoseidonMdsGate<F, D> {
+impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> Gate<F, D> for PoseidonMdsGate<F, D> where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -166,12 +166,11 @@ impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> Gate<F, D> for P
 
         let computed_outputs = F::mds_layer_field(&inputs);
 
-        yield_constr.many(
-            (0..SPONGE_WIDTH)
-                .map(|i| vars.get_local_ext(Self::wires_output(i)))
-                .zip(computed_outputs)
-                .flat_map(|(out, computed_out)| (out - computed_out).to_basefield_array()),
-        )
+        for i in 0..SPONGE_WIDTH {
+            let out = vars.get_local_ext(Self::wires_output(i));
+            let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(out - computed_outputs[i])).try_into().unwrap();
+            yield_constr.many(basefield_array);
+        }
     }
 
     fn eval_unfiltered_circuit(
@@ -227,7 +226,7 @@ pub struct PoseidonMdsGenerator<const D: usize> {
 
 impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
     for PoseidonMdsGenerator<D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "PoseidonMdsGenerator".to_string()
     }

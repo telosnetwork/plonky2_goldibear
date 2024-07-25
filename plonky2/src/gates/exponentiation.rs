@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractField, TwoAdicField};
 use crate::field::ops::Square;
 use crate::field::packed::PackedField;
 use p3_field::Field;
@@ -31,12 +31,12 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for raising a value to a power.
 #[derive(Clone, Debug, Default)]
-pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize> {
+pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     pub num_power_bits: usize,
     pub _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> where F::Extension: TwoAdicField{
     pub const fn new(num_power_bits: usize) -> Self {
         Self {
             num_power_bits,
@@ -76,7 +76,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -106,15 +107,15 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for Exponentiati
 
         for i in 0..self.num_power_bits {
             let prev_intermediate_value = if i == 0 {
-                F::Extension::ONE
+                <F::Extension as AbstractField>::one()
             } else {
-                intermediate_values[i - 1].square()
+                <F::Extension as AbstractField>::square(&intermediate_values[i - 1])
             };
 
             // power_bits is in LE order, but we accumulate in BE order.
             let cur_bit = power_bits[self.num_power_bits - i - 1];
 
-            let not_cur_bit = F::Extension::ONE - cur_bit;
+            let not_cur_bit = <F::Extension as AbstractField>::one() - cur_bit;
             let computed_intermediate_value =
                 prev_intermediate_value * (cur_bit * base + not_cur_bit);
             constraints.push(computed_intermediate_value - intermediate_values[i]);
@@ -205,7 +206,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for Exponentiati
 
 impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
     for ExponentiationGate<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -224,7 +225,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
 
         for i in 0..self.num_power_bits {
             let prev_intermediate_value = if i == 0 {
-                P::ONES
+                P::ones()
             } else {
                 intermediate_values[i - 1].square()
             };
@@ -232,7 +233,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
             // power_bits is in LE order, but we accumulate in BE order.
             let cur_bit = power_bits[self.num_power_bits - i - 1];
 
-            let not_cur_bit = P::ONES - cur_bit;
+            let not_cur_bit = P::ones() - cur_bit;
             let computed_intermediate_value =
                 prev_intermediate_value * (cur_bit * base + not_cur_bit);
             yield_constr.one(computed_intermediate_value - intermediate_values[i]);
@@ -243,14 +244,14 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize> {
+pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     row: usize,
     gate: ExponentiationGate<F, D>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ExponentiationGenerator<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "ExponentiationGenerator".to_string()
     }
@@ -330,7 +331,7 @@ mod tests {
 
     #[test]
     fn wire_indices() {
-        let gate = ExponentiationGate::<Goldilocks, 4> {
+        let gate = ExponentiationGate::<Goldilocks, 2> {
             num_power_bits: 5,
             _phantom: PhantomData,
         };
@@ -351,7 +352,7 @@ mod tests {
             ..CircuitConfig::standard_recursion_config()
         };
 
-        test_low_degree::<Goldilocks, _, 4>(ExponentiationGate::new_from_config(&config));
+        test_low_degree::<Goldilocks, _, 2>(ExponentiationGate::new_from_config(&config));
     }
 
     #[test]

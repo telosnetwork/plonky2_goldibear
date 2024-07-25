@@ -5,7 +5,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
 use plonky2_field::types::HasExtension;
 
@@ -64,7 +64,8 @@ impl<const D: usize> ReducingExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -121,7 +122,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingExte
 
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            yield_constr.many((acc * alpha + coeffs[i] - accs[i]).to_basefield_array());
+            let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(acc * alpha + coeffs[i] - accs[i])).try_into().unwrap();
+            yield_constr.many(basefield_array);
             acc = accs[i];
         }
     }
@@ -189,7 +191,8 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingExtensionGate<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> 
+where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "ReducingExtensionGenerator".to_string()
     }
@@ -248,7 +251,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 4>(ReducingExtensionGate::new(22));
+        test_low_degree::<Goldilocks, _, 2>(ReducingExtensionGate::new(22));
     }
 
     #[test]

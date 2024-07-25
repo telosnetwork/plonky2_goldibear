@@ -627,7 +627,7 @@ pub(crate) fn lookup_helper_columns<F: Field>(
     for x in table.iter_mut() {
         *x = challenge + *x;
     }
-    let table_inverse: Vec<F> = F::batch_multiplicative_inverse(&table);
+    let table_inverse: Vec<F> = F::batch_multiplicative_inverse::<F>(&table);
 
     // Compute the `Z` polynomial with `Z(1)=0` and `Z(gx) = Z(x) + sum h_i(x) - frequencies(x)g(x)`.
     // This enforces the check from the paper, that the sum of the h_k(x) polynomials is 0 over H.
@@ -811,7 +811,7 @@ pub(crate) fn get_helper_cols<F: Field>(
             })
             .collect::<Vec<F>>();
 
-        let mut acc = F::batch_multiplicative_inverse(&first_combined);
+        let mut acc = F::batch_multiplicative_inverse::<F>(&first_combined);
         for d in 0..degree {
             if filter_col[d].is_zero() {
                 acc[d] = F::zero();
@@ -844,7 +844,7 @@ pub(crate) fn get_helper_cols<F: Field>(
                 })
                 .collect::<Vec<F>>();
 
-            combined = F::batch_multiplicative_inverse(&combined);
+            combined = F::batch_multiplicative_inverse::<F>(&combined);
 
             for d in 0..degree {
                 if filter_col[d].is_zero() {

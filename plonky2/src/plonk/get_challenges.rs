@@ -2,6 +2,7 @@
 use alloc::{vec, vec::Vec};
 
 use hashbrown::HashSet;
+use p3_field::TwoAdicField;
 
 use super::circuit_builder::NUM_COINS_LOOKUP;
 use p3_field::extension::{BinomialExtensionField};
@@ -24,7 +25,7 @@ use crate::plonk::proof::{
 };
 use crate::util::reverse_bits;
 
-fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     public_inputs_hash: <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
     wires_cap: &MerkleCap<F, C::Hasher>,
     plonk_zs_partial_products_cap: &MerkleCap<F, C::Hasher>,
@@ -35,7 +36,8 @@ fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, co
     pow_witness: F,
     circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
     common_data: &CommonCircuitData<F, D>,
-) -> anyhow::Result<ProofChallenges<F, D>> {
+) -> anyhow::Result<ProofChallenges<F, D>> 
+where F::Extension: TwoAdicField {
     let config = &common_data.config;
     let num_challenges = config.num_challenges;
 
@@ -90,9 +92,9 @@ fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, co
     })
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     ProofWithPublicInputs<F, C, D>
-{
+where F::Extension: TwoAdicField {
     pub(crate) fn fri_query_indices(
         &self,
         circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
@@ -140,9 +142,9 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     }
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     CompressedProofWithPublicInputs<F, C, D>
-{
+where  F::Extension: TwoAdicField{
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub(crate) fn get_challenges(
         &self,
@@ -207,8 +209,8 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
         // Simulate the proof verification and collect the inferred elements.
         // The content of the loop is basically the same as the `fri_verifier_query_round` function.
         for &(mut x_index) in fri_query_indices {
-            let mut subgroup_x = F::MULTIPLICATIVE_GROUP_GENERATOR
-                * F::primitive_root_of_unity(log_n).exp_u64(reverse_bits(x_index, log_n) as u64);
+            let mut subgroup_x = F::generator()
+                * F::two_adic_generator(log_n).exp_u64(reverse_bits(x_index, log_n) as u64);
             let mut old_eval = fri_combine_initial::<F, C, D>(
                 &common_data.get_fri_instance(*plonk_zeta),
                 &self
@@ -254,7 +256,7 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     fn get_challenges<C: GenericConfig<D, F = F>>(
         &mut self,
         public_inputs_hash: HashOutTarget,
@@ -336,6 +338,7 @@ impl<const D: usize> ProofWithPublicInputsTarget<D> {
     ) -> ProofChallengesTarget<D>
     where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let ProofTarget {
             wires_cap,

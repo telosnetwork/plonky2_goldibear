@@ -15,7 +15,7 @@ pub fn interpolant<F: TwoAdicField>(points: &[(F, F)]) -> PolynomialCoeffs<F> {
     let n = points.len();
     let n_log = log2_ceil(n);
 
-    //WAS: let subgroup = F::two_adic_subgroup(n_log);
+    //WAS: let subgroup = two_adic_subgroup::<F>(n_log);
     let generator = F::two_adic_generator(n_log);
     let subgroup: Vec<F> = generator.powers().take(1 << n_log).collect();
 
@@ -57,7 +57,7 @@ pub fn interpolate<F: Field>(points: &[(F, F)], x: F, barycentric_weights: &[F])
 pub fn barycentric_weights<F: Field>(points: &[(F, F)]) -> Vec<F> {
     let n = points.len();
 
-    batch_multiplicative_inverse(
+    batch_multiplicative_inverse::<F>(
         &(0..n)
             .map(|i| {
                 (0..n)

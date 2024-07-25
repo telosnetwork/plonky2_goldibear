@@ -6,6 +6,7 @@ use alloc::{
 };
 
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
@@ -15,7 +16,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
     /// Checks that `x < 2^n_log` using a `BaseSumGate`.
     pub fn range_check(&mut self, x: Target, n_log: usize) {
         self.split_le(x, n_log);
@@ -66,7 +67,7 @@ pub struct LowHighGenerator {
     high: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for LowHighGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for LowHighGenerator where F::Extension: TwoAdicField {
     fn id(&self) -> String {
         "LowHighGenerator".to_string()
     }
@@ -76,7 +77,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for L
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
-        let integer_value = witness.get_target(self.integer).to_canonical_u64();
+        let integer_value = witness.get_target(self.integer).as_canonical_u64();
         let low = integer_value & ((1 << self.n_log) - 1);
         let high = integer_value >> self.n_log;
 

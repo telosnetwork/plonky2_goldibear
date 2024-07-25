@@ -282,7 +282,7 @@ fn eval_l_0_and_l_last<F: Field>(log_n: usize, x: F) -> (F, F) {
     let n = F::from_canonical_usize(1 << log_n);
     let g = F::primitive_root_of_unity(log_n);
     let z_x = x.exp_power_of_2(log_n) - F::one();
-    let invs = F::batch_multiplicative_inverse(&[n * (x - F::one()), n * (g * x - F::one())]);
+    let invs = F::batch_multiplicative_inverse::<F>(&[n * (x - F::one()), n * (g * x - F::one())]);
 
     (z_x * invs[0], z_x * invs[1])
 }

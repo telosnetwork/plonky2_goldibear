@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use plonky2_field::types::HasExtension;
-
+use p3_field::TwoAdicField;
 use crate::fri::proof::{FriProof, FriProofTarget};
 use crate::hash::hash_types::RichField;
 use crate::iop::witness::WitnessWrite;
@@ -16,6 +16,7 @@ pub fn set_fri_proof_target<F, W, H, const D: usize>(
     F: RichField + HasExtension<D>,
     W: WitnessWrite<F> + ?Sized,
     H: AlgebraicHasher<F>,
+    F::Extension: TwoAdicField
 {
     witness.set_target(fri_proof_target.pow_witness, fri_proof.pow_witness);
 

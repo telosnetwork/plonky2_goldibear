@@ -23,7 +23,7 @@ use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
     fn compute_evaluation(

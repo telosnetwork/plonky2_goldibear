@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use p3_field::PrimeField64;
+use p3_field::{PrimeField64, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 
@@ -20,7 +20,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
     /// Computes `-x`.
     pub fn neg(&mut self, x: Target) -> Target {
         let neg_one = self.neg_one();
@@ -186,7 +186,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes `x * y - z`.
     pub fn mul_sub(&mut self, x: Target, y: Target, z: Target) -> Target {
-        self.arithmetic(F::one(), F::NEG_ONE, x, y, z)
+        self.arithmetic(F::one(), F::neg_one(), x, y, z)
     }
 
     /// Computes `x + y`.
@@ -210,7 +210,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn sub(&mut self, x: Target, y: Target) -> Target {
         let one = self.one();
         // x - y = 1 * x * 1 + (-1) * y
-        self.arithmetic(F::one(), F::NEG_ONE, x, one, y)
+        self.arithmetic(F::one(), F::neg_one(), x, one, y)
     }
 
     /// Computes `x * y`.
@@ -390,7 +390,7 @@ pub struct EqualityGenerator {
     inv: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "EqualityGenerator".to_string()
     }

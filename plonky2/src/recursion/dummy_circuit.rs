@@ -7,6 +7,7 @@ use alloc::{
 
 use hashbrown::HashMap;
 
+use p3_field::TwoAdicField;
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
@@ -42,7 +43,8 @@ pub fn cyclic_base_proof<F, C, const D: usize>(
 ) -> ProofWithPublicInputs<F, C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    F::Extension: TwoAdicField,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     C::Hasher: AlgebraicHasher<C::F>,
 {
     let pis_len = common_data.num_public_inputs;
@@ -71,13 +73,14 @@ where
 /// The rest will default to zero.
 pub(crate) fn dummy_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     circuit: &CircuitData<F, C, D>,
     nonzero_public_inputs: HashMap<usize, F>,
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D>>
 where
+    F::Extension: TwoAdicField
 {
     let mut pw = PartialWitness::new();
     for i in 0..circuit.common.num_public_inputs {
@@ -90,11 +93,12 @@ where
 /// Generate a circuit matching a given `CommonCircuitData`.
 pub(crate) fn dummy_circuit<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     common_data: &CommonCircuitData<F, D>,
-) -> CircuitData<F, C, D> {
+) -> CircuitData<F, C, D>
+where F::Extension: TwoAdicField {
     let config = common_data.config.clone();
     assert!(
         !common_data.config.zero_knowledge,
@@ -123,12 +127,13 @@ pub(crate) fn dummy_circuit<
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
-    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F> + 'static>(
+    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<(ProofWithPublicInputsTarget<D>, VerifierCircuitTarget)>
     where
         C::Hasher: AlgebraicHasher<F>,
+        F::Extension: TwoAdicField
     {
         let dummy_circuit = dummy_circuit::<F, C, D>(common_data);
         let dummy_proof_with_pis = dummy_proof::<F, C, D>(&dummy_circuit, HashMap::new())?;
@@ -151,7 +156,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
 pub struct DummyProofGenerator<F, C, const D: usize>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    F::Extension: TwoAdicField,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
 {
     pub(crate) proof_with_pis_target: ProofWithPublicInputsTarget<D>,
     pub(crate) proof_with_pis: ProofWithPublicInputs<F, C, D>,
@@ -162,7 +168,8 @@ where
 impl<F, C, const D: usize> Default for DummyProofGenerator<F, C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    F::Extension: TwoAdicField
 {
     fn default() -> Self {
         let proof_with_pis_target = ProofWithPublicInputsTarget {
@@ -223,9 +230,10 @@ where
 impl<F, C, const D: usize> SimpleGenerator<F, D> for DummyProofGenerator<F, C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F> + 'static,
+    C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F>,
-{
+    F::Extension: TwoAdicField
+    {
     fn id(&self) -> String {
         "DummyProofGenerator".to_string()
     }

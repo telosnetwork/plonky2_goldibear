@@ -1,3 +1,4 @@
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
@@ -16,6 +17,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_openings<const D: usize>(&mut self, openings: &FriOpenings<F, D>)
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);
@@ -32,6 +34,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     ) -> FriChallenges<F, D>
     where
         F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
     {
         let num_fri_queries = config.num_query_rounds;
         let lde_size = 1 << (degree_bits + config.rate_bits);
@@ -67,7 +70,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
 
 impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
     RecursiveChallenger<F, H, D>
-{
+where F::Extension: TwoAdicField{
     pub fn observe_openings(&mut self, openings: &FriOpeningsTarget<D>) {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);

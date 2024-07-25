@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
+use p3_field::TwoAdicField;
 use core::ops::Range;
 
 use p3_field::extension::{BinomialExtensionField};
@@ -31,7 +32,7 @@ impl PublicInputGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputGate where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "PublicInputGate".into()
     }
@@ -51,7 +52,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputG
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         Self::wires_public_inputs_hash()
             .zip(vars.public_inputs_hash.elements)
-            .map(|(wire, hash_part)| vars.local_wires[wire] - hash_part.into())
+            .map(|(wire, hash_part)| vars.local_wires[wire] - hash_part)
             .collect()
     }
 
@@ -102,7 +103,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputG
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate {
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate where F::Extension: TwoAdicField{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -126,7 +127,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 4>(PublicInputGate)
+        test_low_degree::<Goldilocks, _, 2>(PublicInputGate)
     }
 
     #[test]

@@ -564,7 +564,7 @@ fn check_constraints<'a, F, C, S, const D: usize>(
     // Evaluation of the last Lagrange polynomial.
     let lagrange_last = PolynomialValues::selector(degree, degree - 1).lde(rate_bits);
 
-    let subgroup = F::two_adic_subgroup(degree_bits + rate_bits);
+    let subgroup = two_adic_subgroup::<F>(degree_bits + rate_bits);
 
     // Get the evaluations of a batch of polynomials over our subgroup.
     let get_subgroup_evals = |comm: &PolynomialBatch<F, C, D>| -> Vec<Vec<F>> {

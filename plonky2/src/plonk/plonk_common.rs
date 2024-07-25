@@ -5,7 +5,7 @@ use alloc::{vec, vec::Vec};
 
 
 use crate::field::packed::PackedField;
-use p3_field::Field;
+use p3_field::{Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use crate::fri::oracle::SALT_SIZE;
 use crate::gates::arithmetic_base::ArithmeticGate;
@@ -78,7 +78,8 @@ pub(crate) fn eval_l_0_circuit<F: RichField + HasExtension<D>, const D: usize>(
     n: usize,
     x: ExtensionTarget<D>,
     x_pow_n: ExtensionTarget<D>,
-) -> ExtensionTarget<D> {
+) -> ExtensionTarget<D> 
+where F::Extension: TwoAdicField{
     // L_0(x) = (x^n - 1) / (n * (x - 1))
     //        = Z(x) / (n * (x - 1))
     let one = builder.one_extension();
@@ -111,7 +112,7 @@ pub(crate) fn reduce_with_powers_multi<
         cumul
             .iter_mut()
             .zip(alphas)
-            .for_each(|(c, &alpha)| *c = term.multiply_accumulate(*c, alpha));
+            .for_each(|(c, &alpha)| *c = term + *c* alpha);
     }
     cumul
 }
@@ -123,7 +124,7 @@ pub fn reduce_with_powers<'a, P: PackedField, T: IntoIterator<Item = &'a P>>(
 where
     T::IntoIter: DoubleEndedIterator,
 {
-    let mut sum = P::ZEROS;
+    let mut sum = P::zeros();
     for &term in terms.into_iter().rev() {
         sum = sum * alpha + term;
     }
@@ -134,7 +135,8 @@ pub fn reduce_with_powers_circuit<F: RichField + HasExtension<D>, const D: usize
     builder: &mut CircuitBuilder<F, D>,
     terms: &[Target],
     alpha: Target,
-) -> Target {
+) -> Target 
+where F::Extension: TwoAdicField{
     if terms.len() <= ArithmeticGate::new_from_config(&builder.config).num_ops + 1 {
         terms
             .iter()
@@ -151,7 +153,8 @@ pub fn reduce_with_powers_ext_circuit<F: RichField + HasExtension<D>, const D: u
     builder: &mut CircuitBuilder<F, D>,
     terms: &[ExtensionTarget<D>],
     alpha: Target,
-) -> ExtensionTarget<D> {
+) -> ExtensionTarget<D> 
+where F::Extension: TwoAdicField{
     let alpha = builder.convert_to_ext(alpha);
     let mut alpha = ReducingFactorTarget::new(alpha);
     alpha.reduce(terms, builder)

@@ -6,6 +6,7 @@ use alloc::{
 };
 
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use crate::gates::base_sum::BaseSumGate;
 use crate::hash::hash_types::RichField;
@@ -17,7 +18,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::ceil_div_usize;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
     /// Split the given integer into a list of wires, where each one represents a
     /// bit of the integer, with little-endian ordering.
     /// Verifies that the decomposition is correct by using `k` `BaseSum<2>` gates
@@ -68,7 +69,7 @@ pub struct SplitGenerator {
     bits: Vec<Target>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for SplitGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for SplitGenerator where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "SplitGenerator".to_string()
     }
@@ -78,7 +79,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for S
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
-        let mut integer_value = witness.get_target(self.integer).to_canonical_u64();
+        let mut integer_value = witness.get_target(self.integer).as_canonical_u64();
 
         for &b in &self.bits {
             let b_value = integer_value & 1;
@@ -111,7 +112,7 @@ pub struct WireSplitGenerator {
     num_limbs: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for WireSplitGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for WireSplitGenerator where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "WireSplitGenerator".to_string()
     }
@@ -121,7 +122,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for W
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
-        let mut integer_value = witness.get_target(self.integer).to_canonical_u64();
+        let mut integer_value = witness.get_target(self.integer).as_canonical_u64();
 
         for &gate in &self.gates {
             let sum = Target::wire(gate, BaseSumGate::<2>::WIRE_SUM);

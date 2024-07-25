@@ -2,6 +2,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use p3_field::TwoAdicField;
 #[cfg(feature = "std")]
 use std::vec::Vec;
 
@@ -16,7 +17,7 @@ use crate::util::serialization::{Buffer, IoResult};
 
 // For macros below
 
-pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize> {
+pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     fn read_gate(
         &self,
         buf: &mut Buffer,
@@ -99,6 +100,7 @@ macro_rules! impl_gate_serializer {
 pub mod default {
 
 
+    use p3_field::TwoAdicField;
     use plonky2_field::types::{HasExtension, Sample};
 
     use crate::gates::arithmetic_base::ArithmeticGate;
@@ -131,7 +133,7 @@ pub mod default {
     /// the `GateSerializer` trait. This can be easily done through the `impl_gate_serializer` macro.
     #[derive(Debug)]
     pub struct DefaultGateSerializer;
-    impl<F: RichField + HasExtension<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer {
+    impl<F: RichField + HasExtension<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer where F::Extension: TwoAdicField{
         impl_gate_serializer! {
             DefaultGateSerializer,
             ArithmeticGate,

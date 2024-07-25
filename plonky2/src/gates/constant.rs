@@ -2,6 +2,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 
 use p3_field::extension::{BinomialExtensionField};
+use p3_field::TwoAdicField;
 use serde::{Deserialize, Serialize};
 
 use plonky2_field::types::HasExtension;
@@ -43,7 +44,7 @@ impl ConstantGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ConstantGate {
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ConstantGate where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -119,7 +120,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ConstantGate
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ConstantGate {
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ConstantGate where F::Extension: TwoAdicField{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,

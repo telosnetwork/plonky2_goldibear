@@ -1,6 +1,7 @@
 use core::marker::PhantomData;
 
 use anyhow::Result;
+use p3_field::TwoAdicField;
 use plonky2::field::types::{PrimeField, Sample};
 use plonky2::gates::arithmetic_base::ArithmeticBaseGenerator;
 use plonky2::gates::poseidon::PoseidonGenerator;
@@ -24,7 +25,7 @@ use plonky2_field::extension::BinomiallyExtendable;
 /// A generator used by the prover to calculate the square root (`x`) of a given value
 /// (`x_squared`), outside of the circuit, in order to supply it as an additional public input.
 #[derive(Debug, Default)]
-struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize> {
+struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     x: Target,
     x_squared: Target,
     _phantom: PhantomData<F>,
@@ -32,7 +33,7 @@ struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for SquareRootGenerator<F, D>
-{
+    where F::Extension: TwoAdicField{
     fn id(&self) -> String {
         "SquareRootGenerator".to_string()
     }
@@ -76,6 +77,7 @@ where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F> + 'static,
     C::Hasher: AlgebraicHasher<F>,
+    F::Extension: TwoAdicField
 {
     impl_generator_serializer! {
         CustomGeneratorSerializer,

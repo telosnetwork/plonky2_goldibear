@@ -15,6 +15,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, vec, vec::Vec};
 use p3_field::extension::{BinomialExtensionField};
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::{Range, RangeFrom};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
@@ -142,15 +143,15 @@ impl CircuitConfig {
 
 /// Mock circuit data to only do witness generation without generating a proof.
 #[derive(Eq, PartialEq, Debug)]
-pub struct MockCircuitData<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
-{
+pub struct MockCircuitData<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
+where F::Extension: TwoAdicField{
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     MockCircuitData<F, C, D>
-{
+    where F::Extension: TwoAdicField{
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
         generate_partial_witness::<F, C, D>(inputs, &self.prover_only, &self.common)
     }
@@ -158,14 +159,18 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 
 /// Circuit data required by the prover or the verifier.
 #[derive(Eq, PartialEq, Debug)]
-pub struct CircuitData<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct CircuitData<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
+where 
+    F::Extension: TwoAdicField {
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
     pub verifier_only: VerifierOnlyCircuitData<C, D>,
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     CircuitData<F, C, D>
+where 
+    F::Extension: TwoAdicField
 {
     pub fn to_bytes(
         &self,
@@ -255,16 +260,16 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[derive(Debug)]
 pub struct ProverCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 > {
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     ProverCircuitData<F, C, D>
-{
+    where F::Extension: TwoAdicField{
     pub fn to_bytes(
         &self,
         gate_serializer: &dyn GateSerializer<F, D>,
@@ -284,7 +289,8 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
         buffer.read_prover_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D>> {
+    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D>> 
+    where F::Extension: TwoAdicField {
         prove::<F, C, D>(
             &self.prover_only,
             &self.common,
@@ -298,15 +304,16 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifierCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
-> {
+> where F::Extension: TwoAdicField{
     pub verifier_only: VerifierOnlyCircuitData<C, D>,
     pub common: CommonCircuitData<F, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     VerifierCircuitData<F, C, D>
+where F::Extension: TwoAdicField
 {
     pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
@@ -338,9 +345,9 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[derive(Eq, PartialEq, Debug)]
 pub struct ProverOnlyCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
-> {
+> where F::Extension: TwoAdicField{
     pub generators: Vec<WitnessGeneratorRef<F, D>>,
     /// Generator indices (within the `Vec` above), indexed by the representative of each target
     /// they watch.
@@ -367,9 +374,9 @@ pub struct ProverOnlyCircuitData<
     pub lut_to_lookups: Vec<Lookup>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     ProverOnlyCircuitData<F, C, D>
-{
+    where F::Extension: TwoAdicField{
     pub fn to_bytes(
         &self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
@@ -403,7 +410,7 @@ pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
 impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
-        buffer.write_verifier_only_circuit_data(self)?;
+        buffer.write_verifier_only_circuit_data::<C::F,C,D>(self)?;
         Ok(buffer)
     }
 
@@ -415,7 +422,7 @@ impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
 
 /// Circuit data required by both the prover and the verifier.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize> {
+pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
     pub config: CircuitConfig,
 
     pub fri_params: FriParams,
@@ -453,7 +460,7 @@ pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize> {
     pub luts: Vec<LookupTable>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D> where F::Extension: TwoAdicField{
     pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_common_circuit_data(self, gate_serializer)?;
@@ -481,7 +488,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D> {
     }
 
     pub fn lde_generator(&self) -> F {
-        F::primitive_root_of_unity(self.degree_bits() + self.config.fri_config.rate_bits)
+        F::two_adic_generator(self.degree_bits() + self.config.fri_config.rate_bits)
     }
 
     pub fn constraint_degree(&self) -> usize {
@@ -535,7 +542,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D> {
         };
 
         // The Z polynomials are also opened at g * zeta.
-        let g = F::Extension::primitive_root_of_unity(self.degree_bits());
+        let g = <F::Extension as AbstractExtensionField<F>>::from_base(F::two_adic_generator(self.degree_bits()));
         let zeta_next = g * zeta;
         let zeta_next_batch = FriBatchInfo {
             point: zeta_next,
@@ -561,7 +568,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D> {
         };
 
         // The Z polynomials are also opened at g * zeta.
-        let g = F::primitive_root_of_unity(self.degree_bits());
+        let g = F::two_adic_generator(self.degree_bits());
         let zeta_next = builder.mul_const_extension(g, zeta);
         let zeta_next_batch = FriBatchInfoTarget {
             point: zeta_next,
