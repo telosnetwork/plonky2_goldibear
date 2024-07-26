@@ -2,7 +2,7 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-use p3_field::TwoAdicField;
+use p3_field::{AbstractField, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
@@ -53,7 +53,7 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
 
 impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     PolynomialBatch<F, C, D>
-{
+where F::Extension: TwoAdicField{
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.
     pub fn from_values(
         values: Vec<PolynomialValues<F>>,
@@ -128,7 +128,7 @@ impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, 
             .map(|p| {
                 assert_eq!(p.len(), degree, "Polynomial degrees inconsistent");
                 p.lde(rate_bits)
-                    .coset_fft_with_options(F::coset_shift(), Some(rate_bits), fft_root_table)
+                    .coset_fft_with_options(F::generator(), Some(rate_bits), fft_root_table)
                     .values
             })
             .chain(
@@ -162,7 +162,7 @@ impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, 
         let leaf_size = row_wise[0].len();
         (0..leaf_size)
             .map(|j| {
-                let mut packed = P::ZEROS;
+                let mut packed = P::zeros();
                 packed
                     .as_slice_mut()
                     .iter_mut()
@@ -206,7 +206,7 @@ impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, 
                 alpha.reduce_polys_base(polys_coeff)
             );
             let mut quotient = composition_poly.divide_by_linear(*point);
-            quotient.coeffs.push(F::Extension::ZERO); // pad back to power of two
+            quotient.coeffs.push(<F::Extension as AbstractField>::zero()); // pad back to power of two
             alpha.shift_poly(&mut final_poly);
             final_poly += quotient;
         }
@@ -215,7 +215,7 @@ impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, 
         let lde_final_values = timed!(
             timing,
             &format!("perform final FFT {}", lde_final_poly.len()),
-            lde_final_poly.coset_fft(F::coset_shift().into())
+            lde_final_poly.coset_fft(F::generator().into())
         );
 
         let fri_proof = fri_proof::<F, C, D>(

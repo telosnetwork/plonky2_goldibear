@@ -4,7 +4,7 @@ use alloc::{format, vec::Vec};
 use itertools::Itertools;
 
 use plonky2_field::types::HasExtension;
-
+use p3_field::TwoAdicField;
 use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
@@ -37,7 +37,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         let arity = 1 << arity_bits;
         debug_assert_eq!(evals.len(), arity);
 
-        let g = F::primitive_root_of_unity(arity_bits);
+        let g = F::two_adic_generator(arity_bits);
         let g_inv = g.exp_u64((arity as u64) - 1);
 
         // The evaluation vector needs to be reordered first.
@@ -266,7 +266,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         // Note that this `low_bits` decomposition permits non-canonical binary encodings. Here we
         // verify that this has a negligible impact on soundness error.
         Self::assert_noncanonical_indices_ok(&params.config);
-        let mut x_index_bits = self.low_bits(x_index, n_log, F::BITS);
+        let mut x_index_bits = self.low_bits(x_index, n_log, F::bits());
 
         let cap_index =
             self.le_sum(x_index_bits[x_index_bits.len() - params.config.cap_height..].iter());
@@ -283,8 +283,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 
         // `subgroup_x` is `subgroup[x_index]`, i.e., the actual field element in the domain.
         let mut subgroup_x = with_context!(self, "compute x from its index", {
-            let g = self.constant(F::coset_shift());
-            let phi = F::primitive_root_of_unity(n_log);
+            let g = self.constant(F::generator());
+            let phi = F::two_adic_generator(n_log);
             let phi = self.exp_from_bits_const_base(phi, x_index_bits.iter().rev());
             // subgroup_x = g * phi
             self.mul(g, phi)
@@ -374,9 +374,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
     ///
     /// Here we compare the probabilities as a sanity check, to verify the claim above.
     fn assert_noncanonical_indices_ok(config: &FriConfig) {
-        let num_ambiguous_elems = u64::MAX - F::ORDER + 1;
+        let num_ambiguous_elems = u64::MAX - F::ORDER_U64 + 1;
         let query_error = config.rate();
-        let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER as f64);
+        let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER_U64 as f64);
         assert!(p_ambiguous < query_error * 1e-5,
                 "A non-negligible portion of field elements are in the range that permits non-canonical encodings. Need to do more analysis or enforce canonical encodings.");
     }
@@ -469,7 +469,7 @@ impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+    ) -> Self where F::Extension: TwoAdicField{
         let reduced_openings_at_point = openings
             .batches
             .iter()

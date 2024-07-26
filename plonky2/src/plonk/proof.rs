@@ -134,7 +134,7 @@ where
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct CompressedProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
-{
+where F::Extension: TwoAdicField{
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -181,7 +181,7 @@ pub struct CompressedProofWithPublicInputs<
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
-> {
+> where F::Extension: TwoAdicField,{
     pub proof: CompressedProof<F, C, D>,
     pub public_inputs: Vec<F>,
 }

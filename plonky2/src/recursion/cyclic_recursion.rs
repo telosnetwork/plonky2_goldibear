@@ -19,7 +19,11 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
+impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D>
+where 
+    C::F: RichField + HasExtension<D>,
+    <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension: TwoAdicField,
+{
     fn from_slice(slice: &[C::F], common_data: &CommonCircuitData<C::F, D>) -> Result<Self>
     where
         C::Hasher: AlgebraicHasher<C::F>,
@@ -193,6 +197,7 @@ pub fn check_cyclic_proof_verifier_data<
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F>,
+    F::Extension: TwoAdicField
 {
     let pis = VerifierOnlyCircuitData::<C, D>::from_slice(&proof.public_inputs, common_data)?;
     ensure!(verifier_data.constants_sigmas_cap == pis.constants_sigmas_cap);

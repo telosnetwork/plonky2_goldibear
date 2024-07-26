@@ -213,8 +213,8 @@ where F::Extension: TwoAdicField{
             ArithmeticExtensionGate::<D>::wires_ith_output(self.i),
         );
 
-        let computed_output = (multiplicand_0 * multiplicand_1 * self.const_0)
-            + addend * self.const_1;
+        let computed_output = (multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0))
+            + addend * F::Extension::from_base(self.const_1);
 
         out_buffer.set_extension_target(output_target, computed_output)
     }

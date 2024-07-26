@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use p3_field::{AbstractField, Field, PrimeField64, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
@@ -133,14 +133,14 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         let first_term_const = if first_term_zero {
             Some(<F::Extension as AbstractField>::zero())
         } else if let (Some(x), Some(y)) = (mul_0_const, mul_1_const) {
-            Some((x * y * const_0))
+            Some((x * y * F::Extension::from_base(const_0)))
         } else {
             None
         };
         let second_term_const = if second_term_zero {
             Some(<F::Extension as AbstractField>::zero())
         } else {
-            addend_const.map(|x| x * const_1)
+            addend_const.map(|x| x * F::Extension::from_base(const_1))
         };
         if let (Some(x), Some(y)) = (first_term_const, second_term_const) {
             return Some(self.constant_extension(x + y));
@@ -152,12 +152,12 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 
         if second_term_zero {
             if let Some(x) = mul_0_const {
-                if (x * const_0).is_one() {
+                if (x * F::Extension::from_base((const_0))).is_one() {
                     return Some(multiplicand_1);
                 }
             }
             if let Some(x) = mul_1_const {
-                if (x * const_0).is_one() {
+                if (x * F::Extension::from_base((const_0))).is_one() {
                     return Some(multiplicand_0);
                 }
             }
@@ -566,7 +566,7 @@ impl<const D: usize> PowersTarget<D> {
         self,
         k: usize,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+    ) -> Self where F::Extension: TwoAdicField{
         let Self { base, current } = self;
         Self {
             base: base.repeated_frobenius(k, builder),

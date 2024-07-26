@@ -1,9 +1,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
-
+use p3_field::TwoAdicField;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
@@ -27,7 +28,7 @@ pub fn fri_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, con
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
     timing: &mut TimingTree,
-) -> FriProof<F, C::Hasher, D> {
+) -> FriProof<F, C::Hasher, D> where F::Extension: TwoAdicField{
     let n = lde_polynomial_values.len();
     assert_eq!(lde_polynomial_coeffs.len(), n);
 
@@ -72,10 +73,10 @@ fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
-) -> FriCommitedTrees<F, C, D> F::Extension: TwoAdicField{
+) -> FriCommitedTrees<F, C, D> where F::Extension: TwoAdicField{
     let mut trees = Vec::with_capacity(fri_params.reduction_arity_bits.len());
 
-    let mut shift = F::MULTIPLICATIVE_GROUP_GENERATOR;
+    let mut shift = F::generator();
     for arity_bits in &fri_params.reduction_arity_bits {
         let arity = 1 << arity_bits;
 
@@ -116,7 +117,7 @@ fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F
 fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
-) -> F F::Extension: TwoAdicField{
+) -> F where F::Extension: TwoAdicField{
     let min_leading_zeros = config.proof_of_work_bits + (64 - F::order().bits()) as u32;
 
     // The easiest implementation would be repeatedly clone our Challenger. With each clone, we'd
@@ -139,14 +140,14 @@ fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>,
     let witness_input_pos = challenger.input_buffer.len();
     duplex_intermediate_state.set_from_iter(challenger.input_buffer.clone(), 0);
 
-    let pow_witness = (0..=F::NEG_ONE.to_canonical_u64())
+    let pow_witness = (0..=F::neg_one().as_canonical_u64())
         .into_par_iter()
         .find_any(|&candidate| {
             let mut duplex_state = duplex_intermediate_state;
             duplex_state.set_elt(F::from_canonical_u64(candidate), witness_input_pos);
             duplex_state.permute();
             let pow_response = duplex_state.squeeze().iter().last().unwrap();
-            let leading_zeros = pow_response.to_canonical_u64().leading_zeros();
+            let leading_zeros = pow_response.as_canonical_u64().leading_zeros();
             leading_zeros >= min_leading_zeros
         })
         .map(F::from_canonical_u64)
@@ -155,7 +156,7 @@ fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>,
     // Recompute pow_response using our normal Challenger code, and make sure it matches.
     challenger.observe_element(pow_witness);
     let pow_response = challenger.get_challenge();
-    let leading_zeros = pow_response.to_canonical_u64().leading_zeros();
+    let leading_zeros = pow_response.as_canonical_u64().leading_zeros();
     assert!(leading_zeros >= min_leading_zeros);
     pow_witness
 }
@@ -175,7 +176,7 @@ fn fri_prover_query_rounds<
         .get_n_challenges(fri_params.config.num_query_rounds)
         .into_par_iter()
         .map(|rand| {
-            let x_index = rand.to_canonical_u64() as usize % n;
+            let x_index = rand.as_canonical_u64() as usize % n;
             fri_prover_query_round::<F, C, D>(initial_merkle_trees, trees, x_index, fri_params)
         })
         .collect()

@@ -262,7 +262,7 @@ pub struct ProverCircuitData<
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
-> {
+> where F::Extension: TwoAdicField{
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
     pub common: CommonCircuitData<F, D>,
 }
@@ -407,7 +407,9 @@ pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
     pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
 }
 
-impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
+impl<C: GenericConfig<D, FE = <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension >, const D: usize> VerifierOnlyCircuitData<C, D> 
+where C::F: HasExtension<D>,
+    <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension: TwoAdicField{
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_verifier_only_circuit_data::<C::F,C,D>(self)?;

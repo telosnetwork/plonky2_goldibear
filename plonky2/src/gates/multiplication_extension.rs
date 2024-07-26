@@ -93,7 +93,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtension
             let multiplicand_0 = vars.get_local_ext(Self::wires_ith_multiplicand_0(i));
             let multiplicand_1 = vars.get_local_ext(Self::wires_ith_multiplicand_1(i));
             let output = vars.get_local_ext(Self::wires_ith_output(i));
-            let computed_output = multiplicand_0 * multiplicand_1 * const_0;
+            let computed_output = multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0);
             let base_field_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&((output - computed_output))).try_into().unwrap();
             yield_constr.many(base_field_array);
         }
@@ -190,7 +190,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
         let output_target =
             ExtensionTarget::from_range(self.row, MulExtensionGate::<D>::wires_ith_output(self.i));
 
-        let computed_output = (multiplicand_0 * multiplicand_1 * self.const_0);
+        let computed_output = (multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0));
 
         out_buffer.set_extension_target(output_target, computed_output)
     }

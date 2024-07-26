@@ -120,15 +120,15 @@ pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize
             .map(|j| {
                 let wire_value = vars.local_wires[j];
                 let k_i = common_data.k_is[j];
-                let s_id = x * k_i;
-                wire_value + s_id * betas[i] + gammas[i]
+                let s_id = x * F::Extension::from_base(k_i);
+                wire_value + s_id * F::Extension::from_base(betas[i] + gammas[i])
             })
             .collect::<Vec<_>>();
         let denominator_values = (0..common_data.config.num_routed_wires)
             .map(|j| {
                 let wire_value = vars.local_wires[j];
                 let s_sigma = s_sigmas[j];
-                wire_value + s_sigma * betas[i] + gammas[i]
+                wire_value + s_sigma * F::Extension::from_base(betas[i] + gammas[i])
             })
             .collect::<Vec<_>>();
 
@@ -415,7 +415,7 @@ pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
         )
         .eval(current_delta);
 
-        constraints.push(cur_ends_selector * (z_re - cur_function_eval))
+        constraints.push(cur_ends_selector * (z_re - F::Extension::from_base(cur_function_eval)))
     }
 
     // Check RE row transition constraint.

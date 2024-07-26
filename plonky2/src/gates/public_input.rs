@@ -1,6 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
-use p3_field::TwoAdicField;
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
 
 use p3_field::extension::{BinomialExtensionField};
@@ -52,7 +52,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputG
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
         Self::wires_public_inputs_hash()
             .zip(vars.public_inputs_hash.elements)
-            .map(|(wire, hash_part)| vars.local_wires[wire] - hash_part)
+            .map(|(wire, hash_part)| vars.local_wires[wire] - F::Extension::from_base(hash_part))
             .collect()
     }
 

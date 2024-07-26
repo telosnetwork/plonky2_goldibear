@@ -257,6 +257,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> ExtensionTarget<D>
     where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = builder.zero_extension();
@@ -337,6 +338,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         // If we have enough routed wires, we will use PoseidonMdsGate.
         let mds_gate = PoseidonMdsGate::<Self, D>::new();
@@ -404,6 +406,7 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         for i in 0..SPONGE_WIDTH {
             let c = <Self as Poseidon>::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i];
@@ -488,6 +491,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         let mut result = [builder.zero_extension(); SPONGE_WIDTH];
 
@@ -604,6 +608,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
@@ -674,6 +679,7 @@ pub trait Poseidon: PrimeField64 {
         round_ctr: usize,
     ) where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         for i in 0..SPONGE_WIDTH {
             let c = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
@@ -699,6 +705,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> ExtensionTarget<D>
     where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         // x |--> x^7
         builder.exp_u64_extension(x, 7)
@@ -729,6 +736,7 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where
         Self: RichField + HasExtension<D>,
+        Self::Extension: TwoAdicField
     {
         for i in 0..SPONGE_WIDTH {
             state[i] = <Self as Poseidon>::sbox_monomial_circuit(builder, state[i]);
@@ -891,10 +899,9 @@ impl<F: RichField> AlgebraicHasher<F> for PoseidonHash {
         swap: BoolTarget,
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self::AlgebraicPermutation
-    where
+    where 
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
-    {
+        F::Extension: TwoAdicField{
         let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);
 

@@ -63,12 +63,12 @@ pub struct CosetInterpolationGate<F: RichField + HasExtension<D>, const D: usize
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D> {
-    pub fn new(subgroup_bits: usize) -> Self {
+impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D> where F::Extension: TwoAdicField{
+    pub fn new(subgroup_bits: usize) -> Self where F::Extension: TwoAdicField{
         Self::with_max_degree(subgroup_bits, 1 << subgroup_bits)
     }
 
-    pub(crate) fn with_max_degree(subgroup_bits: usize, max_degree: usize) -> Self {
+    pub(crate) fn with_max_degree(subgroup_bits: usize, max_degree: usize) -> Self where F::Extension: TwoAdicField{
         assert!(max_degree > 1, "need at least quadratic constraints");
 
         let n_points = 1 << subgroup_bits;
@@ -256,7 +256,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
         let shift = vars.local_wires[self.wire_shift()];
         let evaluation_point = vars.get_local_ext(self.wires_evaluation_point());
         let shifted_evaluation_point = vars.get_local_ext(self.wires_shifted_evaluation_point());
-        let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(evaluation_point - shifted_evaluation_point * shift)).try_into().unwrap();
+        let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(evaluation_point - shifted_evaluation_point * F::Extension::from_base(shift))).try_into().unwrap();
         yield_constr.many(
             basefield_array,
         );
@@ -466,7 +466,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 
         let evaluation_point = get_local_ext(self.gate.wires_evaluation_point());
         let shift = get_local_wire(self.gate.wire_shift());
-        let shifted_evaluation_point = evaluation_point * shift.inverse();
+        let shifted_evaluation_point = evaluation_point * F::Extension::from_base(shift.inverse());
         let degree = self.gate.degree();
 
         out_buffer.set_ext_wires(

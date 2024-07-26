@@ -26,7 +26,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         &self,
         builder: &mut CircuitBuilder<F, D>,
         point: Target,
-    ) -> ExtensionTarget<D> {
+    ) -> ExtensionTarget<D> where  F::Extension: TwoAdicField{
         let point = builder.convert_to_ext(point);
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
@@ -36,7 +36,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         &self,
         builder: &mut CircuitBuilder<F, D>,
         point: ExtensionTarget<D>,
-    ) -> ExtensionTarget<D> {
+    ) -> ExtensionTarget<D> where  F::Extension: TwoAdicField {
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
     }

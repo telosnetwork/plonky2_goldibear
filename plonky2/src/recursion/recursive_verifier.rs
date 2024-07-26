@@ -421,7 +421,7 @@ mod tests {
     );
 
     /// Creates a dummy proof which should have roughly `num_dummy_gates` gates.
-    fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+    fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F,FE = F::Extension>, const D: usize>(
         config: &CircuitConfig,
         num_dummy_gates: u64,
     ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
@@ -441,7 +441,7 @@ mod tests {
     /// Creates a dummy lookup proof which does one lookup to one LUT.
     fn dummy_lookup_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize
     >(
         config: &CircuitConfig,
@@ -499,7 +499,7 @@ mod tests {
     /// Creates a dummy lookup proof which does one lookup to two different LUTs.
     fn dummy_two_luts_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         config: &CircuitConfig,
@@ -576,7 +576,7 @@ mod tests {
     /// Creates a dummy proof which has more than 256 lookups to one LUT.
     fn dummy_too_many_rows_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         config: &CircuitConfig,
@@ -631,8 +631,8 @@ mod tests {
 
     fn recursive_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
-        InnerC: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
+        InnerC: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         inner_proof: ProofWithPublicInputs<F, InnerC, D>,
@@ -691,7 +691,7 @@ mod tests {
     /// Test serialization and print some size info.
     fn test_serialization<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         proof: &ProofWithPublicInputs<F, C, D>,

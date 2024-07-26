@@ -123,7 +123,7 @@ where F::Extension: TwoAdicField{
 
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            let basefield_array: [F; D]= <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(acc * alpha + coeffs[i] - accs[i])).try_into().unwrap();
+            let basefield_array: [F; D]= <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(acc * alpha + F::Extension::from_base(coeffs[i]) - accs[i])).try_into().unwrap();
             yield_constr.many(basefield_array);
             acc = accs[i];
         }
@@ -230,7 +230,7 @@ where F::Extension: TwoAdicField{
 
         let mut acc = old_acc;
         for i in 0..self.gate.num_coeffs {
-            let computed_acc = acc * alpha + coeffs[i];
+            let computed_acc = acc * alpha + F::Extension::from_base(coeffs[i]);
             out_buffer.set_extension_target(accs[i], computed_acc);
             acc = computed_acc;
         }

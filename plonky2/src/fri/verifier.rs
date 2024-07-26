@@ -2,8 +2,9 @@
 use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
-use p3_field::{Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 
+use plonky2_field::extension::flatten;
 use plonky2_field::types::HasExtension;
 
 use crate::field::interpolation::{barycentric_weights, interpolate};
@@ -20,7 +21,7 @@ use crate::util::reducing::ReducingFactor;
 
 /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
 /// and P' is the FRI reduced polynomial.
-pub(crate) fn compute_evaluation<F: Field + HasExtension<D>, const D: usize>(
+pub(crate) fn compute_evaluation<F: TwoAdicField + HasExtension<D>, const D: usize>(
     x: F,
     x_index_within_coset: usize,
     arity_bits: usize,
@@ -30,7 +31,7 @@ pub(crate) fn compute_evaluation<F: Field + HasExtension<D>, const D: usize>(
     let arity = 1 << arity_bits;
     debug_assert_eq!(evals.len(), arity);
 
-    let g = F::primitive_root_of_unity(arity_bits);
+    let g = <F as TwoAdicField>::two_adic_generator(arity_bits);
 
     // The evaluation vector needs to be reordered first.
     let mut evals = evals.to_vec();
@@ -52,7 +53,7 @@ pub(crate) fn fri_verify_proof_of_work<F: RichField + HasExtension<D>, const D: 
     config: &FriConfig,
 ) -> Result<()> where F::Extension: TwoAdicField{
     ensure!(
-        fri_pow_response.to_canonical_u64().leading_zeros()
+        fri_pow_response.as_canonical_u64().leading_zeros()
             >= config.proof_of_work_bits + (64 - F::order().bits()) as u32,
         "Invalid proof of work witness."
     );
@@ -134,9 +135,9 @@ pub(crate) fn fri_combine_initial<
     params: &FriParams,
 ) -> F::Extension where  F::Extension: TwoAdicField{
     assert!(D > 1, "Not implemented for D=1.");
-    let subgroup_x = F::Extension::from_basefield(subgroup_x);
+    let subgroup_x = F::Extension::from_base(subgroup_x);
     let mut alpha = ReducingFactor::new(alpha);
-    let mut sum = F::Extension::ZERO;
+    let mut sum = F::Extension::zero();
 
     for (batch, reduced_openings) in instance
         .batches
@@ -151,7 +152,7 @@ pub(crate) fn fri_combine_initial<
                 let salted = params.hiding && poly_blinding;
                 proof.unsalted_eval(p.oracle_index, p.polynomial_index, salted)
             })
-            .map(F::Extension::from_basefield);
+            .map(F::Extension::from_base);
         let reduced_evals = alpha.reduce(evals);
         let numerator = reduced_evals - *reduced_openings;
         let denominator = subgroup_x - *point;
@@ -184,8 +185,8 @@ fn fri_verifier_query_round<
     )?;
     // `subgroup_x` is `subgroup[x_index]`, i.e., the actual field element in the domain.
     let log_n = log2_strict(n);
-    let mut subgroup_x = F::MULTIPLICATIVE_GROUP_GENERATOR
-        * F::primitive_root_of_unity(log_n).exp_u64(reverse_bits(x_index, log_n) as u64);
+    let mut subgroup_x = F::generator()
+        * F::two_adic_generator(log_n).exp_u64(reverse_bits(x_index, log_n) as u64);
 
     // old_eval is the last derived evaluation; it will be checked for consistency with its
     // committed "parent" value in the next iteration.
@@ -248,8 +249,9 @@ pub(crate) struct PrecomputedReducedOpenings<F: RichField + HasExtension<D>, con
     pub reduced_openings_at_point: Vec<F::Extension>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PrecomputedReducedOpenings<F, D> {
-    pub(crate) fn from_os_and_alpha(openings: &FriOpenings<F, D>, alpha: F::Extension) -> Self {
+impl<F: RichField + HasExtension<D>, const D: usize> PrecomputedReducedOpenings<F, D> where F::Extension: TwoAdicField{
+    pub(crate) fn from_os_and_alpha(openings: &FriOpenings<F, D>, alpha: F::Extension) -> Self 
+    {
         let reduced_openings_at_point = openings
             .batches
             .iter()

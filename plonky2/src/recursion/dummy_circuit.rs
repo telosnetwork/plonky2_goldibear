@@ -126,7 +126,7 @@ where F::Extension: TwoAdicField {
     circuit
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,

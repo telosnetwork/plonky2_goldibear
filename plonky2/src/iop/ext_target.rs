@@ -34,7 +34,7 @@ impl<const D: usize> ExtensionTarget<D> {
     pub fn frobenius<F: RichField + HasExtension<D>>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+    ) -> Self where F::Extension: TwoAdicField{
         self.repeated_frobenius(1, builder)
     }
 
@@ -42,7 +42,7 @@ impl<const D: usize> ExtensionTarget<D> {
         &self,
         count: usize,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+    ) -> Self where F::Extension: TwoAdicField{
         if count == 0 {
             return *self;
         } else if count >= D {

@@ -1,7 +1,7 @@
 use anyhow::ensure;
 
 use plonky2_field::types::HasExtension;
-
+use p3_field::TwoAdicField;
 use crate::fri::FriParams;
 use crate::fri::proof::{FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::structure::FriInstanceInfo;

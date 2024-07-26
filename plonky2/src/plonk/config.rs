@@ -9,7 +9,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 use p3_field::extension::{BinomialExtensionField};
-use p3_field::ExtensionField;
+use p3_field::{ExtensionField, TwoAdicField};
 use core::fmt::Debug;
 
 use serde::de::DeserializeOwned;
@@ -89,7 +89,8 @@ pub trait AlgebraicHasher<F: RichField>: Hasher<F, Hash = HashOut<F>> {
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self::AlgebraicPermutation
     where
-        F: RichField + HasExtension<D>;
+        F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField;
 }
 
 /// Generic configuration trait.

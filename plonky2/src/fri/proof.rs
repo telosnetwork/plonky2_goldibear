@@ -3,10 +3,11 @@ use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
 use itertools::izip;
+use p3_field::TwoAdicField;
 use serde::{Deserialize, Serialize};
 
 use plonky2_field::types::HasExtension;
-
+use plonky2_field::extension::{flatten,unflatten};
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::FriParams;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
@@ -77,7 +78,7 @@ impl FriInitialTreeProofTarget {
 /// Proof for a FRI query round.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct FriQueryRound<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
+pub struct FriQueryRound<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> where F::Extension: TwoAdicField{
     pub initial_trees_proof: FriInitialTreeProof<F, H>,
     pub steps: Vec<FriQueryStep<F, H, D>>,
 }
@@ -134,7 +135,7 @@ pub struct CompressedFriProof<F: RichField + HasExtension<D>, H: Hasher<F>, cons
     pub pow_witness: F,
 }
 
-impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> FriProof<F, H, D> {
+impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> FriProof<F, H, D> where F::Extension: TwoAdicField{
     /// Compress all the Merkle paths in the FRI proof and remove duplicate indices.
     pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedFriProof<F, H, D> {
         let FriProof {
