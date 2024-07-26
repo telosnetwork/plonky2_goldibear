@@ -7,23 +7,22 @@ use core::ops::Range;
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, sync::Arc};
 
-use hashbrown::HashMap;
-use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
-
 pub use gate_serialization::default::DefaultGateSerializer;
 pub use gate_serialization::GateSerializer;
 pub use generator_serialization::default::DefaultGeneratorSerializer;
 pub use generator_serialization::WitnessGeneratorSerializer;
+use hashbrown::HashMap;
+use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, CompressedFriQueryRounds, FriInitialTreeProof, FriInitialTreeProofTarget,
     FriProof, FriProofTarget, FriQueryRound, FriQueryRoundTarget, FriQueryStep, FriQueryStepTarget,
 };
 use crate::fri::reduction_strategies::FriReductionStrategy;
+use crate::fri::{FriConfig, FriParams};
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use crate::gates::gate::GateRef;
 use crate::gates::lookup::Lookup;
@@ -184,9 +183,7 @@ pub trait Read {
         for a in arr.iter_mut() {
             *a = self.read_field()?;
         }
-        Ok(F::Extension::from_base_slice(
-            &arr,
-        ))
+        Ok(F::Extension::from_base_slice(&arr))
     }
 
     /// Reads a vector of elements from the field extension of `F` from `self`.
@@ -197,7 +194,7 @@ pub trait Read {
     ) -> IoResult<Vec<F::Extension>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         (0..length).map(|_| self.read_field_ext::<F, D>()).collect()
     }
@@ -701,13 +698,17 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<GateRef<F, D>> where F::Extension: TwoAdicField;
+    ) -> IoResult<GateRef<F, D>>
+    where
+        F::Extension: TwoAdicField;
 
     fn read_generator<F: RichField + HasExtension<D>, const D: usize>(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<WitnessGeneratorRef<F, D>> where F::Extension: TwoAdicField;
+    ) -> IoResult<WitnessGeneratorRef<F, D>>
+    where
+        F::Extension: TwoAdicField;
 
     fn read_selectors_info(&mut self) -> IoResult<SelectorsInfo> {
         let selector_indices = self.read_usize_vec()?;
@@ -731,7 +732,10 @@ pub trait Read {
         const D: usize,
     >(
         &mut self,
-    ) -> IoResult<PolynomialBatch<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<PolynomialBatch<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let poly_len = self.read_usize()?;
         let mut polynomials = Vec::with_capacity(poly_len);
         for _ in 0..poly_len {
@@ -756,7 +760,10 @@ pub trait Read {
     fn read_common_circuit_data<F: RichField + HasExtension<D>, const D: usize>(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
-    ) -> IoResult<CommonCircuitData<F, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<CommonCircuitData<F, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let config = self.read_circuit_config()?;
         let fri_params = self.read_fri_params()?;
 
@@ -819,8 +826,10 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-    ) -> IoResult<CircuitData<F, C, D>> 
-    where F::Extension: TwoAdicField{
+    ) -> IoResult<CircuitData<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let common = self.read_common_circuit_data(gate_serializer)?;
         let prover_only = self.read_prover_only_circuit_data(generator_serializer, &common)?;
         let verifier_only = self.read_verifier_only_circuit_data()?;
@@ -839,7 +848,10 @@ pub trait Read {
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<ProverOnlyCircuitData<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<ProverOnlyCircuitData<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let gen_len = self.read_usize()?;
         let mut generators = Vec::with_capacity(gen_len);
         for _ in 0..gen_len {
@@ -922,7 +934,10 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-    ) -> IoResult<ProverCircuitData<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<ProverCircuitData<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let common = self.read_common_circuit_data(gate_serializer)?;
         let prover_only = self.read_prover_only_circuit_data(generator_serializer, &common)?;
         Ok(ProverCircuitData {
@@ -937,7 +952,10 @@ pub trait Read {
         const D: usize,
     >(
         &mut self,
-    ) -> IoResult<VerifierOnlyCircuitData<C, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<VerifierOnlyCircuitData<C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let height = self.read_usize()?;
         let constants_sigmas_cap = self.read_merkle_cap(height)?;
         let circuit_digest = self.read_hash::<F, <C as GenericConfig<D>>::Hasher>()?;
@@ -954,7 +972,10 @@ pub trait Read {
     >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
-    ) -> IoResult<VerifierCircuitData<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<VerifierCircuitData<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let verifier_only = self.read_verifier_only_circuit_data()?;
         let common = self.read_common_circuit_data(gate_serializer)?;
         Ok(VerifierCircuitData {
@@ -982,7 +1003,7 @@ pub trait Read {
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F, FE = F::Extension>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let config = &common_data.config;
         let wires_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
@@ -1290,7 +1311,7 @@ pub trait Write {
     fn write_field_ext<F, const D: usize>(&mut self, x: F::Extension) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         for &a in x.as_base_slice() {
             self.write_field(a)?;
@@ -1303,7 +1324,7 @@ pub trait Write {
     fn write_field_ext_vec<F, const D: usize>(&mut self, v: &[F::Extension]) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         for &a in v {
             self.write_field_ext::<F, D>(a)?;
@@ -1453,7 +1474,7 @@ pub trait Write {
     fn write_opening_set<F, const D: usize>(&mut self, os: &OpeningSet<F, D>) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         self.write_field_ext_vec::<F, D>(&os.constants)?;
         self.write_field_ext_vec::<F, D>(&os.plonk_sigmas)?;
@@ -1739,14 +1760,18 @@ pub trait Write {
         gate: &GateRef<F, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField;
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField;
 
     fn write_generator<F: RichField + HasExtension<D>, const D: usize>(
         &mut self,
         generator: &WitnessGeneratorRef<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField;
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField;
 
     fn write_selectors_info(&mut self, selectors_info: &SelectorsInfo) -> IoResult<()> {
         let SelectorsInfo {
@@ -1770,7 +1795,10 @@ pub trait Write {
     >(
         &mut self,
         poly_batch: &PolynomialBatch<F, C, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         self.write_usize(poly_batch.polynomials.len())?;
         for i in 0..poly_batch.polynomials.len() {
             self.write_usize(poly_batch.polynomials[i].coeffs.len())?;
@@ -1788,7 +1816,10 @@ pub trait Write {
         &mut self,
         common_data: &CommonCircuitData<F, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         let CommonCircuitData {
             config,
             fri_params,
@@ -1843,8 +1874,10 @@ pub trait Write {
         circuit_data: &CircuitData<F, C, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-    ) -> IoResult<()> 
-    where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         self.write_common_circuit_data(&circuit_data.common, gate_serializer)?;
         self.write_prover_only_circuit_data(
             &circuit_data.prover_only,
@@ -1863,7 +1896,10 @@ pub trait Write {
         prover_only_circuit_data: &ProverOnlyCircuitData<F, C, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         let ProverOnlyCircuitData {
             generators,
             generator_indices_by_watches,
@@ -1938,7 +1974,10 @@ pub trait Write {
         prover_circuit_data: &ProverCircuitData<F, C, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         self.write_common_circuit_data(&prover_circuit_data.common, gate_serializer)?;
         self.write_prover_only_circuit_data(
             &prover_circuit_data.prover_only,
@@ -1954,7 +1993,10 @@ pub trait Write {
     >(
         &mut self,
         verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         let VerifierOnlyCircuitData {
             constants_sigmas_cap,
             circuit_digest,
@@ -1975,7 +2017,10 @@ pub trait Write {
         &mut self,
         verifier_circuit_data: &VerifierCircuitData<F, C, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         self.write_verifier_only_circuit_data(&verifier_circuit_data.verifier_only)?;
         self.write_common_circuit_data(&verifier_circuit_data.common, gate_serializer)
     }
@@ -2178,7 +2223,10 @@ impl Write for Vec<u8> {
         gate: &GateRef<F, D>,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         gate_serializer.write_gate(self, gate, common_data)
     }
 
@@ -2187,7 +2235,10 @@ impl Write for Vec<u8> {
         generator: &WitnessGeneratorRef<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<()> where F::Extension: TwoAdicField{
+    ) -> IoResult<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         generator_serializer.write_generator(self, generator, common_data)
     }
 }
@@ -2248,7 +2299,10 @@ impl<'a> Read for Buffer<'a> {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<GateRef<F, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<GateRef<F, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         gate_serializer.read_gate(self, common_data)
     }
 
@@ -2256,7 +2310,10 @@ impl<'a> Read for Buffer<'a> {
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<WitnessGeneratorRef<F, D>> where F::Extension: TwoAdicField{
+    ) -> IoResult<WitnessGeneratorRef<F, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         generator_serializer.read_generator(self, common_data)
     }
 }

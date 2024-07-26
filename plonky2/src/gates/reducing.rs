@@ -8,8 +8,8 @@ use alloc::{
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, TwoAdicField};
-
-use plonky2_field::{extension_algebra::ExtensionAlgebra, types::HasExtension};
+use plonky2_field::extension_algebra::ExtensionAlgebra;
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
@@ -63,8 +63,10 @@ impl<const D: usize> ReducingGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate<D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate<D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -123,7 +125,12 @@ where F::Extension: TwoAdicField{
 
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            let basefield_array: [F; D]= <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(acc * alpha + F::Extension::from_base(coeffs[i]) - accs[i])).try_into().unwrap();
+            let basefield_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(acc * alpha + F::Extension::from_base(coeffs[i]) - accs[i]),
+                )
+                .try_into()
+                .unwrap();
             yield_constr.many(basefield_array);
             acc = accs[i];
         }
@@ -160,8 +167,7 @@ where F::Extension: TwoAdicField{
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> 
-    {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
         vec![WitnessGeneratorRef::new(
             ReducingGenerator {
                 row,
@@ -194,8 +200,10 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingGate<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "ReducingGenerator".to_string()
     }

@@ -4,15 +4,17 @@ use alloc::vec::Vec;
 use core::fmt::Debug;
 
 use p3_field::{Field, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
-use crate::hash::hash_types::{HashOut, HashOutTarget, NUM_HASH_OUT_ELTS, RichField};
+use crate::hash::hash_types::{HashOut, HashOutTarget, RichField, NUM_HASH_OUT_ELTS};
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub fn hash_or_noop<H: AlgebraicHasher<F>>(&mut self, inputs: Vec<Target>) -> HashOutTarget {
         let zero = self.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {

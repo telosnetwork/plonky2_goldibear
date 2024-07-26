@@ -2,19 +2,18 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
-use p3_field::extension::HasTwoAdicBionmialExtension;
 use core::cmp::min;
 use core::mem::swap;
 
 use anyhow::{ensure, Result};
 use hashbrown::HashMap;
+use p3_field::extension::HasTwoAdicBionmialExtension;
+use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField, TwoAdicField};
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use plonky2_maybe_rayon::*;
 
 use super::circuit_builder::{LookupChallenges, LookupWire};
-
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField, TwoAdicField};
-use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::fri::oracle::PolynomialBatch;
 use crate::gates::lookup::LookupGate;
@@ -48,7 +47,9 @@ pub fn set_lookup_wires<
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     pw: &mut PartitionWitness<F>,
-) where F::Extension: TwoAdicField{
+) where
+    F::Extension: TwoAdicField,
+{
     for (
         lut_index,
         &LookupWire {
@@ -111,7 +112,11 @@ pub fn set_lookup_wires<
     }
 }
 
-pub fn prove<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+pub fn prove<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    const D: usize,
+>(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     inputs: PartialWitness<F>,
@@ -120,7 +125,7 @@ pub fn prove<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     let partition_witness = timed!(
         timing,
@@ -144,7 +149,7 @@ pub fn prove_with_partition_witness<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     let has_lookup = !common_data.luts.is_empty();
     let config = &common_data.config;
@@ -307,7 +312,9 @@ where
     // To avoid leaking witness data, we want to ensure that our opening locations, `zeta` and
     // `g * zeta`, are not in our subgroup `H`. It suffices to check `zeta` only, since
     // `(g * zeta)^n = zeta^n`, where `n` is the order of `g`.
-    let g = <F::Extension as AbstractExtensionField<F>>::from_base_slice(&<F as HasTwoAdicBionmialExtension<D>>::ext_two_adic_generator(common_data.degree_bits()));
+    let g = <F::Extension as AbstractExtensionField<F>>::from_base_slice(
+        &<F as HasTwoAdicBionmialExtension<D>>::ext_two_adic_generator(common_data.degree_bits()),
+    );
     ensure!(
         zeta.exp_power_of_2(common_data.degree_bits()) != <F::Extension as AbstractField>::one(),
         "Opening point is in the subgroup."
@@ -370,8 +377,10 @@ fn all_wires_permutation_partial_products<
     gammas: &[F],
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Vec<Vec<PolynomialValues<F>>> 
-where F::Extension: TwoAdicField {
+) -> Vec<Vec<PolynomialValues<F>>>
+where
+    F::Extension: TwoAdicField,
+{
     (0..common_data.config.num_challenges)
         .map(|i| {
             wires_permutation_partial_products_and_zs(
@@ -399,7 +408,9 @@ fn wires_permutation_partial_products_and_zs<
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Vec<PolynomialValues<F>>
-where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     let degree = common_data.quotient_degree_factor;
     let subgroup = &prover_data.subgroup;
     let k_is = &common_data.k_is;
@@ -464,7 +475,10 @@ fn compute_lookup_polys<
     deltas: &[F; 4],
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Vec<PolynomialValues<F>> where F::Extension: TwoAdicField{
+) -> Vec<PolynomialValues<F>>
+where
+    F::Extension: TwoAdicField,
+{
     let degree = common_data.degree();
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let max_lookup_degree = common_data.config.max_quotient_degree_factor - 1;
@@ -584,7 +598,10 @@ fn compute_all_lookup_polys<
     prover_data: &ProverOnlyCircuitData<F, C, D>,
     common_data: &CommonCircuitData<F, D>,
     lookup: bool,
-) -> Vec<PolynomialValues<F>> where F::Extension: TwoAdicField{
+) -> Vec<PolynomialValues<F>>
+where
+    F::Extension: TwoAdicField,
+{
     if lookup {
         let polys: Vec<Vec<PolynomialValues<F>>> = (0..common_data.config.num_challenges)
             .map(|c| {
@@ -621,7 +638,10 @@ fn compute_quotient_polys<
     gammas: &[F],
     deltas: &[F],
     alphas: &[F],
-) -> Vec<PolynomialCoeffs<F>> where F::Extension: TwoAdicField{
+) -> Vec<PolynomialCoeffs<F>>
+where
+    F::Extension: TwoAdicField,
+{
     let num_challenges = common_data.config.num_challenges;
 
     let has_lookup = common_data.num_lookup_polys != 0;

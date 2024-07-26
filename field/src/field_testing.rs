@@ -1,7 +1,5 @@
+use p3_field::extension::{BinomialExtensionField, HasFrobenius, HasTwoAdicBionmialExtension};
 use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
-use p3_field::extension::{
-    BinomialExtensionField, HasFrobenius, HasTwoAdicBionmialExtension,
-};
 
 use crate::packed::PackedField;
 use crate::types::{HasExtension, Sample};
@@ -80,10 +78,7 @@ macro_rules! test_field_arithmetic {
 
 /// Test of consistency of the arithmetic operations.
 #[allow(clippy::eq_op)]
-pub(crate) fn test_add_neg_sub_mul<
-    AF: AbstractField + HasExtension<D> + Sample,
-    const D: usize,
->() {
+pub(crate) fn test_add_neg_sub_mul<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
     let x = BinomialExtensionField::<AF, D>::rand();
     let y = BinomialExtensionField::<AF, D>::rand();
     let z = BinomialExtensionField::<AF, D>::rand();
@@ -116,10 +111,7 @@ pub(crate) fn test_inv_div<AF: AbstractField + HasExtension<D> + Sample, const D
 }
 
 /// Test that the Frobenius automorphism is consistent with the naive version.
-pub(crate) fn test_frobenius<
-    AF: AbstractField + HasExtension<D> + Sample,
-    const D: usize,
->() {
+pub(crate) fn test_frobenius<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
     let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(exp_biguint(x, &AF::order()), x.frobenius());
     for count in 2..D {
@@ -144,10 +136,7 @@ fn exp_biguint<AF: AbstractField + HasExtension<D> + Sample, const D: usize>(
 }
 
 /// Test that x^(|F| - 1) for a random (non-zero) x in F.
-pub(crate) fn test_field_order<
-    AF: AbstractField + HasExtension<D> + Sample,
-    const D: usize,
->() {
+pub(crate) fn test_field_order<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
     let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(
         exp_biguint::<AF, D>(x, &(BinomialExtensionField::<AF, D>::order() - 1u8)),

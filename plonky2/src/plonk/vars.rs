@@ -2,16 +2,20 @@
 
 use core::ops::Range;
 
-use crate::field::packed::PackedField;
 use p3_field::{Field, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
+
+use crate::field::packed::PackedField;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::util::strided_view::PackedStridedView;
 
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVars<'a, F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct EvaluationVars<'a, F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     pub local_constants: &'a [F::Extension],
     pub local_wires: &'a [F::Extension],
     pub public_inputs_hash: &'a HashOut<F>,
@@ -46,11 +50,11 @@ pub struct EvaluationVarsBasePacked<'a, P: PackedField> {
     pub public_inputs_hash: &'a HashOut<P::Scalar>,
 }
 
-impl<'a, F: RichField + HasExtension<D>, const D: usize> EvaluationVars<'a, F, D> where F::Extension: TwoAdicField{
-    pub fn get_local_ext_algebra(
-        &self,
-        wire_range: Range<usize>,
-    ) -> ExtensionAlgebra<F, D> {
+impl<'a, F: RichField + HasExtension<D>, const D: usize> EvaluationVars<'a, F, D>
+where
+    F::Extension: TwoAdicField,
+{
+    pub fn get_local_ext_algebra(&self, wire_range: Range<usize>) -> ExtensionAlgebra<F, D> {
         debug_assert_eq!(wire_range.len(), D);
         let arr = self.local_wires[wire_range].try_into().unwrap();
         ExtensionAlgebra::from_basefield_array(arr)
@@ -124,7 +128,7 @@ impl<'a, F: Field> EvaluationVarsBase<'a, F> {
     pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> F::Extension
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         debug_assert_eq!(wire_range.len(), D);
         let arr: [_] = self.local_wires.view(wire_range).try_into().unwrap();

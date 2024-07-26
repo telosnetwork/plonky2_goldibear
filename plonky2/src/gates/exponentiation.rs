@@ -8,9 +8,10 @@ use alloc::{
 use core::marker::PhantomData;
 
 use p3_field::{AbstractField, TwoAdicField};
+use plonky2_field::types::HasExtension;
+
 use crate::field::ops::Square;
 use crate::field::packed::PackedField;
-use plonky2_field::types::HasExtension;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -30,12 +31,18 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for raising a value to a power.
 #[derive(Clone, Debug, Default)]
-pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     pub num_power_bits: usize,
     pub _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub const fn new(num_power_bits: usize) -> Self {
         Self {
             num_power_bits,
@@ -75,8 +82,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> wh
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -205,7 +214,9 @@ where F::Extension: TwoAdicField{
 
 impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
     for ExponentiationGate<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -243,14 +254,19 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     row: usize,
     gate: ExponentiationGate<F, D>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ExponentiationGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "ExponentiationGenerator".to_string()
     }
@@ -316,11 +332,11 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 mod tests {
     use anyhow::Result;
     use p3_field::Field;
+    use p3_goldilocks::Goldilocks;
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
-    use p3_goldilocks::Goldilocks;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;

@@ -3,9 +3,9 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use p3_field::TwoAdicField;
 use core::ops::Range;
 
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -13,7 +13,10 @@ use crate::iop::ext_target::ExtensionTarget;
 
 /// Describes an instance of a FRI-based batch opening.
 #[derive(Debug)]
-pub struct FriInstanceInfo<F: RichField + HasExtension<D>, const D: usize> where  F::Extension: TwoAdicField{
+pub struct FriInstanceInfo<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     /// The oracles involved, not counting oracles created during the commit phase.
     pub oracles: Vec<FriOracleInfo>,
     /// Batches of openings, where each batch is associated with a particular point.
@@ -37,7 +40,10 @@ pub struct FriOracleInfo {
 
 /// A batch of openings at a particular point.
 #[derive(Debug)]
-pub struct FriBatchInfo<F: RichField + HasExtension<D>, const D: usize> where  F::Extension: TwoAdicField{
+pub struct FriBatchInfo<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     pub point: F::Extension,
     pub polynomials: Vec<FriPolynomialInfo>,
 }
@@ -73,13 +79,19 @@ impl FriPolynomialInfo {
 
 /// Opened values of each polynomial.
 #[derive(Debug)]
-pub struct FriOpenings<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct FriOpenings<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     pub batches: Vec<FriOpeningBatch<F, D>>,
 }
 
 /// Opened values of each polynomial that's opened at a particular point.
 #[derive(Debug)]
-pub struct FriOpeningBatch<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct FriOpeningBatch<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     pub values: Vec<F::Extension>,
 }
 

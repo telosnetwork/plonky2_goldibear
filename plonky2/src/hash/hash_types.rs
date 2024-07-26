@@ -27,7 +27,9 @@ pub struct HashOut<F: Field> {
 
 impl<F: Field> HashOut<F> {
     pub fn zero() -> Self {
-        Self {elements: [F::zero(); NUM_HASH_OUT_ELTS]}
+        Self {
+            elements: [F::zero(); NUM_HASH_OUT_ELTS],
+        }
     }
 
     // TODO: Switch to a TryFrom impl.

@@ -1,10 +1,10 @@
 use anyhow::ensure;
-
-use plonky2_field::types::HasExtension;
 use p3_field::TwoAdicField;
-use crate::fri::FriParams;
+use plonky2_field::types::HasExtension;
+
 use crate::fri::proof::{FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::structure::FriInstanceInfo;
+use crate::fri::FriParams;
 use crate::hash::hash_types::RichField;
 use crate::plonk::config::GenericConfig;
 use crate::plonk::plonk_common::salt_size;
@@ -17,8 +17,8 @@ pub(crate) fn validate_fri_proof_shape<F, C, const D: usize>(
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField
-    {
+    F::Extension: TwoAdicField,
+{
     let FriProof {
         commit_phase_merkle_caps,
         query_round_proofs,

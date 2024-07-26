@@ -1,13 +1,14 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+use p3_field::TwoAdicField;
 use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
-use p3_field::TwoAdicField;
+
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
+use crate::fri::{FriConfig, FriParams};
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleTree;
@@ -19,7 +20,11 @@ use crate::util::reverse_index_bits_in_place;
 use crate::util::timing::TimingTree;
 
 /// Builds a FRI proof.
-pub fn fri_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+pub fn fri_proof<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    const D: usize,
+>(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     // Coefficients of the polynomial on which the LDT is performed. Only the first `1/rate` coefficients are non-zero.
     lde_polynomial_coeffs: PolynomialCoeffs<F::Extension>,
@@ -28,7 +33,10 @@ pub fn fri_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE =
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
     timing: &mut TimingTree,
-) -> FriProof<F, C::Hasher, D> where F::Extension: TwoAdicField{
+) -> FriProof<F, C::Hasher, D>
+where
+    F::Extension: TwoAdicField,
+{
     let n = lde_polynomial_values.len();
     assert_eq!(lde_polynomial_coeffs.len(), n);
 
@@ -68,12 +76,19 @@ type FriCommitedTrees<F, C, const D: usize> = (
     PolynomialCoeffs<<F as HasExtension<D>>::Extension>,
 );
 
-fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+fn fri_committed_trees<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    const D: usize,
+>(
     mut coeffs: PolynomialCoeffs<F::Extension>,
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
-) -> FriCommitedTrees<F, C, D> where F::Extension: TwoAdicField{
+) -> FriCommitedTrees<F, C, D>
+where
+    F::Extension: TwoAdicField,
+{
     let mut trees = Vec::with_capacity(fri_params.reduction_arity_bits.len());
 
     let mut shift = F::generator();
@@ -114,10 +129,17 @@ fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F
 }
 
 /// Performs the proof-of-work (a.k.a. grinding) step of the FRI protocol. Returns the PoW witness.
-fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+fn fri_proof_of_work<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    const D: usize,
+>(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
-) -> F where F::Extension: TwoAdicField{
+) -> F
+where
+    F::Extension: TwoAdicField,
+{
     let min_leading_zeros = config.proof_of_work_bits + (64 - F::order().bits()) as u32;
 
     // The easiest implementation would be repeatedly clone our Challenger. With each clone, we'd
@@ -171,7 +193,10 @@ fn fri_prover_query_rounds<
     challenger: &mut Challenger<F, C::Hasher>,
     n: usize,
     fri_params: &FriParams,
-) -> Vec<FriQueryRound<F, C::Hasher, D>> where F::Extension: TwoAdicField{
+) -> Vec<FriQueryRound<F, C::Hasher, D>>
+where
+    F::Extension: TwoAdicField,
+{
     challenger
         .get_n_challenges(fri_params.config.num_query_rounds)
         .into_par_iter()
@@ -191,7 +216,10 @@ fn fri_prover_query_round<
     trees: &[MerkleTree<F, C::Hasher>],
     mut x_index: usize,
     fri_params: &FriParams,
-) -> FriQueryRound<F, C::Hasher, D> where  F::Extension: TwoAdicField{
+) -> FriQueryRound<F, C::Hasher, D>
+where
+    F::Extension: TwoAdicField,
+{
     let mut query_steps = Vec::new();
     let initial_proof = initial_merkle_trees
         .iter()

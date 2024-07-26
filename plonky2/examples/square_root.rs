@@ -24,7 +24,10 @@ use plonky2_field::types::{HasExtension, Sample};
 /// A generator used by the prover to calculate the square root (`x`) of a given value
 /// (`x_squared`), outside of the circuit, in order to supply it as an additional public input.
 #[derive(Debug, Default)]
-struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     x: Target,
     x_squared: Target,
     _phantom: PhantomData<F>,
@@ -32,7 +35,9 @@ struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize> where
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for SquareRootGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "SquareRootGenerator".to_string()
     }
@@ -76,7 +81,7 @@ where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     impl_generator_serializer! {
         CustomGeneratorSerializer,
@@ -96,7 +101,7 @@ fn main() -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D>>::F;
-    
+
     let config = CircuitConfig::standard_recursion_config();
 
     let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -172,8 +177,7 @@ fn sqrt<F: PrimeField64 + TwoAdicField>(x: F) -> Option<F> {
     if x.is_zero() {
         Some(x)
     } else if is_quadratic_residue(x) {
-        let t = (F::ORDER_U64 - 1)
-            / ((2u64).pow(F::TWO_ADICITY.try_into().unwrap()));
+        let t = (F::ORDER_U64 - 1) / ((2u64).pow(F::TWO_ADICITY.try_into().unwrap()));
         let mut z = F::two_adic_generator(F::bits());
         let mut w = x.exp_u64((t - 1) / 2);
         let mut x = w * x;

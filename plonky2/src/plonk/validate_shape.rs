@@ -1,8 +1,7 @@
 use anyhow::ensure;
-
-
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::plonk::config::GenericConfig;
@@ -15,7 +14,7 @@ pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize>(
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     let ProofWithPublicInputs {
         proof,
@@ -36,7 +35,7 @@ fn validate_proof_shape<F, C, const D: usize>(
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     let config = &common_data.config;
     let Proof {

@@ -5,9 +5,9 @@ use alloc::{
     vec::Vec,
 };
 
-
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
+
 use crate::gates::base_sum::BaseSumGate;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
@@ -18,7 +18,10 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::ceil_div_usize;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Split the given integer into a list of wires, where each one represents a
     /// bit of the integer, with little-endian ordering.
     /// Verifies that the decomposition is correct by using `k` `BaseSum<2>` gates
@@ -69,7 +72,10 @@ pub struct SplitGenerator {
     bits: Vec<Target>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for SplitGenerator where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for SplitGenerator
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "SplitGenerator".to_string()
     }
@@ -112,7 +118,10 @@ pub struct WireSplitGenerator {
     num_limbs: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for WireSplitGenerator where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for WireSplitGenerator
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "WireSplitGenerator".to_string()
     }

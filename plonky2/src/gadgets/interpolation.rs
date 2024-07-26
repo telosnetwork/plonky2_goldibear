@@ -10,7 +10,10 @@ use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Interpolates a polynomial, whose points are a coset of the multiplicative subgroup with the
     /// given size, and whose values are given. Returns the evaluation of the interpolant at
     /// `evaluation_point`.
@@ -44,12 +47,11 @@ mod tests {
     use alloc::vec::Vec;
 
     use anyhow::Result;
-    use p3_field::extension::BinomialExtensionField;
     use p3_field::{cyclic_subgroup_coset_known_order, AbstractExtensionField, TwoAdicField};
     use plonky2_field::types::HasExtension;
 
     use crate::field::interpolation::interpolant;
-    use crate::field::types::{Sample};
+    use crate::field::types::Sample;
     use crate::gates::coset_interpolation::CosetInterpolationGate;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_builder::CircuitBuilder;

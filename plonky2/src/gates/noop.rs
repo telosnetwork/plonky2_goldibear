@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
@@ -18,7 +17,10 @@ use crate::util::serialization::{Buffer, IoResult};
 #[derive(Debug)]
 pub struct NoopGate;
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for NoopGate where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for NoopGate
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "NoopGate".into()
     }

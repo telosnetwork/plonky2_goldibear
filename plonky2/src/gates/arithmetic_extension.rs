@@ -4,8 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
+
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -55,8 +56,10 @@ impl<const D: usize> ArithmeticExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticExtensionGate<D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticExtensionGate<D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -103,8 +106,14 @@ where F::Extension: TwoAdicField{
             let addend = vars.get_local_ext(Self::wires_ith_addend(i));
             let output = vars.get_local_ext(Self::wires_ith_output(i));
             let computed_output =
-                (multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0)) + addend * F::Extension::from_base(const_1);
-            let base_field_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(output - computed_output)).try_into().unwrap(); 
+                (multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0))
+                    + addend * F::Extension::from_base(const_1);
+            let base_field_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(output - computed_output),
+                )
+                .try_into()
+                .unwrap();
             yield_constr.many(base_field_array);
         }
     }
@@ -170,7 +179,10 @@ where F::Extension: TwoAdicField{
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     row: usize,
     const_0: F,
     const_1: F,
@@ -179,7 +191,9 @@ pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D:
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ArithmeticExtensionGenerator<F, D>
-where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "ArithmeticExtensionGenerator".to_string()
     }
@@ -213,8 +227,9 @@ where F::Extension: TwoAdicField{
             ArithmeticExtensionGate::<D>::wires_ith_output(self.i),
         );
 
-        let computed_output = (multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0))
-            + addend * F::Extension::from_base(self.const_1);
+        let computed_output =
+            (multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0))
+                + addend * F::Extension::from_base(self.const_1);
 
         out_buffer.set_extension_target(output_target, computed_output)
     }
@@ -243,8 +258,8 @@ where F::Extension: TwoAdicField{
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;

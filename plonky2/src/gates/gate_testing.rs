@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
 use p3_field::{AbstractExtensionField, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
@@ -26,7 +25,8 @@ const WITNESS_DEGREE: usize = WITNESS_SIZE - 1;
 pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D>, const D: usize>(gate: G)
 where
     F::Extension: TwoAdicField + Sample,
-    F::Extension: TwoAdicField{
+    F::Extension: TwoAdicField,
+{
     let rate_bits = log2_ceil(gate.degree() + 1);
 
     let wire_ldes = random_low_degree_matrix::<F::Extension>(gate.num_wires(), rate_bits);
@@ -71,7 +71,10 @@ where
     );
 }
 
-fn random_low_degree_matrix<F: TwoAdicField + Sample>(num_polys: usize, rate_bits: usize) -> Vec<Vec<F>> {
+fn random_low_degree_matrix<F: TwoAdicField + Sample>(
+    num_polys: usize,
+    rate_bits: usize,
+) -> Vec<Vec<F>> {
     let polys = (0..num_polys)
         .map(|_| random_low_degree_values(rate_bits))
         .collect::<Vec<_>>();
@@ -98,10 +101,11 @@ pub fn test_eval_fns<
     const D: usize,
 >(
     gate: G,
-) -> Result<()> 
-where 
+) -> Result<()>
+where
     F::Extension: Sample + TwoAdicField,
-    F::Extension: TwoAdicField {
+    F::Extension: TwoAdicField,
+{
     // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
     let wires_base = F::rand_vec(gate.num_wires());
     let constants_base = F::rand_vec(gate.num_constants());

@@ -1,9 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::{HashOutTarget, RichField};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::{CommonCircuitData, VerifierCircuitTarget};
@@ -17,7 +17,10 @@ use crate::plonk::vars::EvaluationTargets;
 use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Recursively verifies an inner proof.
     pub fn verify_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
@@ -201,13 +204,13 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{sync::Arc, vec};
-    use p3_field::TwoAdicField;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
     use anyhow::Result;
     use itertools::Itertools;
     use log::{info, Level};
+    use p3_field::TwoAdicField;
 
     use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
@@ -421,10 +424,17 @@ mod tests {
     );
 
     /// Creates a dummy proof which should have roughly `num_dummy_gates` gates.
-    fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F,FE = F::Extension>, const D: usize>(
+    fn dummy_proof<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
+        const D: usize,
+    >(
         config: &CircuitConfig,
         num_dummy_gates: u64,
-    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> Result<Proof<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         for _ in 0..num_dummy_gates {
             builder.add_gate(NoopGate, vec![]);
@@ -442,11 +452,14 @@ mod tests {
     fn dummy_lookup_proof<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, F = F, FE = F::Extension>,
-        const D: usize
+        const D: usize,
     >(
         config: &CircuitConfig,
         num_dummy_gates: u64,
-    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> Result<Proof<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -503,7 +516,10 @@ mod tests {
         const D: usize,
     >(
         config: &CircuitConfig,
-    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> Result<Proof<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -580,7 +596,10 @@ mod tests {
         const D: usize,
     >(
         config: &CircuitConfig,
-    ) -> Result<Proof<F, C, D>> where F::Extension: TwoAdicField{
+    ) -> Result<Proof<F, C, D>>
+    where
+        F::Extension: TwoAdicField,
+    {
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
 
         let initial_a = builder.add_virtual_target();
@@ -645,7 +664,7 @@ mod tests {
     ) -> Result<Proof<F, C, D>>
     where
         InnerC::Hasher: AlgebraicHasher<F>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
         let mut pw = PartialWitness::new();
@@ -697,7 +716,10 @@ mod tests {
         proof: &ProofWithPublicInputs<F, C, D>,
         vd: &VerifierOnlyCircuitData<C, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> Result<()> where F::Extension: TwoAdicField{
+    ) -> Result<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         let proof_bytes = proof.to_bytes();
         info!("Proof length: {} bytes", proof_bytes.len());
         let proof_from_bytes = ProofWithPublicInputs::from_bytes(proof_bytes, common_data)?;

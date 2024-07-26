@@ -5,14 +5,14 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use plonky2_field::{extension_algebra::ExtensionAlgebra, types::two_adic_subgroup};
 use core::marker::PhantomData;
 use core::ops::Range;
-use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+
+use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
+use plonky2_field::extension_algebra::ExtensionAlgebra;
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 
 use crate::field::interpolation::barycentric_weights;
-use p3_field::Field;
-use plonky2_field::types::HasExtension;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -55,19 +55,31 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// Then $e[N]$ is the final interpolated value. The non-routed wires hold every $(d - 1)$'th
 /// intermediate value of $p$ and $e$, starting at $p[d]$ and $e[d]$, where $d$ is the gate degree.
 #[derive(Clone, Debug, Default)]
-pub struct CosetInterpolationGate<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct CosetInterpolationGate<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     pub subgroup_bits: usize,
     pub degree: usize,
     pub barycentric_weights: Vec<F>,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D> where F::Extension: TwoAdicField{
-    pub fn new(subgroup_bits: usize) -> Self where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
+    pub fn new(subgroup_bits: usize) -> Self
+    where
+        F::Extension: TwoAdicField,
+    {
         Self::with_max_degree(subgroup_bits, 1 << subgroup_bits)
     }
 
-    pub(crate) fn with_max_degree(subgroup_bits: usize, max_degree: usize) -> Self where F::Extension: TwoAdicField{
+    pub(crate) fn with_max_degree(subgroup_bits: usize, max_degree: usize) -> Self
+    where
+        F::Extension: TwoAdicField,
+    {
         assert!(max_degree > 1, "need at least quadratic constraints");
 
         let n_points = 1 << subgroup_bits;
@@ -172,7 +184,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpolationGate<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpolationGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -255,10 +270,12 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
         let shift = vars.local_wires[self.wire_shift()];
         let evaluation_point = vars.get_local_ext(self.wires_evaluation_point());
         let shifted_evaluation_point = vars.get_local_ext(self.wires_shifted_evaluation_point());
-        let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(evaluation_point - shifted_evaluation_point * F::Extension::from_base(shift))).try_into().unwrap();
-        yield_constr.many(
-            basefield_array,
-        );
+        let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+            &(evaluation_point - shifted_evaluation_point * F::Extension::from_base(shift)),
+        )
+        .try_into()
+        .unwrap();
+        yield_constr.many(basefield_array);
 
         let domain = two_adic_subgroup::<F>(self.subgroup_bits);
         let values = (0..self.num_points())
@@ -278,9 +295,19 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
         for i in 0..self.num_intermediates() {
             let intermediate_eval = vars.get_local_ext(self.wires_intermediate_eval(i));
             let intermediate_prod = vars.get_local_ext(self.wires_intermediate_prod(i));
-            let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(intermediate_eval - computed_eval)).try_into().unwrap();
+            let basefield_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(intermediate_eval - computed_eval),
+                )
+                .try_into()
+                .unwrap();
             yield_constr.many(basefield_array);
-            let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(intermediate_prod - computed_prod)).try_into().unwrap();
+            let basefield_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(intermediate_prod - computed_prod),
+                )
+                .try_into()
+                .unwrap();
             yield_constr.many(basefield_array);
 
             let start_index = 1 + (self.degree() - 1) * (i + 1);
@@ -296,7 +323,11 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
         }
 
         let evaluation_value = vars.get_local_ext(self.wires_evaluation_value());
-        let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(evaluation_value - computed_eval)).try_into().unwrap();
+        let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+            &(evaluation_value - computed_eval),
+        )
+        .try_into()
+        .unwrap();
         yield_constr.many(basefield_array);
     }
 
@@ -327,9 +358,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
         let weights = &self.barycentric_weights;
 
         let initial_eval = builder.zero_ext_algebra();
-        let initial_prod = builder.constant_ext_algebra(
-            ExtensionAlgebra::one()
-        );
+        let initial_prod = builder.constant_ext_algebra(ExtensionAlgebra::one());
         let (mut computed_eval, mut computed_prod) = partial_interpolate_ext_algebra_target(
             builder,
             &domain[..self.degree()],
@@ -402,14 +431,20 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpo
 }
 
 #[derive(Debug, Default)]
-pub struct InterpolationGenerator<F: RichField + HasExtension<D>, const D: usize> where  F::Extension: TwoAdicField{
+pub struct InterpolationGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     row: usize,
     gate: CosetInterpolationGate<F, D>,
     interpolation_domain: Vec<F>,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> InterpolationGenerator<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> InterpolationGenerator<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     fn new(row: usize, gate: CosetInterpolationGate<F, D>) -> Self {
         let interpolation_domain = two_adic_subgroup::<F>(gate.subgroup_bits);
         InterpolationGenerator {
@@ -423,7 +458,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> InterpolationGenerator<F, D
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for InterpolationGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "InterpolationGenerator".to_string()
     }
@@ -616,7 +653,10 @@ fn partial_interpolate_ext_algebra_target<F: RichField + HasExtension<D>, const 
     point: ExtensionAlgebraTarget<D>,
     initial_eval: ExtensionAlgebraTarget<D>,
     initial_partial_prod: ExtensionAlgebraTarget<D>,
-) -> (ExtensionAlgebraTarget<D>, ExtensionAlgebraTarget<D>) where F::Extension: TwoAdicField{
+) -> (ExtensionAlgebraTarget<D>, ExtensionAlgebraTarget<D>)
+where
+    F::Extension: TwoAdicField,
+{
     let n = values.len();
     debug_assert!(n != 0);
     debug_assert!(domain.len() == n);
@@ -630,8 +670,12 @@ fn partial_interpolate_ext_algebra_target<F: RichField + HasExtension<D>, const 
         .fold(
             (initial_eval, initial_partial_prod),
             |(eval, partial_prod), ((val, x), weight)| {
-                let x_target = builder.constant_ext_algebra(ExtensionAlgebra::from_base(<F::Extension as AbstractExtensionField<F>>::from_base(x)));
-                let weight_target = builder.constant_extension(<F::Extension as AbstractExtensionField<F>>::from_base(weight));
+                let x_target = builder.constant_ext_algebra(ExtensionAlgebra::from_base(
+                    <F::Extension as AbstractExtensionField<F>>::from_base(x),
+                ));
+                let weight_target = builder.constant_extension(
+                    <F::Extension as AbstractExtensionField<F>>::from_base(weight),
+                );
                 let term = builder.sub_ext_algebra(point, x_target);
                 let weighted_val = builder.scalar_mul_ext_algebra(weight_target, val);
                 let new_eval = builder.mul_ext_algebra(eval, term);
@@ -646,11 +690,11 @@ fn partial_interpolate_ext_algebra_target<F: RichField + HasExtension<D>, const 
 mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
+    use p3_goldilocks::Goldilocks;
     use plonky2_field::polynomial::PolynomialValues;
     use plonky2_util::log2_strict;
 
     use super::*;
-    use p3_goldilocks::Goldilocks;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;
@@ -812,8 +856,7 @@ mod tests {
         /// Returns the local wires for an interpolation gate for given coeffs, points and eval point.
         fn get_wires(shift: F, values: PolynomialValues<FF>, eval_point: FF) -> Vec<FF> {
             let domain = two_adic_subgroup::<F>(log2_strict(values.len()));
-            let shifted_eval_point =
-                eval_point * shift.inverse();
+            let shifted_eval_point = eval_point * shift.inverse();
             let weights =
                 barycentric_weights(&domain.iter().map(|&x| (x, F::zero())).collect::<Vec<_>>());
             let (intermediate_eval, intermediate_prod) = partial_interpolate::<_, D>(

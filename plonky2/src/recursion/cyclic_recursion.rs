@@ -4,10 +4,9 @@
 use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
-
-
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -20,7 +19,7 @@ use crate::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D>
-where 
+where
     C::F: RichField + HasExtension<D>,
     <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension: TwoAdicField,
 {
@@ -70,7 +69,10 @@ impl VerifierCircuitTarget {
     fn from_slice<F: RichField + HasExtension<D>, const D: usize>(
         slice: &[Target],
         common_data: &CommonCircuitData<F, D>,
-    ) -> Result<Self> where F::Extension: TwoAdicField{
+    ) -> Result<Self>
+    where
+        F::Extension: TwoAdicField,
+    {
         let cap_len = common_data.config.fri_config.num_cap_elements();
         let len = slice.len();
         ensure!(len >= 4 + 4 * cap_len, "Not enough public inputs");
@@ -92,7 +94,10 @@ impl VerifierCircuitTarget {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
     ///
@@ -161,7 +166,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         Ok(())
     }
 
-    pub fn conditionally_verify_cyclic_proof_or_dummy<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
+    pub fn conditionally_verify_cyclic_proof_or_dummy<
+        C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+    >(
         &mut self,
         condition: BoolTarget,
         cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
@@ -169,7 +176,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(common_data)?;
@@ -197,7 +204,7 @@ pub fn check_cyclic_proof_verifier_data<
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     let pis = VerifierOnlyCircuitData::<C, D>::from_slice(&proof.public_inputs, common_data)?;
     ensure!(verifier_data.constants_sigmas_cap == pis.constants_sigmas_cap);
@@ -214,7 +221,6 @@ mod tests {
     use anyhow::Result;
     use p3_field::{AbstractField, PrimeField64, TwoAdicField};
     use plonky2_field::types::HasExtension;
-
 
     use crate::gates::noop::NoopGate;
     use crate::hash::hash_types::{HashOutTarget, RichField};
@@ -235,7 +241,7 @@ mod tests {
     >() -> CommonCircuitData<F, D>
     where
         C::Hasher: AlgebraicHasher<F>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let config = CircuitConfig::standard_recursion_config();
         let builder = CircuitBuilder::<F, D>::new(config);
@@ -321,7 +327,12 @@ mod tests {
         let cyclic_circuit_data = builder.build::<C>();
 
         let mut pw = PartialWitness::new();
-        let initial_hash = [<F as AbstractField>::zero(), F::one(), F::two(), F::from_canonical_usize(3)];
+        let initial_hash = [
+            <F as AbstractField>::zero(),
+            F::one(),
+            F::two(),
+            F::from_canonical_usize(3),
+        ];
         let initial_hash_pis = initial_hash.into_iter().enumerate().collect();
         pw.set_bool_target(condition, false);
         pw.set_proof_with_pis_target::<C, D>(

@@ -1,10 +1,9 @@
 //! plonky2 verifier implementation.
 
 use anyhow::{ensure, Result};
-
-
 use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
+
 use crate::fri::verifier::verify_fri_proof;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
@@ -15,12 +14,18 @@ use crate::plonk::validate_shape::validate_proof_with_pis_shape;
 use crate::plonk::vanishing_poly::eval_vanishing_poly;
 use crate::plonk::vars::EvaluationVars;
 
-pub(crate) fn verify<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+pub(crate) fn verify<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    const D: usize,
+>(
     proof_with_pis: ProofWithPublicInputs<F, C, D>,
     verifier_data: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Result<()> 
-where F::Extension: TwoAdicField{
+) -> Result<()>
+where
+    F::Extension: TwoAdicField,
+{
     validate_proof_with_pis_shape(&proof_with_pis, common_data)?;
 
     let public_inputs_hash = proof_with_pis.get_public_inputs_hash();
@@ -49,8 +54,10 @@ pub(crate) fn verify_with_challenges<
     challenges: ProofChallenges<F, D>,
     verifier_data: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,
-) -> Result<()> 
-where F::Extension: TwoAdicField{
+) -> Result<()>
+where
+    F::Extension: TwoAdicField,
+{
     let local_constants = &proof.openings.constants;
     let local_wires = &proof.openings.wires;
     let vars = EvaluationVars {

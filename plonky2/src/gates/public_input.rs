@@ -1,9 +1,8 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
-use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
 
-
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::field::packed::PackedField;
@@ -31,7 +30,10 @@ impl PublicInputGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputGate where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputGate
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "PublicInputGate".into()
     }
@@ -102,7 +104,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PublicInputG
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for PublicInputGate
+where
+    F::Extension: TwoAdicField,
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,

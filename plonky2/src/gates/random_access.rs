@@ -8,11 +8,10 @@ use alloc::{
 use core::marker::PhantomData;
 
 use itertools::Itertools;
-
-use p3_field::{AbstractField, TwoAdicField};
-use crate::field::packed::PackedField;
-use p3_field::Field;
+use p3_field::{AbstractField, Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
+
+use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -45,7 +44,10 @@ pub struct RandomAccessGate<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     const fn new(num_copies: usize, bits: usize, num_extra_constants: usize) -> Self {
         Self {
             bits,
@@ -122,8 +124,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D> wher
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
@@ -164,7 +168,9 @@ where F::Extension: TwoAdicField{
             let reconstructed_index = bits
                 .iter()
                 .rev()
-                .fold(<F::Extension as AbstractField>::zero(), |acc, &b| acc.double() + b);
+                .fold(<F::Extension as AbstractField>::zero(), |acc, &b| {
+                    acc.double() + b
+                });
             constraints.push(reconstructed_index - access_index);
 
             // Repeatedly fold the list, selecting the left or right item from each pair based on
@@ -299,7 +305,9 @@ where F::Extension: TwoAdicField{
 
 impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
     for RandomAccessGate<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -345,7 +353,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     row: usize,
     gate: RandomAccessGate<F, D>,
     copy: usize,
@@ -353,7 +364,9 @@ pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize>
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for RandomAccessGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "RandomAccessGenerator".to_string()
     }
@@ -417,11 +430,11 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_goldilocks::Goldilocks;
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
-    use p3_goldilocks::Goldilocks;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;

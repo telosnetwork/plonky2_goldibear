@@ -6,7 +6,6 @@ use alloc::{
 };
 
 use hashbrown::HashMap;
-
 use p3_field::TwoAdicField;
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_field::types::HasExtension;
@@ -80,7 +79,7 @@ pub(crate) fn dummy_proof<
     nonzero_public_inputs: HashMap<usize, F>,
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D>>
 where
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     let mut pw = PartialWitness::new();
     for i in 0..circuit.common.num_public_inputs {
@@ -98,7 +97,9 @@ pub(crate) fn dummy_circuit<
 >(
     common_data: &CommonCircuitData<F, D>,
 ) -> CircuitData<F, C, D>
-where F::Extension: TwoAdicField {
+where
+    F::Extension: TwoAdicField,
+{
     let config = common_data.config.clone();
     assert!(
         !common_data.config.zero_knowledge,
@@ -126,14 +127,17 @@ where F::Extension: TwoAdicField {
     circuit
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<(ProofWithPublicInputsTarget<D>, VerifierCircuitTarget)>
     where
         C::Hasher: AlgebraicHasher<F>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let dummy_circuit = dummy_circuit::<F, C, D>(common_data);
         let dummy_proof_with_pis = dummy_proof::<F, C, D>(&dummy_circuit, HashMap::new())?;
@@ -169,7 +173,7 @@ impl<F, C, const D: usize> Default for DummyProofGenerator<F, C, D>
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField
+    F::Extension: TwoAdicField,
 {
     fn default() -> Self {
         let proof_with_pis_target = ProofWithPublicInputsTarget {
@@ -232,8 +236,8 @@ where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F>,
-    F::Extension: TwoAdicField
-    {
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "DummyProofGenerator".to_string()
     }

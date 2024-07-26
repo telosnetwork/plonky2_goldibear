@@ -114,14 +114,13 @@ pub(crate) fn decompress_merkle_proofs<F: RichField, H: Hasher<F>>(
 
 #[cfg(test)]
 mod tests {
-    use rand::Rng;
     use rand::rngs::OsRng;
+    use rand::Rng;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     #[test]
     fn test_path_compression() {

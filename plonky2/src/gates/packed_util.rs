@@ -11,7 +11,10 @@ use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::plonk::vars::{EvaluationVarsBaseBatch, EvaluationVarsBasePacked};
 
-pub trait PackedEvaluableBase<F: RichField + HasExtension<D>, const D: usize>: Gate<F, D> where F::Extension: TwoAdicField{
+pub trait PackedEvaluableBase<F: RichField + HasExtension<D>, const D: usize>: Gate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars_base: EvaluationVarsBasePacked<P>,

@@ -21,7 +21,10 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub fn arithmetic_extension(
         &mut self,
         const_0: F,
@@ -53,7 +56,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
             return result;
         }
 
-        let result = if self.target_as_constant_ext(addend) == Some(<F::Extension as AbstractField>::zero()) {
+        let result = if self.target_as_constant_ext(addend)
+            == Some(<F::Extension as AbstractField>::zero())
+        {
             // If the addend is zero, we use a multiplication gate.
             self.compute_mul_extension_operation(operation)
         } else {
@@ -509,7 +514,9 @@ pub struct QuotientGeneratorExtension<const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for QuotientGeneratorExtension<D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "QuotientGeneratorExtension".to_string()
     }
@@ -556,7 +563,10 @@ impl<const D: usize> PowersTarget<D> {
     pub fn next<F: RichField + HasExtension<D>>(
         &mut self,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> ExtensionTarget<D> where F::Extension: TwoAdicField{
+    ) -> ExtensionTarget<D>
+    where
+        F::Extension: TwoAdicField,
+    {
         let result = self.current;
         self.current = builder.mul_extension(self.base, self.current);
         result
@@ -566,7 +576,10 @@ impl<const D: usize> PowersTarget<D> {
         self,
         k: usize,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self where F::Extension: TwoAdicField{
+    ) -> Self
+    where
+        F::Extension: TwoAdicField,
+    {
         let Self { base, current } = self;
         Self {
             base: base.repeated_frobenius(k, builder),
@@ -575,7 +588,10 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
         PowersTarget {
             base,
@@ -597,7 +613,6 @@ pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + HasExtension<D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_field::extension::BinomialExtensionField;
     use plonky2_field::extension_algebra::ExtensionAlgebra;
     use plonky2_field::types::HasExtension;
 

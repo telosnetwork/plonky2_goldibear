@@ -2,7 +2,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use p3_field::TwoAdicField;
-
 use plonky2_util::log2_ceil;
 
 use crate::polynomial::PolynomialCoeffs;
@@ -137,11 +136,11 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
 mod tests {
     use alloc::vec;
 
-    use p3_field::AbstractField;
     use p3_field::extension::BinomialExtensionField;
+    use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
-    use rand::Rng;
     use rand::rngs::OsRng;
+    use rand::Rng;
 
     use crate::polynomial::PolynomialCoeffs;
     use crate::types::Sample;

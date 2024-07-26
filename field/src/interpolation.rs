@@ -1,7 +1,6 @@
 use alloc::vec::Vec;
 
 use p3_field::{batch_multiplicative_inverse, Field, TwoAdicField};
-
 use plonky2_util::log2_ceil;
 
 use crate::fft::ifft;
@@ -85,10 +84,9 @@ mod tests {
     use p3_field::extension::BinomialExtensionField;
     use p3_goldilocks::Goldilocks;
 
-    use crate::polynomial::PolynomialCoeffs;
-    use crate::types::{Sample, two_adic_subgroup};
-
     use super::*;
+    use crate::polynomial::PolynomialCoeffs;
+    use crate::types::{two_adic_subgroup, Sample};
 
     #[test]
     fn interpolant_random() {

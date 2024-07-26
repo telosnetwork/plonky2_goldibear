@@ -3,9 +3,8 @@ use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 use core::slice;
 
-use serde::{Deserialize, Serialize};
-
 use plonky2_maybe_rayon::*;
+use serde::{Deserialize, Serialize};
 
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_proofs::MerkleProof;
@@ -228,14 +227,12 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use p3_field::TwoAdicField;
     use plonky2_field::types::{HasExtension, Sample};
 
+    use super::*;
     use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     fn random_data<F: RichField>(n: usize, k: usize) -> Vec<Vec<F>> {
         (0..n).map(|_| F::rand_vec(k)).collect()
@@ -248,7 +245,10 @@ mod tests {
     >(
         leaves: Vec<Vec<F>>,
         cap_height: usize,
-    ) -> Result<()> where F::Extension: TwoAdicField{
+    ) -> Result<()>
+    where
+        F::Extension: TwoAdicField,
+    {
         let tree = MerkleTree::<F, C::Hasher>::new(leaves.clone(), cap_height);
         for (i, leaf) in leaves.into_iter().enumerate() {
             let proof = tree.prove(i);

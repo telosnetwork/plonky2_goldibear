@@ -2,28 +2,31 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-
-use plonky2_field::types::HasExtension;
 use p3_field::TwoAdicField;
-use crate::fri::{FriConfig, FriParams};
+use plonky2_field::types::HasExtension;
+
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
+use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{ExtensionTarget, flatten_target};
+use crate::iop::ext_target::{flatten_target, ExtensionTarget};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::util::reducing::ReducingFactorTarget;
+use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
     fn compute_evaluation(
@@ -247,7 +250,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         sum
     }
 
-    fn fri_verifier_query_round<C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension >>(
+    fn fri_verifier_query_round<
+        C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>,
+    >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         challenges: &FriChallengesTarget<D>,
@@ -469,7 +474,10 @@ impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self where F::Extension: TwoAdicField{
+    ) -> Self
+    where
+        F::Extension: TwoAdicField,
+    {
         let reduced_openings_at_point = openings
             .batches
             .iter()

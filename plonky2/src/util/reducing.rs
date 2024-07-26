@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 use core::borrow::Borrow;
 
 use p3_field::{AbstractExtensionField, ExtensionField, Field, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::field::packed::PackedField;
@@ -41,7 +40,7 @@ impl<F: Field> ReducingFactor<F> {
 
     fn mul_ext<P, const D: usize>(&mut self, x: P) -> P
     where
-    F: HasExtension<D>,
+        F: HasExtension<D>,
         P: PackedField<Scalar = F::Extension>,
     {
         self.count += 1;
@@ -50,8 +49,9 @@ impl<F: Field> ReducingFactor<F> {
     }
 
     fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>)
-    where 
-    F: TwoAdicField {
+    where
+        F: TwoAdicField,
+    {
         self.count += 1;
         *p *= self.base;
     }
@@ -66,7 +66,7 @@ impl<F: Field> ReducingFactor<F> {
         iter: impl DoubleEndedIterator<Item = impl Borrow<P>>,
     ) -> P
     where
-    F: HasExtension<D>,
+        F: HasExtension<D>,
         P: PackedField<Scalar = F::Extension>,
     {
         iter.rev()
@@ -76,9 +76,9 @@ impl<F: Field> ReducingFactor<F> {
     pub fn reduce_polys(
         &mut self,
         polys: impl DoubleEndedIterator<Item = impl Borrow<PolynomialCoeffs<F>>>,
-    ) -> PolynomialCoeffs<F> 
-    where 
-    F: TwoAdicField
+    ) -> PolynomialCoeffs<F>
+    where
+        F: TwoAdicField,
     {
         polys.rev().fold(PolynomialCoeffs::empty(), |mut acc, x| {
             self.mul_poly(&mut acc);
@@ -91,7 +91,9 @@ impl<F: Field> ReducingFactor<F> {
         &mut self,
         polys: impl IntoIterator<Item = impl Borrow<PolynomialCoeffs<BF>>>,
     ) -> PolynomialCoeffs<F>
-    where F: ExtensionField<BF> + TwoAdicField{
+    where
+        F: ExtensionField<BF> + TwoAdicField,
+    {
         self.base
             .powers()
             .zip(polys)
@@ -109,7 +111,9 @@ impl<F: Field> ReducingFactor<F> {
     }
 
     pub fn shift_poly(&mut self, p: &mut PolynomialCoeffs<F>)
-    where  F: TwoAdicField {
+    where
+        F: TwoAdicField,
+    {
         *p *= self.base.exp_u64(self.count);
         self.count = 0;
     }
@@ -138,7 +142,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let l = terms.len();
 
@@ -194,7 +198,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let l = terms.len();
 
@@ -248,7 +252,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         self.count += terms.len() as u64;
         terms
@@ -266,7 +270,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let zero_ext = builder.zero_extension();
         let exp = if x == zero_ext {
@@ -290,13 +294,12 @@ mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     fn test_reduce_gadget_base(n: usize) -> Result<()> {
         const D: usize = 2;
@@ -342,7 +345,9 @@ mod tests {
         let mut builder = CircuitBuilder::<F, D>::new(config);
 
         let alpha = FF::rand();
-        let vs = (0..n).map(<FF as AbstractField>::from_canonical_usize).collect::<Vec<_>>();
+        let vs = (0..n)
+            .map(<FF as AbstractField>::from_canonical_usize)
+            .collect::<Vec<_>>();
 
         let manual_reduce = ReducingFactor::new(alpha).reduce(vs.iter());
         let manual_reduce = builder.constant_extension(manual_reduce);

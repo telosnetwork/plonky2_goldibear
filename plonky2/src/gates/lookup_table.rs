@@ -13,7 +13,6 @@ use std::sync::Arc;
 use itertools::Itertools;
 use keccak_hash::keccak;
 use p3_field::TwoAdicField;
-
 use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
 
@@ -85,8 +84,10 @@ impl LookupTableGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for LookupTableGate 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for LookupTableGate
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         // Custom implementation to not have the entire lookup table
         format!(
@@ -183,8 +184,10 @@ where F::Extension: TwoAdicField{
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for LookupTableGate 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for LookupTableGate
+where
+    F::Extension: TwoAdicField,
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         _vars: EvaluationVarsBasePacked<P>,
@@ -202,8 +205,10 @@ pub struct LookupTableGenerator {
     last_lut_row: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for LookupTableGenerator 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for LookupTableGenerator
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "LookupTableGenerator".to_string()
     }

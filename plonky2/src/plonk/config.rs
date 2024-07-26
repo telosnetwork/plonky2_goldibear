@@ -8,15 +8,15 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField};
-use p3_field::{ExtensionField, TwoAdicField};
 use core::fmt::Debug;
 
+use p3_field::extension::BinomialExtensionField;
+use p3_field::{ExtensionField, TwoAdicField};
+use p3_goldilocks::Goldilocks;
+use plonky2_field::types::HasExtension;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use p3_goldilocks::Goldilocks;
-use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
@@ -112,7 +112,7 @@ pub trait GenericConfig<const D: usize>:
 pub struct PoseidonGoldilocksConfig;
 impl GenericConfig<2> for PoseidonGoldilocksConfig {
     type F = Goldilocks;
-    type FE = BinomialExtensionField<Self::F,2>;
+    type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = PoseidonHash;
     type InnerHasher = PoseidonHash;
 }
@@ -122,7 +122,7 @@ impl GenericConfig<2> for PoseidonGoldilocksConfig {
 pub struct KeccakGoldilocksConfig;
 impl GenericConfig<2> for KeccakGoldilocksConfig {
     type F = Goldilocks;
-    type FE = BinomialExtensionField<Self::F,2>;
+    type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = KeccakHash<25>;
     type InnerHasher = PoseidonHash;
 }

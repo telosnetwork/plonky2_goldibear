@@ -7,6 +7,7 @@ use alloc::{
 
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
+
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -59,8 +60,10 @@ impl ArithmeticGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGate 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ArithmeticGate
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -164,8 +167,10 @@ where F::Extension: TwoAdicField{
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate
+where
+    F::Extension: TwoAdicField,
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
         vars: EvaluationVarsBasePacked<P>,
@@ -187,7 +192,10 @@ where F::Extension: TwoAdicField{
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     row: usize,
     const_0: F,
     const_1: F,
@@ -196,7 +204,9 @@ pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usiz
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for ArithmeticBaseGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "ArithmeticBaseGenerator".to_string()
     }
@@ -252,6 +262,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;

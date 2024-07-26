@@ -8,7 +8,7 @@ use p3_field::AbstractField;
 use p3_goldilocks::Goldilocks;
 use plonky2_util::{assume, branch_hint};
 
-use crate::hash::poseidon::{N_PARTIAL_ROUNDS, Poseidon};
+use crate::hash::poseidon::{Poseidon, N_PARTIAL_ROUNDS};
 
 unsafe fn add_no_canonicalize_trashing_input(x: u64, y: u64) -> u64 {
     let res_wrapped: u64;
@@ -490,7 +490,7 @@ mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{vec, vec::Vec};
 
-    use p3_field::{AbstractField, PrimeField64};
+    use p3_field::PrimeField64;
     use p3_goldilocks::Goldilocks;
 
     use crate::hash::poseidon::test_helpers::{check_consistency, check_test_vectors};

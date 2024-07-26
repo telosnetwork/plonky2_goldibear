@@ -1,7 +1,8 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use p3_field::{batch_multiplicative_inverse, extension::BinomialExtensionField, TwoAdicField};
+use p3_field::extension::BinomialExtensionField;
+use p3_field::{batch_multiplicative_inverse, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use plonky2_field::types::Sample;
 use tynm::type_name;
@@ -114,7 +115,10 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     });
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse::<F>-tiny<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-tiny<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..2).map(|_| F::rand()).collect::<Vec<_>>(),
@@ -125,7 +129,10 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse::<F>-small<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-small<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..4).map(|_| F::rand()).collect::<Vec<_>>(),
@@ -136,7 +143,10 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse::<F>-medium<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-medium<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..16).map(|_| F::rand()).collect::<Vec<_>>(),
@@ -147,7 +157,10 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse::<F>-large<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-large<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..256).map(|_| F::rand()).collect::<Vec<_>>(),
@@ -158,7 +171,10 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse::<F>-huge<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-huge<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..65536).map(|_| F::rand()).collect::<Vec<_>>(),
@@ -171,7 +187,7 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     bench_field::<Goldilocks>(c);
-    bench_field::<BinomialExtensionField<Goldilocks,2>>(c);
+    bench_field::<BinomialExtensionField<Goldilocks, 2>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

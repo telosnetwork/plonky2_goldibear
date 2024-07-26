@@ -3,9 +3,7 @@ use alloc::vec::Vec;
 use core::iter;
 
 use itertools::Itertools;
-
 use p3_field::{Field, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -89,7 +87,10 @@ pub(crate) fn check_partial_products_circuit<F: RichField + HasExtension<D>, con
     z_x: ExtensionTarget<D>,
     z_gx: ExtensionTarget<D>,
     max_degree: usize,
-) -> Vec<ExtensionTarget<D>> where F::Extension: TwoAdicField{
+) -> Vec<ExtensionTarget<D>>
+where
+    F::Extension: TwoAdicField,
+{
     debug_assert!(max_degree > 1);
     let product_accs = iter::once(&z_x)
         .chain(partials.iter())

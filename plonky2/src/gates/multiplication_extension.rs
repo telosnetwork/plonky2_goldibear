@@ -4,8 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
+
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -52,7 +53,10 @@ impl<const D: usize> MulExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtensionGate<D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -93,8 +97,14 @@ impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for MulExtension
             let multiplicand_0 = vars.get_local_ext(Self::wires_ith_multiplicand_0(i));
             let multiplicand_1 = vars.get_local_ext(Self::wires_ith_multiplicand_1(i));
             let output = vars.get_local_ext(Self::wires_ith_output(i));
-            let computed_output = multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0);
-            let base_field_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&((output - computed_output))).try_into().unwrap();
+            let computed_output =
+                multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0);
+            let base_field_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(output - computed_output),
+                )
+                .try_into()
+                .unwrap();
             yield_constr.many(base_field_array);
         }
     }
@@ -164,7 +174,9 @@ pub struct MulExtensionGenerator<F: RichField + HasExtension<D>, const D: usize>
 
 impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for MulExtensionGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "MulExtensionGenerator".to_string()
     }
@@ -190,7 +202,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
         let output_target =
             ExtensionTarget::from_range(self.row, MulExtensionGate::<D>::wires_ith_output(self.i));
 
-        let computed_output = multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0);
+        let computed_output =
+            multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0);
 
         out_buffer.set_extension_target(output_target, computed_output)
     }
@@ -212,9 +225,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_goldilocks::Goldilocks;
 
     use super::*;
-    use p3_goldilocks::Goldilocks;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 

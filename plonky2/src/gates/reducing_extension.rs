@@ -5,8 +5,9 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
+
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -64,8 +65,10 @@ impl<const D: usize> ReducingExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
@@ -122,7 +125,12 @@ where F::Extension: TwoAdicField{
 
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            let basefield_array: [F; D] = <F::Extension as AbstractExtensionField<F>>::as_base_slice(&(acc * alpha + coeffs[i] - accs[i])).try_into().unwrap();
+            let basefield_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(acc * alpha + coeffs[i] - accs[i]),
+                )
+                .try_into()
+                .unwrap();
             yield_constr.many(basefield_array);
             acc = accs[i];
         }
@@ -191,8 +199,10 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingExtensionGate<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "ReducingExtensionGenerator".to_string()
     }
@@ -243,8 +253,8 @@ where F::Extension: TwoAdicField{
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use p3_goldilocks::Goldilocks;
+
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::reducing_extension::ReducingExtensionGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};

@@ -8,7 +8,6 @@ use alloc::{
 use core::marker::PhantomData;
 
 use p3_field::{AbstractField, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -35,7 +34,10 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 #[derive(Debug, Default)]
 pub struct PoseidonGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -101,8 +103,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> where F:
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D> 
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -429,7 +433,9 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D> + Poseidon, const D:
 
 impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
     for PoseidonGenerator<F, D>
-    where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "PoseidonGenerator".to_string()
     }
@@ -542,13 +548,12 @@ mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
 
+    use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     #[test]
     fn wire_indices() {

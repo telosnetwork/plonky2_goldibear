@@ -2,9 +2,9 @@ use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::fri::FriConfig;
 use crate::fri::proof::{FriChallenges, FriChallengesTarget};
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
+use crate::fri::FriConfig;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
@@ -17,14 +17,17 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_openings<const D: usize>(&mut self, openings: &FriOpenings<F, D>)
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);
         }
     }
 
-    pub fn fri_challenges<C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>, const D: usize>(
+    pub fn fri_challenges<
+        C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>,
+        const D: usize,
+    >(
         &mut self,
         commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
         final_poly: &PolynomialCoeffs<F::Extension>,
@@ -34,7 +37,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     ) -> FriChallenges<F, D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let num_fri_queries = config.num_query_rounds;
         let lde_size = 1 << (degree_bits + config.rate_bits);
@@ -70,7 +73,9 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
 
 impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
     RecursiveChallenger<F, H, D>
-where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     pub fn observe_openings(&mut self, openings: &FriOpeningsTarget<D>) {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);

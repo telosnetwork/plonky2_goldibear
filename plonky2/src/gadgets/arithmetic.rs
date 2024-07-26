@@ -7,7 +7,6 @@ use alloc::{
 use core::borrow::Borrow;
 
 use p3_field::{PrimeField64, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::arithmetic_base::ArithmeticGate;
@@ -20,7 +19,10 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Computes `-x`.
     pub fn neg(&mut self, x: Target) -> Target {
         let neg_one = self.neg_one();
@@ -390,7 +392,10 @@ pub struct EqualityGenerator {
     inv: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         "EqualityGenerator".to_string()
     }

@@ -3,17 +3,14 @@ use core::fmt::{self, Debug, Display, Formatter};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field, PrimeField64};
-use p3_field::extension::{BinomialExtensionField};
+use p3_field::{AbstractExtensionField, AbstractField};
 
 use crate::types::HasExtension;
 
 /// Let `F_D` be the optimal extension field `F[X]/(X^D-W)`. Then `ExtensionAlgebra<F_D>` is the quotient `F_D[X]/(X^D-W)`.
 /// It's a `D`-dimensional algebra over `F_D` useful to lift the multiplication over `F_D` to a multiplication over `(F_D)^D`.
 #[derive(Copy, Clone)]
-pub struct ExtensionAlgebra<F: HasExtension<D>, const D: usize>(
-    pub [F::Extension; D],
-);
+pub struct ExtensionAlgebra<F: HasExtension<D>, const D: usize>(pub [F::Extension; D]);
 
 impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
     pub fn zero() -> Self {
@@ -214,7 +211,6 @@ mod tests {
 
     use itertools::Itertools;
     use p3_field::AbstractExtensionField;
-    use p3_field::extension::BinomialExtensionField;
 
     use crate::extension_algebra::ExtensionAlgebra;
     use crate::types::{HasExtension, Sample};
@@ -222,7 +218,8 @@ mod tests {
     /// Tests that the multiplication on the extension algebra lifts that of the field extension.
     fn test_extension_algebra<F: HasExtension<D> + Sample, const D: usize>()
     where
-        F::Extension: Sample {
+        F::Extension: Sample,
+    {
         #[derive(Copy, Clone, Debug)]
         enum ZeroOne {
             Zero,
@@ -233,9 +230,7 @@ mod tests {
             ZeroOne::Zero => F::zero(),
             ZeroOne::One => F::one(),
         };
-        let to_fields = |x: &[ZeroOne],
-                         y: &[ZeroOne]|
-         -> (F::Extension, F::Extension) {
+        let to_fields = |x: &[ZeroOne], y: &[ZeroOne]| -> (F::Extension, F::Extension) {
             let mut arr0 = [F::zero(); D];
             let mut arr1 = [F::zero(); D];
             arr0.copy_from_slice(&x.iter().map(to_field).collect::<Vec<_>>());
@@ -247,15 +242,11 @@ mod tests {
         };
 
         // Standard MLE formula.
-        let selector = |xs: Vec<ZeroOne>,
-                        ts: &[F::Extension]|
-         -> F::Extension {
+        let selector = |xs: Vec<ZeroOne>, ts: &[F::Extension]| -> F::Extension {
             (0..2 * D)
                 .map(|i| match xs[i] {
                     ZeroOne::Zero => {
-                        <F::Extension as AbstractExtensionField<F>>::from_base(
-                            F::one(),
-                        ) - ts[i]
+                        <F::Extension as AbstractExtensionField<F>>::from_base(F::one()) - ts[i]
                     }
                     ZeroOne::One => ts[i],
                 })
@@ -263,9 +254,7 @@ mod tests {
         };
 
         let mul_mle = |ts: Vec<F::Extension>| -> [F::Extension; D] {
-            let mut ans =
-                [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero());
-                    D];
+            let mut ans = [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
             for xs in (0..2 * D)
                 .map(|_| vec![ZeroOne::Zero, ZeroOne::One])
                 .multi_cartesian_product()
@@ -275,20 +264,16 @@ mod tests {
                 let res = selector(xs, &ts);
                 let c_slice: &[F] = c.as_base_slice();
                 for i in 0..D {
-                    ans[i] += res
-                        * <F::Extension as AbstractExtensionField<F>>::from_base(
-                            c_slice[i],
-                        );
+                    ans[i] +=
+                        res * <F::Extension as AbstractExtensionField<F>>::from_base(c_slice[i]);
                 }
             }
             ans
         };
 
         let ts = <F::Extension as Sample>::rand_vec(2 * D);
-        let mut arr0 =
-            [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
-        let mut arr1 =
-            [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
+        let mut arr0 = [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
+        let mut arr1 = [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
         arr0.copy_from_slice(&ts[..D]);
         arr1.copy_from_slice(&ts[D..]);
         let x: ExtensionAlgebra<F, D> = ExtensionAlgebra::from_basefield_array(arr0);

@@ -1,9 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-
-use plonky2_field::types::HasExtension;
 use p3_field::TwoAdicField;
+use plonky2_field::types::HasExtension;
+
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::iop::ext_target::ExtensionTarget;
@@ -12,7 +12,10 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::VerifierCircuitTarget;
 use crate::util::log2_strict;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where  F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Checks that a `Target` matches a vector at a particular index.
     pub fn random_access(&mut self, access_index: Target, v: Vec<Target>) -> Target {
         let vec_size = v.len();

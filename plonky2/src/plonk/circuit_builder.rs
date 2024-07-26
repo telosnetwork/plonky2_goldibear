@@ -2,7 +2,6 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, sync::Arc, vec, vec::Vec};
-use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 use core::cmp::max;
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
@@ -10,6 +9,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 use log::{debug, info, warn, Level};
+use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use plonky2_util::ceil_div_usize;
 
@@ -137,7 +137,10 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     /// Circuit configuration to be used by this [`CircuitBuilder`].
     pub config: CircuitConfig,
 
@@ -201,7 +204,10 @@ pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize> where 
     pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Given a [`CircuitConfig`], generate a new [`CircuitBuilder`] instance.
     /// It will also check that the configuration provided is consistent, i.e.
     /// that the different parameters provided can achieve the targeted security
@@ -1033,8 +1039,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
     pub fn build_with_options<C: GenericConfig<D, F = F, FE = F::Extension>>(
         self,
         commit_to_sigma: bool,
-    ) -> CircuitData<F, C, D> 
-    where F::Extension: TwoAdicField{
+    ) -> CircuitData<F, C, D>
+    where
+        F::Extension: TwoAdicField,
+    {
         let (circuit_data, success) = self.try_build_with_options(commit_to_sigma);
         if !success {
             panic!("Failed to build circuit");
@@ -1046,8 +1054,9 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         mut self,
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D>, bool)
-    where 
-        F::Extension: TwoAdicField {
+    where
+        F::Extension: TwoAdicField,
+    {
         let mut timing = TimingTree::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]
@@ -1297,14 +1306,18 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 
     /// Builds a "full circuit", with both prover and verifier data.
     pub fn build<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> CircuitData<F, C, D>
-    where 
-    F::Extension: TwoAdicField{
+    where
+        F::Extension: TwoAdicField,
+    {
         self.build_with_options(true)
     }
 
-    pub fn mock_build<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> MockCircuitData<F, C, D>
+    pub fn mock_build<C: GenericConfig<D, F = F, FE = F::Extension>>(
+        self,
+    ) -> MockCircuitData<F, C, D>
     where
-        F::Extension: TwoAdicField {
+        F::Extension: TwoAdicField,
+    {
         let circuit_data = self.build_with_options(false);
         MockCircuitData {
             prover_only: circuit_data.prover_only,
@@ -1312,17 +1325,24 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         }
     }
     /// Builds a "prover circuit", with data needed to generate proofs but not verify them.
-    pub fn build_prover<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> ProverCircuitData<F, C, D>
-    where 
-        F::Extension: TwoAdicField{
+    pub fn build_prover<C: GenericConfig<D, F = F, FE = F::Extension>>(
+        self,
+    ) -> ProverCircuitData<F, C, D>
+    where
+        F::Extension: TwoAdicField,
+    {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.prover_data()
     }
 
     /// Builds a "verifier circuit", with data needed to verify proofs but not generate them.
-    pub fn build_verifier<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> VerifierCircuitData<F, C, D>
-    where F::Extension: TwoAdicField {
+    pub fn build_verifier<C: GenericConfig<D, F = F, FE = F::Extension>>(
+        self,
+    ) -> VerifierCircuitData<F, C, D>
+    where
+        F::Extension: TwoAdicField,
+    {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.verifier_data()

@@ -2,12 +2,10 @@
 
 #[cfg(not(feature = "std"))]
 pub use alloc::vec::Vec;
-use p3_field::TwoAdicField;
 #[cfg(feature = "std")]
 pub use std::vec::Vec;
 
-
-
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -17,7 +15,10 @@ use crate::util::serialization::{Buffer, IoResult};
 
 // For macros below
 
-pub trait WitnessGeneratorSerializer<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub trait WitnessGeneratorSerializer<F: RichField + HasExtension<D>, const D: usize>
+where
+    F::Extension: TwoAdicField,
+{
     fn read_generator(
         &self,
         buf: &mut Buffer,
@@ -104,8 +105,6 @@ macro_rules! impl_generator_serializer {
 pub mod default {
     use core::marker::PhantomData;
 
-
-
     use p3_field::TwoAdicField;
     use plonky2_field::types::HasExtension;
 
@@ -132,7 +131,6 @@ pub mod default {
         ConstantGenerator, CopyGenerator, NonzeroTestGenerator, RandomValueGenerator,
     };
     use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-    
     use crate::recursion::dummy_circuit::DummyProofGenerator;
     use crate::util::serialization::WitnessGeneratorSerializer;
 

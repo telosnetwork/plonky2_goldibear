@@ -3,13 +3,11 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
-
 use p3_field::TwoAdicField;
+use plonky2_field::types::HasExtension;
 use serde::{Deserialize, Serialize};
 
-use plonky2_field::types::HasExtension;
-
-use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, NUM_HASH_OUT_ELTS, RichField};
+use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField, NUM_HASH_OUT_ELTS};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -79,7 +77,10 @@ pub fn verify_merkle_proof_to_cap<F: RichField, H: Hasher<F>>(
     Ok(())
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given root. The index is given by its little-endian bits.
     pub fn verify_merkle_proof<H: AlgebraicHasher<F>>(
@@ -176,16 +177,15 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 mod tests {
     use p3_field::{AbstractField, Field};
     use plonky2_field::types::Sample;
-    use rand::Rng;
     use rand::rngs::OsRng;
+    use rand::Rng;
 
+    use super::*;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     fn random_data<F: Field + Sample>(n: usize, k: usize) -> Vec<Vec<F>> {
         (0..n).map(|_| F::rand_vec(k)).collect()

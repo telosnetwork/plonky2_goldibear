@@ -3,11 +3,11 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_field::{AbstractField, ExtensionField, TwoAdicField, PrimeField64};
-use plonky2_field::types::HasExtension;
 use core::fmt::Debug;
 
+use p3_field::{AbstractField, ExtensionField, PrimeField64, TwoAdicField};
 use plonky2_field::packed::PackedField;
+use plonky2_field::types::HasExtension;
 use unroll::unroll_for_loops;
 
 use crate::gates::gate::Gate;
@@ -42,7 +42,6 @@ const fn add_u160_u128((x_lo, x_hi): (u128, u32), y: u128) -> (u128, u32) {
     let res_hi = x_hi + (over as u32);
     (res_lo, res_hi)
 }
-
 
 #[inline(always)]
 fn reduce_u160<F: Poseidon>((n_lo, n_hi): (u128, u32)) -> F {
@@ -209,10 +208,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
-    fn mds_row_shf_field<F: ExtensionField<Self>>(
-        r: usize,
-        v: &[F; SPONGE_WIDTH],
-    ) -> F {
+    fn mds_row_shf_field<F: ExtensionField<Self>>(r: usize, v: &[F; SPONGE_WIDTH]) -> F {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = F::zero();
 
@@ -235,17 +231,17 @@ pub trait Poseidon: PrimeField64 {
         v: &[P; SPONGE_WIDTH],
     ) -> P
     where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = P::zeros();
 
         for i in 0..SPONGE_WIDTH {
-            res +=
-                v[(i + r) % SPONGE_WIDTH] * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
+            res += v[(i + r) % SPONGE_WIDTH]
+                * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
         }
         res += v[r] * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_DIAG[r]);
-        
+
         res
     }
 
@@ -257,7 +253,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> ExtensionTarget<D>
     where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = builder.zero_extension();
@@ -298,9 +294,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `mds_layer` for field extensions of `Self`.
-    fn mds_layer_field<F: ExtensionField<Self>>(
-        state: &[F; SPONGE_WIDTH],
-    ) -> [F; SPONGE_WIDTH] {
+    fn mds_layer_field<F: ExtensionField<Self>>(state: &[F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
         let mut result = [F::zero(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
@@ -325,7 +319,7 @@ pub trait Poseidon: PrimeField64 {
         let mut result = [P::zeros(); SPONGE_WIDTH];
 
         for r in 0..SPONGE_WIDTH {
-            result[r] = Self::mds_row_shf_packed_field::<F,D,P,D2>(r, state);
+            result[r] = Self::mds_row_shf_packed_field::<F, D, P, D2>(r, state);
         }
 
         result
@@ -338,7 +332,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         // If we have enough routed wires, we will use PoseidonMdsGate.
         let mds_gate = PoseidonMdsGate::<Self, D>::new();
@@ -369,9 +363,7 @@ pub trait Poseidon: PrimeField64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    fn partial_first_constant_layer<F: ExtensionField<Self>>(
-        state: &mut [F; SPONGE_WIDTH],
-    ) {
+    fn partial_first_constant_layer<F: ExtensionField<Self>>(state: &mut [F; SPONGE_WIDTH]) {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
                 state[i] += F::from_canonical_u64(Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i]);
@@ -390,12 +382,13 @@ pub trait Poseidon: PrimeField64 {
     >(
         state: &mut [P; SPONGE_WIDTH],
     ) where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>
+        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
-                state[i] +=
-                    <P::Scalar as AbstractField>::from_canonical_u64(Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i]);
+                state[i] += <P::Scalar as AbstractField>::from_canonical_u64(
+                    Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i],
+                );
             }
         }
     }
@@ -406,7 +399,7 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         for i in 0..SPONGE_WIDTH {
             let c = <Self as Poseidon>::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i];
@@ -491,7 +484,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         let mut result = [builder.zero_extension(); SPONGE_WIDTH];
 
@@ -586,7 +579,9 @@ pub trait Poseidon: PrimeField64 {
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
         let mut d = s0 * <P::Scalar as AbstractField>::from_canonical_u64(mds0to0);
         for i in 1..SPONGE_WIDTH {
-            let t = <P::Scalar as AbstractField>::from_canonical_u64(Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1]);
+            let t = <P::Scalar as AbstractField>::from_canonical_u64(
+                Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1],
+            );
             d += state[i] * t;
         }
 
@@ -594,7 +589,9 @@ pub trait Poseidon: PrimeField64 {
         let mut result = [P::zeros(); SPONGE_WIDTH];
         result[0] = d;
         for i in 1..SPONGE_WIDTH {
-            let t = <P::Scalar as AbstractField>::from_canonical_u64(Self::FAST_PARTIAL_ROUND_VS[r][i - 1]);
+            let t = <P::Scalar as AbstractField>::from_canonical_u64(
+                Self::FAST_PARTIAL_ROUND_VS[r][i - 1],
+            );
             result[i] = state[0] * t + state[i];
         }
         result
@@ -608,7 +605,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
@@ -638,7 +635,7 @@ pub trait Poseidon: PrimeField64 {
             if i < SPONGE_WIDTH {
                 let round_constant = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
                 unsafe {
-                    state[i] = state[i] + Self::from_canonical_u64(round_constant);
+                    state[i] += Self::from_canonical_u64(round_constant);
                 }
             }
         }
@@ -667,8 +664,9 @@ pub trait Poseidon: PrimeField64 {
         P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
     {
         for i in 0..SPONGE_WIDTH {
-            state[i] +=
-                <P::Scalar as AbstractField>::from_canonical_u64(ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr]);
+            state[i] += <P::Scalar as AbstractField>::from_canonical_u64(
+                ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr],
+            );
         }
     }
 
@@ -679,7 +677,7 @@ pub trait Poseidon: PrimeField64 {
         round_ctr: usize,
     ) where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         for i in 0..SPONGE_WIDTH {
             let c = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
@@ -705,7 +703,7 @@ pub trait Poseidon: PrimeField64 {
     ) -> ExtensionTarget<D>
     where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         // x |--> x^7
         builder.exp_u64_extension(x, 7)
@@ -722,9 +720,7 @@ pub trait Poseidon: PrimeField64 {
     }
 
     /// Same as `sbox_layer` for field extensions of `Self`.
-    fn sbox_layer_field<F: ExtensionField<Self>>(
-        state: &mut [F; SPONGE_WIDTH],
-    ) {
+    fn sbox_layer_field<F: ExtensionField<Self>>(state: &mut [F; SPONGE_WIDTH]) {
         for i in 0..SPONGE_WIDTH {
             state[i] = Self::sbox_monomial(state[i]);
         }
@@ -736,7 +732,7 @@ pub trait Poseidon: PrimeField64 {
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where
         Self: RichField + HasExtension<D>,
-        Self::Extension: TwoAdicField
+        Self::Extension: TwoAdicField,
     {
         for i in 0..SPONGE_WIDTH {
             state[i] = <Self as Poseidon>::sbox_monomial_circuit(builder, state[i]);
@@ -761,7 +757,7 @@ pub trait Poseidon: PrimeField64 {
         for i in 0..N_PARTIAL_ROUNDS {
             state[0] = Self::sbox_monomial(state[0]);
             unsafe {
-                state[0] = state[0] + Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_CONSTANTS[i]);
+                state[0] += Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_CONSTANTS[i]);
             }
             *state = Self::mds_partial_layer_fast(state, i);
         }
@@ -899,9 +895,10 @@ impl<F: RichField> AlgebraicHasher<F> for PoseidonHash {
         swap: BoolTarget,
         builder: &mut CircuitBuilder<F, D>,
     ) -> Self::AlgebraicPermutation
-    where 
+    where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField{
+        F::Extension: TwoAdicField,
+    {
         let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);
 

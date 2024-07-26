@@ -1,12 +1,11 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, string::String, vec, vec::Vec};
-use p3_field::TwoAdicField;
 use core::borrow::Borrow;
 
 use itertools::Itertools;
-
-
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
+
 use crate::gates::base_sum::BaseSumGate;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
@@ -17,7 +16,10 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::log_floor;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     /// Split the given element into a list of targets, where each one represents a
     /// base-B limb of the element, with little-endian ordering.
     pub fn split_le_base<const B: usize>(&mut self, x: Target, num_limbs: usize) -> Vec<Target> {
@@ -90,7 +92,9 @@ pub struct BaseSumGenerator<const B: usize> {
 
 impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
     for BaseSumGenerator<B>
-where F::Extension: TwoAdicField{
+where
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("BaseSumGenerator + Base: {B}")
     }
@@ -127,7 +131,7 @@ where F::Extension: TwoAdicField{
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_field::{AbstractField, Field};
+    use p3_field::AbstractField;
     use rand::rngs::OsRng;
     use rand::Rng;
 

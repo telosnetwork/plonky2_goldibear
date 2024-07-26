@@ -1,9 +1,8 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use core::ops::Range;
 
-
+use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
@@ -33,7 +32,10 @@ impl<const D: usize> ExtensionTarget<D> {
     pub fn frobenius<F: RichField + HasExtension<D>>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self where F::Extension: TwoAdicField{
+    ) -> Self
+    where
+        F::Extension: TwoAdicField,
+    {
         self.repeated_frobenius(1, builder)
     }
 
@@ -41,7 +43,10 @@ impl<const D: usize> ExtensionTarget<D> {
         &self,
         count: usize,
         builder: &mut CircuitBuilder<F, D>,
-    ) -> Self where F::Extension: TwoAdicField{
+    ) -> Self
+    where
+        F::Extension: TwoAdicField,
+    {
         if count == 0 {
             return *self;
         } else if count >= D {
@@ -89,7 +94,10 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub fn constant_extension(&mut self, c: F::Extension) -> ExtensionTarget<D> {
         let c_parts = c.as_base_slice();
         let mut parts = [self.zero(); D];
@@ -99,10 +107,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         ExtensionTarget(parts)
     }
 
-    pub fn constant_ext_algebra(
-        &mut self,
-        c: ExtensionAlgebra<F, D>,
-    ) -> ExtensionAlgebraTarget<D> {
+    pub fn constant_ext_algebra(&mut self, c: ExtensionAlgebra<F, D>) -> ExtensionAlgebraTarget<D> {
         let c_parts = c.to_basefield_array();
         let mut parts = [self.zero_extension(); D];
         for i in 0..D {
