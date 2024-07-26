@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use p3_field::extension::{BinomialExtensionField};
 
 use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;

@@ -5,11 +5,10 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use num::zero;
 use plonky2_field::{extension_algebra::ExtensionAlgebra, types::two_adic_subgroup};
 use core::marker::PhantomData;
 use core::ops::Range;
-use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 
 use crate::field::interpolation::barycentric_weights;
 use p3_field::Field;

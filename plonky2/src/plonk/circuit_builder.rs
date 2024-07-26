@@ -2,7 +2,6 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, sync::Arc, vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField};
 use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 use core::cmp::max;
 #[cfg(feature = "std")]
@@ -641,7 +640,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         MerkleCapTarget(cap.0.iter().map(|h| self.constant_hash(*h)).collect())
     }
 
-    pub fn constant_verifier_data<C: GenericConfig<D, F = F>>(
+    pub fn constant_verifier_data<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
         verifier_data: &VerifierOnlyCircuitData<C, D>,
     ) -> VerifierCircuitTarget

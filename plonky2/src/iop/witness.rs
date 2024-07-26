@@ -1,4 +1,3 @@
-use std::os::unix::fs::FileExt;
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
@@ -6,7 +5,6 @@ use alloc::{vec, vec::Vec};
 use hashbrown::HashMap;
 use itertools::{Itertools, zip_eq};
 use p3_field::{AbstractExtensionField, Field, TwoAdicField};
-use p3_field::extension::BinomialExtensionField;
 
 use plonky2_field::types::HasExtension;
 

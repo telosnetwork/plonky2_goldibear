@@ -8,7 +8,7 @@ use std::vec::Vec;
 
 
 
-use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::GateRef;
 use crate::hash::hash_types::RichField;
@@ -101,7 +101,7 @@ pub mod default {
 
 
     use p3_field::TwoAdicField;
-    use plonky2_field::types::{HasExtension, Sample};
+    use plonky2_field::types::HasExtension;
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;

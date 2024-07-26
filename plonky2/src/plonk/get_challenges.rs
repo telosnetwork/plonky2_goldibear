@@ -5,7 +5,6 @@ use hashbrown::HashSet;
 use p3_field::TwoAdicField;
 
 use super::circuit_builder::NUM_COINS_LOOKUP;
-use p3_field::extension::{BinomialExtensionField};
 use plonky2_field::types::HasExtension;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::proof::{CompressedFriProof, FriChallenges, FriProof, FriProofTarget};
@@ -257,7 +256,7 @@ where  F::Extension: TwoAdicField{
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
-    fn get_challenges<C: GenericConfig<D, F = F>>(
+    fn get_challenges<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
         public_inputs_hash: HashOutTarget,
         wires_cap: &MerkleCapTarget,
@@ -329,7 +328,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 }
 
 impl<const D: usize> ProofWithPublicInputsTarget<D> {
-    pub(crate) fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>>(
+    pub(crate) fn get_challenges<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>>(
         &self,
         builder: &mut CircuitBuilder<F, D>,
         public_inputs_hash: HashOutTarget,

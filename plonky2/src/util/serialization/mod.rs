@@ -14,7 +14,7 @@ pub use gate_serialization::default::DefaultGateSerializer;
 pub use gate_serialization::GateSerializer;
 pub use generator_serialization::default::DefaultGeneratorSerializer;
 pub use generator_serialization::WitnessGeneratorSerializer;
-use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::{FriConfig, FriParams};
@@ -933,7 +933,7 @@ pub trait Read {
 
     fn read_verifier_only_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         &mut self,
@@ -1949,7 +1949,7 @@ pub trait Write {
 
     fn write_verifier_only_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         &mut self,

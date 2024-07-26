@@ -133,7 +133,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         let first_term_const = if first_term_zero {
             Some(<F::Extension as AbstractField>::zero())
         } else if let (Some(x), Some(y)) = (mul_0_const, mul_1_const) {
-            Some((x * y * F::Extension::from_base(const_0)))
+            Some(x * y * F::Extension::from_base(const_0))
         } else {
             None
         };
@@ -152,12 +152,12 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
 
         if second_term_zero {
             if let Some(x) = mul_0_const {
-                if (x * F::Extension::from_base((const_0))).is_one() {
+                if (x * F::Extension::from_base(const_0)).is_one() {
                     return Some(multiplicand_1);
                 }
             }
             if let Some(x) = mul_1_const {
-                if (x * F::Extension::from_base((const_0))).is_one() {
+                if (x * F::Extension::from_base(const_0)).is_one() {
                     return Some(multiplicand_0);
                 }
             }

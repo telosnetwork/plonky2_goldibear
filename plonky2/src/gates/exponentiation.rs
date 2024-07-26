@@ -7,10 +7,9 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::{extension::BinomialExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractField, TwoAdicField};
 use crate::field::ops::Square;
 use crate::field::packed::PackedField;
-use p3_field::Field;
 use plonky2_field::types::HasExtension;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -316,6 +315,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::Field;
     use rand::rngs::OsRng;
     use rand::Rng;
 

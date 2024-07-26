@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 use core::borrow::Borrow;
 
 use p3_field::{AbstractExtensionField, ExtensionField, Field, TwoAdicField};
-use p3_field::extension::{BinomialExtensionField};
 
 use plonky2_field::types::HasExtension;
 

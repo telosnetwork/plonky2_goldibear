@@ -308,7 +308,7 @@ impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
 }
 
 // TODO: Deal with the compressed stuff.
-// impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+// impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
 //     CompressedProofWithPublicInputs<F, C, D>
 // {
 //     /// Computes all Fiat-Shamir challenges used in the Plonk proof.

@@ -99,7 +99,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         );
     }
 
-    pub fn verify_fri_proof<C: GenericConfig<D, F = F>>(
+    pub fn verify_fri_proof<C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>>(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         openings: &FriOpeningsTarget<D>,
@@ -247,7 +247,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
         sum
     }
 
-    fn fri_verifier_query_round<C: GenericConfig<D, F = F>>(
+    fn fri_verifier_query_round<C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension >>(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         challenges: &FriChallengesTarget<D>,

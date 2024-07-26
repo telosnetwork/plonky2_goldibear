@@ -8,7 +8,7 @@ pub use std::vec::Vec;
 
 
 
-use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::WitnessGeneratorRef;
@@ -132,6 +132,7 @@ pub mod default {
         ConstantGenerator, CopyGenerator, NonzeroTestGenerator, RandomValueGenerator,
     };
     use crate::plonk::config::{AlgebraicHasher, GenericConfig};
+    
     use crate::recursion::dummy_circuit::DummyProofGenerator;
     use crate::util::serialization::WitnessGeneratorSerializer;
 
@@ -157,7 +158,7 @@ pub mod default {
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F> + 'static,
+        C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
         C::Hasher: AlgebraicHasher<F>,
     {
         impl_generator_serializer! {

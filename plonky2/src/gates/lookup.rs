@@ -9,7 +9,7 @@ use core::usize;
 
 use itertools::Itertools;
 use keccak_hash::keccak;
-use p3_field::{extension::BinomialExtensionField, TwoAdicField};
+use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 

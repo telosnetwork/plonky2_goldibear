@@ -2,8 +2,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
-use p3_field::extension::{BinomialExtensionField};
-use p3_field::{AbstractExtensionField, AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 

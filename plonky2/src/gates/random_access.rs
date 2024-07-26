@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 
 use itertools::Itertools;
 
-use p3_field::{extension::BinomialExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractField, TwoAdicField};
 use crate::field::packed::PackedField;
 use p3_field::Field;
 use plonky2_field::types::HasExtension;

@@ -4,9 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, ExtensionField, TwoAdicField};
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
-use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;

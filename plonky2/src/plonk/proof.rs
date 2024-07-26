@@ -12,7 +12,6 @@ use p3_field::TwoAdicField;
 use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
-use p3_field::extension::{BinomialExtensionField};
 use plonky2_field::types::HasExtension;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{

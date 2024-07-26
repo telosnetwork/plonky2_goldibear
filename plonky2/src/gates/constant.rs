@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, string::String, vec, vec::Vec};
 
-use p3_field::extension::{BinomialExtensionField};
 use p3_field::TwoAdicField;
 use serde::{Deserialize, Serialize};
 

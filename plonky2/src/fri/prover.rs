@@ -19,7 +19,7 @@ use crate::util::reverse_index_bits_in_place;
 use crate::util::timing::TimingTree;
 
 /// Builds a FRI proof.
-pub fn fri_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn fri_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     // Coefficients of the polynomial on which the LDT is performed. Only the first `1/rate` coefficients are non-zero.
     lde_polynomial_coeffs: PolynomialCoeffs<F::Extension>,
@@ -68,7 +68,7 @@ type FriCommitedTrees<F, C, const D: usize> = (
     PolynomialCoeffs<<F as HasExtension<D>>::Extension>,
 );
 
-fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     mut coeffs: PolynomialCoeffs<F::Extension>,
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
@@ -114,7 +114,7 @@ fn fri_committed_trees<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F
 }
 
 /// Performs the proof-of-work (a.k.a. grinding) step of the FRI protocol. Returns the PoW witness.
-fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
 ) -> F where F::Extension: TwoAdicField{
@@ -163,7 +163,7 @@ fn fri_proof_of_work<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>,
 
 fn fri_prover_query_rounds<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
@@ -184,7 +184,7 @@ fn fri_prover_query_rounds<
 
 fn fri_prover_query_round<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],

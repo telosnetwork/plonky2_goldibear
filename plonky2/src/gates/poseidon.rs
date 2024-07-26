@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::{extension::BinomialExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractField, TwoAdicField};
 
 use plonky2_field::types::HasExtension;
 

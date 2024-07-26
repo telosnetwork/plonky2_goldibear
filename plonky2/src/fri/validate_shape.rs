@@ -16,7 +16,7 @@ pub(crate) fn validate_fri_proof_shape<F, C, const D: usize>(
 ) -> anyhow::Result<()>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     F::Extension: TwoAdicField
     {
     let FriProof {

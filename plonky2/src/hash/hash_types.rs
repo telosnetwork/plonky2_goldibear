@@ -2,7 +2,6 @@
 use alloc::vec::Vec;
 
 use anyhow::ensure;
-use p3_field::extension::HasTwoAdicBionmialExtension;
 use p3_field::{Field, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

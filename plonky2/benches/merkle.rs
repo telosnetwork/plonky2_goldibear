@@ -1,7 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use plonky2::field::goldilocks_field::Goldilocks;
+use p3_goldilocks::Goldilocks;
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::keccak::KeccakHash;
 use plonky2::hash::merkle_tree::MerkleTree;

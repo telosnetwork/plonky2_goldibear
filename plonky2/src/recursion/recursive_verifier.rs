@@ -19,7 +19,7 @@ use crate::with_context;
 
 impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where F::Extension: TwoAdicField{
     /// Recursively verifies an inner proof.
-    pub fn verify_proof<C: GenericConfig<D, F = F>>(
+    pub fn verify_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
         proof_with_pis: &ProofWithPublicInputsTarget<D>,
         inner_verifier_data: &VerifierCircuitTarget,
@@ -50,7 +50,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D> where 
     }
 
     /// Recursively verifies an inner proof.
-    fn verify_proof_with_challenges<C: GenericConfig<D, F = F>>(
+    fn verify_proof_with_challenges<C: GenericConfig<D, F = F, FE = F::Extension>>(
         &mut self,
         proof: &ProofTarget<D>,
         public_inputs_hash: HashOutTarget,

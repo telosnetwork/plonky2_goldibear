@@ -1,6 +1,5 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField};
 use core::cmp::min;
 
 use plonky2_field::polynomial::PolynomialCoeffs;
@@ -9,7 +8,7 @@ use plonky2_util::ceil_div_usize;
 use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
 use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
-use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;

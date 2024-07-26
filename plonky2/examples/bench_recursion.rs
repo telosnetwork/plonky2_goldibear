@@ -8,6 +8,8 @@ extern crate alloc;
 
 #[cfg(not(feature = "std"))]
 use alloc::sync::Arc;
+use p3_field::TwoAdicField;
+use plonky2_field::types::HasExtension;
 use core::num::ParseIntError;
 use core::ops::RangeInclusive;
 use core::str::FromStr;
@@ -28,7 +30,6 @@ use plonky2::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInpu
 use plonky2::plonk::prover::prove;
 use plonky2::util::serialization::DefaultGateSerializer;
 use plonky2::util::timing::TimingTree;
-use plonky2_field::extension::BinomiallyExtendable;
 use plonky2_maybe_rayon::rayon;
 use rand::rngs::OsRng;
 use rand::{RngCore, SeedableRng};
@@ -75,7 +76,7 @@ struct Options {
 }
 
 /// Creates a dummy proof which should have `2 ** log2_size` rows.
-fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     config: &CircuitConfig,
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D>> where F::Extension: TwoAdicField{
@@ -104,7 +105,7 @@ fn dummy_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const
     Ok((proof, data.verifier_only, data.common))
 }
 
-fn dummy_lookup_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn dummy_lookup_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     config: &CircuitConfig,
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D>> where F::Extension: TwoAdicField{
@@ -150,7 +151,7 @@ fn dummy_lookup_proof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>
 /// Creates a dummy proof which has more than 256 lookups to one LUT
 fn dummy_many_rows_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     config: &CircuitConfig,
@@ -201,8 +202,8 @@ fn dummy_many_rows_proof<
 
 fn recursive_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    InnerC: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
+    InnerC: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     inner: &ProofTuple<F, InnerC, D>,
@@ -249,7 +250,7 @@ where
 }
 
 /// Test serialization and print some size info.
-fn test_serialization<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn test_serialization<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
     proof: &ProofWithPublicInputs<F, C, D>,
     vd: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,

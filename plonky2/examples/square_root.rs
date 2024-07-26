@@ -1,8 +1,7 @@
 use core::marker::PhantomData;
 
 use anyhow::Result;
-use p3_field::TwoAdicField;
-use plonky2::field::types::{PrimeField, Sample};
+use p3_field::{AbstractField, Field, PrimeField64, TwoAdicField};
 use plonky2::gates::arithmetic_base::ArithmeticBaseGenerator;
 use plonky2::gates::poseidon::PoseidonGenerator;
 use plonky2::gates::poseidon_mds::PoseidonMdsGenerator;
@@ -20,7 +19,7 @@ use plonky2::util::serialization::{
     Buffer, DefaultGateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
 use plonky2::{get_generator_tag_impl, impl_generator_serializer, read_generator_impl};
-use plonky2_field::extension::BinomiallyExtendable;
+use plonky2_field::types::{HasExtension, Sample};
 
 /// A generator used by the prover to calculate the square root (`x`) of a given value
 /// (`x_squared`), outside of the circuit, in order to supply it as an additional public input.
@@ -44,7 +43,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
         let x_squared = witness.get_target(self.x_squared);
-        let x = x_squared.sqrt().unwrap();
+        let x = sqrt(x_squared).unwrap();
 
         println!("Square root: {x}");
 
@@ -75,7 +74,7 @@ pub struct CustomGeneratorSerializer<C: GenericConfig<D>, const D: usize> {
 impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for CustomGeneratorSerializer<C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F> + 'static,
+    C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F>,
     F::Extension: TwoAdicField
 {
@@ -97,7 +96,7 @@ fn main() -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D>>::F;
-
+    
     let config = CircuitConfig::standard_recursion_config();
 
     let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -116,7 +115,7 @@ fn main() -> Result<()> {
     // Randomly generate the value of x^2: any quadratic residue in the field works.
     let x_squared_value = {
         let mut val = F::rand();
-        while !val.is_quadratic_residue() {
+        while !is_quadratic_residue(val) {
             val = F::rand();
         }
         val
@@ -151,4 +150,57 @@ fn main() -> Result<()> {
     }
 
     data.verify(proof)
+}
+
+fn is_quadratic_residue<F: PrimeField64>(x: F) -> bool {
+    if x.is_zero() {
+        return true;
+    }
+    // This is based on Euler's criterion.
+    let power = F::neg_one().as_canonical_u64() / 2;
+    let exp = x.exp_u64(power);
+    if exp == F::one() {
+        return true;
+    }
+    if exp == F::neg_one() {
+        return false;
+    }
+    panic!("Unreachable")
+}
+
+fn sqrt<F: PrimeField64 + TwoAdicField>(x: F) -> Option<F> {
+    if x.is_zero() {
+        Some(x)
+    } else if is_quadratic_residue(x) {
+        let t = (F::ORDER_U64 - 1)
+            / ((2u64).pow(F::TWO_ADICITY.try_into().unwrap()));
+        let mut z = F::two_adic_generator(F::bits());
+        let mut w = x.exp_u64((t - 1) / 2);
+        let mut x = w * x;
+        let mut b = x * w;
+
+        let mut v = F::TWO_ADICITY;
+
+        while !b.is_one() {
+            let mut k = 0usize;
+            let mut b2k = b;
+            while !b2k.is_one() {
+                b2k = b2k * b2k;
+                k += 1;
+            }
+            let j = v - k - 1;
+            w = z;
+            for _ in 0..j {
+                w = w * w;
+            }
+
+            z = w * w;
+            b *= z;
+            x *= w;
+            v = k;
+        }
+        Some(x)
+    } else {
+        None
+    }
 }

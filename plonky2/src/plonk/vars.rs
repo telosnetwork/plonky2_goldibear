@@ -3,8 +3,7 @@
 use core::ops::Range;
 
 use crate::field::packed::PackedField;
-use p3_field::extension::{BinomialExtensionField};
-use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+use p3_field::{Field, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};

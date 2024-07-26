@@ -4,7 +4,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, TwoAdicField};
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::Range;
 use plonky2_field::types::HasExtension;
 
@@ -190,7 +190,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
         let output_target =
             ExtensionTarget::from_range(self.row, MulExtensionGate::<D>::wires_ith_output(self.i));
 
-        let computed_output = (multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0));
+        let computed_output = multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0);
 
         out_buffer.set_extension_target(output_target, computed_output)
     }

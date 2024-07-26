@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use keccak_hash::keccak;
-use p3_field::{extension::BinomialExtensionField, TwoAdicField};
+use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;

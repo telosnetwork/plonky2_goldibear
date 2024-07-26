@@ -28,7 +28,7 @@ use crate::lookup::GrandProductChallengeSet;
 
 /// Merkle caps and openings that form the proof of a single STARK.
 #[derive(Debug, Clone)]
-pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> {
     /// Merkle cap of LDEs of trace values.
     pub trace_cap: MerkleCap<F, C::Hasher>,
     /// Optional merkle cap of LDEs of permutation Z values, if any.
@@ -41,7 +41,7 @@ pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>
     pub opening_proof: FriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> StarkProof<F, C, D> {
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> StarkProof<F, C, D> {
     /// Recover the length of the trace from a STARK proof and a STARK config.
     pub fn recover_degree_bits(&self, config: &StarkConfig) -> usize {
         let initial_merkle_proof = &self.opening_proof.query_round_proofs[0]
@@ -202,7 +202,7 @@ pub struct MultiProof<
     pub ctl_challenges: GrandProductChallengeSet<F>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize, const N: usize>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize, const N: usize>
     MultiProof<F, C, D, N>
 {
     /// Returns the degree (i.e. the trace length) of each STARK proof,

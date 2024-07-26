@@ -1,7 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use plonky2::field::goldilocks_field::Goldilocks;
+use p3_goldilocks::Goldilocks;
 use plonky2::field::types::Sample;
 use plonky2::hash::hash_types::{BytesHash, RichField};
 use plonky2::hash::keccak::KeccakHash;
@@ -19,7 +19,7 @@ pub(crate) fn bench_keccak<F: RichField>(c: &mut Criterion) {
     });
 }
 
-pub(crate) fn bench_poseidon<F: Poseidon>(c: &mut Criterion) {
+pub(crate) fn bench_poseidon<F: Sample + Poseidon>(c: &mut Criterion) {
     c.bench_function(
         &format!("poseidon<{}, {SPONGE_WIDTH}>", type_name::<F>()),
         |b| {

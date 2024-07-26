@@ -13,7 +13,7 @@ use plonky2_maybe_rayon::*;
 use super::circuit_builder::{LookupChallenges, LookupWire};
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField, Field, TwoAdicField};
+use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::fri::oracle::PolynomialBatch;

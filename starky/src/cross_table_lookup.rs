@@ -233,7 +233,7 @@ pub fn get_ctl_data<'a, F, C, const D: usize, const N: usize>(
 ) -> (GrandProductChallengeSet<F>, [CtlData<'a, F>; N])
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
 {
     // Get challenges for the cross-table lookups.
     let ctl_challenges = get_grand_product_challenge_set(challenger, config.num_challenges);

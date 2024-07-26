@@ -8,7 +8,6 @@ use core::ops::Range;
 use std::sync::Arc;
 
 use hashbrown::HashMap;
-use p3_field::extension::BinomialExtensionField;
 use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field, TwoAdicField};
 use serde::{Serialize, Serializer};
 

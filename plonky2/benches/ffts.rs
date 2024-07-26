@@ -1,12 +1,12 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use plonky2::field::goldilocks_field::Goldilocks;
+use p3_field::{Field, TwoAdicField};
+use p3_goldilocks::Goldilocks;
 use plonky2::field::polynomial::PolynomialCoeffs;
-use plonky2::field::types::Field;
+use plonky2_field::types::Sample;
 use tynm::type_name;
-
-pub(crate) fn bench_ffts<F: Field>(c: &mut Criterion) {
+pub(crate) fn bench_ffts<F: TwoAdicField + Sample>(c: &mut Criterion) {
     let mut group = c.benchmark_group(&format!("fft<{}>", type_name::<F>()));
 
     for size_log in [13, 14, 15, 16] {
@@ -18,7 +18,7 @@ pub(crate) fn bench_ffts<F: Field>(c: &mut Criterion) {
     }
 }
 
-pub(crate) fn bench_ldes<F: Field>(c: &mut Criterion) {
+pub(crate) fn bench_ldes<F: TwoAdicField + Sample>(c: &mut Criterion) {
     const RATE_BITS: usize = 3;
 
     let mut group = c.benchmark_group(&format!("lde<{}>", type_name::<F>()));

@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::ops::Range;
 
-use p3_field::{extension::BinomialExtensionField, AbstractExtensionField, TwoAdicField};
+use p3_field::{AbstractExtensionField, TwoAdicField};
 
 use plonky2_field::{extension_algebra::ExtensionAlgebra, types::HasExtension};
 

@@ -28,7 +28,7 @@ pub const SALT_SIZE: usize = 4;
 
 /// Represents a FRI oracle, i.e. a batch of polynomials which have been Merklized.
 #[derive(Eq, PartialEq, Debug)]
-pub struct PolynomialBatch<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct PolynomialBatch<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
 where F::Extension: TwoAdicField{
     pub polynomials: Vec<PolynomialCoeffs<F>>,
     pub merkle_tree: MerkleTree<F, C::Hasher>,
@@ -37,7 +37,7 @@ where F::Extension: TwoAdicField{
     pub blinding: bool,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize> Default
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> Default
     for PolynomialBatch<F, C, D>
     where F::Extension: TwoAdicField{
     fn default() -> Self {
@@ -51,7 +51,7 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
     }
 }
 
-impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F>, const D: usize>
+impl<F: RichField + TwoAdicField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
     PolynomialBatch<F, C, D>
 where F::Extension: TwoAdicField{
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.

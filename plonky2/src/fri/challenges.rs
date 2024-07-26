@@ -24,7 +24,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         }
     }
 
-    pub fn fri_challenges<C: GenericConfig<D, F = F>, const D: usize>(
+    pub fn fri_challenges<C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>, const D: usize>(
         &mut self,
         commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
         final_poly: &PolynomialCoeffs<F::Extension>,

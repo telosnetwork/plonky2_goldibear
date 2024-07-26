@@ -243,7 +243,7 @@ mod tests {
 
     fn verify_all_leaves<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
+        C: GenericConfig<D, F = F, FE = F::Extension>,
         const D: usize,
     >(
         leaves: Vec<Vec<F>>,

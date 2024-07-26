@@ -5,8 +5,8 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::{extension::BinomialExtensionField, TwoAdicField};
-use plonky2_field::types::{HasExtension, Sample};
+use p3_field::TwoAdicField;
+use plonky2_field::types::HasExtension;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;

@@ -14,7 +14,6 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, vec, vec::Vec};
-use p3_field::extension::{BinomialExtensionField};
 use p3_field::{AbstractExtensionField, TwoAdicField};
 use core::ops::{Range, RangeFrom};
 #[cfg(feature = "std")]

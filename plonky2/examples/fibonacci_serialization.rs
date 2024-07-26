@@ -1,7 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
-use plonky2::field::types::Field;
+use p3_field::AbstractField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;

@@ -63,7 +63,7 @@ pub(crate) fn fri_verify_proof_of_work<F: RichField + HasExtension<D>, const D: 
 
 pub fn verify_fri_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     instance: &FriInstanceInfo<F, D>,
@@ -124,7 +124,7 @@ fn fri_verify_initial_proof<F: RichField, H: Hasher<F>>(
 
 pub(crate) fn fri_combine_initial<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     instance: &FriInstanceInfo<F, D>,
@@ -165,7 +165,7 @@ pub(crate) fn fri_combine_initial<
 
 fn fri_verifier_query_round<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, FE = F::Extension>,
     const D: usize,
 >(
     instance: &FriInstanceInfo<F, D>,
