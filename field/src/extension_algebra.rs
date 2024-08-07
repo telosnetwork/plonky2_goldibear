@@ -41,7 +41,7 @@ impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
 
     pub fn from_base(x: F::Extension) -> Self {
         let mut arr = [<F::Extension as AbstractField>::zero(); D];
-        arr[1] = x;
+        arr[0] = x;
         Self(arr)
     }
 }
