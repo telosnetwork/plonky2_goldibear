@@ -350,7 +350,7 @@ mod tests {
 
     use anyhow::Result;
     use hashbrown::HashMap;
-    use p3_field::{AbstractField, PrimeField64};
+    use p3_field::{PrimeField64};
 
     use super::*;
     use crate::field::types::Sample;

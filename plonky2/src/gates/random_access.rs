@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 
 use itertools::Itertools;
-use p3_field::{AbstractField, Field, TwoAdicField};
+use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::field::packed::PackedField;
@@ -430,6 +430,7 @@ where
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::Field;
     use p3_goldilocks::Goldilocks;
     use rand::rngs::OsRng;
     use rand::Rng;

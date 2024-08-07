@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use anyhow::Result;
-use p3_field::{AbstractField, Field, PrimeField64, TwoAdicField};
+use p3_field::{PrimeField64, TwoAdicField};
 use plonky2::gates::arithmetic_base::ArithmeticBaseGenerator;
 use plonky2::gates::poseidon::PoseidonGenerator;
 use plonky2::gates::poseidon_mds::PoseidonMdsGenerator;

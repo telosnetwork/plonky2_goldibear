@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
-use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::extension::flatten;
 use plonky2_field::types::HasExtension;
 

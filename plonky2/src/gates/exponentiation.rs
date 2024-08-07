@@ -10,7 +10,6 @@ use core::marker::PhantomData;
 use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::ops::Square;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;

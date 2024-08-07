@@ -9,7 +9,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 use log::{debug, info, warn, Level};
-use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, Field, TwoAdicField};
 use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use plonky2_util::ceil_div_usize;
 
@@ -92,11 +92,12 @@ pub struct LookupWire {
 /// # Usage
 ///
 /// ```rust
+/// use p3_field::AbstractField;
 /// use plonky2::plonk::circuit_data::CircuitConfig;
 /// use plonky2::iop::witness::PartialWitness;
 /// use plonky2::plonk::circuit_builder::CircuitBuilder;
 /// use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-/// use plonky2::field::types::Field;
+///
 ///
 /// // Define parameters for this circuit
 /// const D: usize = 2;

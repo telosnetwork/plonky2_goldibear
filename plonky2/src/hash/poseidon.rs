@@ -634,9 +634,7 @@ pub trait Poseidon: PrimeField64 {
         for i in 0..12 {
             if i < SPONGE_WIDTH {
                 let round_constant = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
-                unsafe {
-                    state[i] += Self::from_canonical_u64(round_constant);
-                }
+                state[i] += Self::from_canonical_u64(round_constant);
             }
         }
     }
@@ -756,9 +754,7 @@ pub trait Poseidon: PrimeField64 {
 
         for i in 0..N_PARTIAL_ROUNDS {
             state[0] = Self::sbox_monomial(state[0]);
-            unsafe {
-                state[0] += Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_CONSTANTS[i]);
-            }
+            state[0] += Self::from_canonical_u64(Self::FAST_PARTIAL_ROUND_CONSTANTS[i]);
             *state = Self::mds_partial_layer_fast(state, i);
         }
         *round_ctr += N_PARTIAL_ROUNDS;

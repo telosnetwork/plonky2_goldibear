@@ -33,7 +33,7 @@ impl<T: BinomiallyExtendable<D> + HasTwoAdicBionmialExtension<D>, const D: usize
 }
 
 impl<F: HasExtension<D> + Sample, const D: usize> Sample for BinomialExtensionField<F, D> {
-    fn sample<R>(rng: &mut R) -> Self
+    fn sample<R>(_rng: &mut R) -> Self
     where
         R: rand::RngCore + ?Sized,
     {

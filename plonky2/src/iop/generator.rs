@@ -9,7 +9,7 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 
 use p3_field::{Field, TwoAdicField};
-use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::types::{HasExtension};
 
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
