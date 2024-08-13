@@ -7,12 +7,11 @@ use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::field::types::Sample;
-use crate::hash::poseidon::Poseidon;
 use crate::iop::target::Target;
 use crate::plonk::config::GenericHashOut;
 
 /// A prime order field with the features we need to use it as a base field in our argument system.
-pub trait RichField: PrimeField64 + Sample + Poseidon + TwoAdicField {}
+pub trait RichField: PrimeField64 + Sample + TwoAdicField {}
 
 impl RichField for Goldilocks {}
 

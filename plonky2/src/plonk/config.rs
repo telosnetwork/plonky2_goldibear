@@ -11,7 +11,7 @@ use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
 use p3_field::extension::BinomialExtensionField;
-use p3_field::{ExtensionField, TwoAdicField};
+use p3_field::{ExtensionField, Field, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use plonky2_field::types::HasExtension;
 use serde::de::DeserializeOwned;
@@ -20,11 +20,11 @@ use serde::Serialize;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
-use crate::hash::poseidon::PoseidonHash;
+use crate::hash::poseidon_goldilocks::PoseidonHash;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 
-pub trait GenericHashOut<F: RichField>:
+pub trait GenericHashOut<F: Field>:
     Copy + Clone + Debug + Eq + PartialEq + Send + Sync + Serialize + DeserializeOwned
 {
     fn to_bytes(&self) -> Vec<u8>;

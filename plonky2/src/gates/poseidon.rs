@@ -10,12 +10,12 @@ use core::marker::PhantomData;
 use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::gates::gate::Gate;
+use crate::{gates::gate::Gate, hash::{poseidon::{HALF_N_FULL_ROUNDS, N_PARTIAL_ROUNDS}, poseidon_goldilocks::Poseidon64}};
 use crate::gates::poseidon_mds::PoseidonMdsGate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::poseidon;
-use crate::hash::poseidon::{Poseidon, SPONGE_WIDTH};
+use crate::hash::poseidon::{SPONGE_WIDTH};
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
 use crate::iop::target::Target;
@@ -83,11 +83,11 @@ where
 
     /// A wire which stores the input of the S-box of the `round`-th round of the partial rounds.
     const fn wire_partial_sbox(round: usize) -> usize {
-        debug_assert!(round < poseidon::N_PARTIAL_ROUNDS);
+        debug_assert!(round < N_PARTIAL_ROUNDS);
         Self::START_PARTIAL + round
     }
 
-    const START_FULL_1: usize = Self::START_PARTIAL + poseidon::N_PARTIAL_ROUNDS;
+    const START_FULL_1: usize = Self::START_PARTIAL + N_PARTIAL_ROUNDS;
 
     /// A wire which stores the input of the `i`-th S-box of the `round`-th round of the second set
     /// of full rounds.
@@ -123,12 +123,12 @@ where
         Ok(PoseidonGate::new())
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<<F as HasExtension<D>>::Extension> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
-        constraints.push(swap * (swap - <F::Extension as AbstractField>::one()));
+        constraints.push(swap * (swap - <<F as HasExtension<D>>::Extension as AbstractField>::one()));
 
         // Assert that each delta wire is set properly: `delta_i = swap * (rhs - lhs)`.
         for i in 0..4 {
@@ -139,7 +139,7 @@ where
         }
 
         // Compute the possibly-swapped input layer.
-        let mut state = [F::Extension::one(); SPONGE_WIDTH];
+        let mut state = [<F as HasExtension<D>>::Extension::one(); SPONGE_WIDTH];
         for i in 0..4 {
             let delta_i = vars.local_wires[Self::wire_delta(i)];
             let input_lhs = Self::wire_input(i);
@@ -155,7 +155,7 @@ where
 
         // First set of full rounds.
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer_field(&mut state, round_ctr);
+            Poseidon64::constant_layer_field::<F, F::Extension>(&mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     let sbox_in = vars.local_wires[Self::wire_full_sbox_0(r, i)];
@@ -163,39 +163,39 @@ where
                     state[i] = sbox_in;
                 }
             }
-            <F as Poseidon>::sbox_layer_field(&mut state);
-            state = <F as Poseidon>::mds_layer_field(&state);
+            Poseidon64::sbox_layer_field::<F, F::Extension>(&mut state);
+            state = Poseidon64::mds_layer_field(&state);
             round_ctr += 1;
         }
 
         // Partial rounds.
-        <F as Poseidon>::partial_first_constant_layer(&mut state);
-        state = <F as Poseidon>::mds_partial_layer_init(&state);
-        for r in 0..(poseidon::N_PARTIAL_ROUNDS - 1) {
+        Poseidon64::partial_first_constant_layer(&mut state);
+        state = Poseidon64::mds_partial_layer_init(&state);
+        for r in 0..(N_PARTIAL_ROUNDS - 1) {
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             constraints.push(state[0] - sbox_in);
-            state[0] = <F as Poseidon>::sbox_monomial(sbox_in);
+            state[0] = Poseidon64::sbox_monomial(sbox_in);
             state[0] +=
-                F::Extension::from_canonical_u64(<F as Poseidon>::FAST_PARTIAL_ROUND_CONSTANTS[r]);
-            state = <F as Poseidon>::mds_partial_layer_fast_field(&state, r);
+                <F as HasExtension<D>>::Extension::from_canonical_u64(Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r]);
+            state = Poseidon64::mds_partial_layer_fast_field(&state, r);
         }
-        let sbox_in = vars.local_wires[Self::wire_partial_sbox(poseidon::N_PARTIAL_ROUNDS - 1)];
+        let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
         constraints.push(state[0] - sbox_in);
-        state[0] = <F as Poseidon>::sbox_monomial(sbox_in);
+        state[0] = Poseidon64::sbox_monomial(sbox_in);
         state =
-            <F as Poseidon>::mds_partial_layer_fast_field(&state, poseidon::N_PARTIAL_ROUNDS - 1);
-        round_ctr += poseidon::N_PARTIAL_ROUNDS;
+            Poseidon64::mds_partial_layer_fast_field(&state, N_PARTIAL_ROUNDS - 1);
+        round_ctr += N_PARTIAL_ROUNDS;
 
         // Second set of full rounds.
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer_field(&mut state, round_ctr);
+            Poseidon64::constant_layer_field(&mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 let sbox_in = vars.local_wires[Self::wire_full_sbox_1(r, i)];
                 constraints.push(state[i] - sbox_in);
                 state[i] = sbox_in;
             }
-            <F as Poseidon>::sbox_layer_field(&mut state);
-            state = <F as Poseidon>::mds_layer_field(&state);
+            Poseidon64::sbox_layer_field::<F, F::Extension>(&mut state);
+            state = Poseidon64::mds_layer_field(&state);
             round_ctr += 1;
         }
 
@@ -240,7 +240,7 @@ where
 
         // First set of full rounds.
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer(&mut state, round_ctr);
+            Poseidon64::constant_layer(&mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     let sbox_in = vars.local_wires[Self::wire_full_sbox_0(r, i)];
@@ -248,37 +248,37 @@ where
                     state[i] = sbox_in;
                 }
             }
-            <F as Poseidon>::sbox_layer(&mut state);
-            state = <F as Poseidon>::mds_layer(&state);
+            Poseidon64::sbox_layer(&mut state);
+            state = Poseidon64::mds_layer(&state);
             round_ctr += 1;
         }
 
         // Partial rounds.
-        <F as Poseidon>::partial_first_constant_layer(&mut state);
-        state = <F as Poseidon>::mds_partial_layer_init(&state);
-        for r in 0..(poseidon::N_PARTIAL_ROUNDS - 1) {
+        Poseidon64::partial_first_constant_layer(&mut state);
+        state = Poseidon64::mds_partial_layer_init(&state);
+        for r in 0..(N_PARTIAL_ROUNDS - 1) {
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             yield_constr.one(state[0] - sbox_in);
-            state[0] = <F as Poseidon>::sbox_monomial(sbox_in);
-            state[0] += F::from_canonical_u64(<F as Poseidon>::FAST_PARTIAL_ROUND_CONSTANTS[r]);
-            state = <F as Poseidon>::mds_partial_layer_fast(&state, r);
+            state[0] = Poseidon64::sbox_monomial(sbox_in);
+            state[0] += F::from_canonical_u64(Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r]);
+            state = Poseidon64::mds_partial_layer_fast(&state, r);
         }
-        let sbox_in = vars.local_wires[Self::wire_partial_sbox(poseidon::N_PARTIAL_ROUNDS - 1)];
+        let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
         yield_constr.one(state[0] - sbox_in);
-        state[0] = <F as Poseidon>::sbox_monomial(sbox_in);
-        state = <F as Poseidon>::mds_partial_layer_fast(&state, poseidon::N_PARTIAL_ROUNDS - 1);
-        round_ctr += poseidon::N_PARTIAL_ROUNDS;
+        state[0] = Poseidon64::sbox_monomial(sbox_in);
+        state = Poseidon64::mds_partial_layer_fast(&state, N_PARTIAL_ROUNDS - 1);
+        round_ctr += N_PARTIAL_ROUNDS;
 
         // Second set of full rounds.
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer(&mut state, round_ctr);
+            Poseidon64::constant_layer(&mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 let sbox_in = vars.local_wires[Self::wire_full_sbox_1(r, i)];
                 yield_constr.one(state[i] - sbox_in);
                 state[i] = sbox_in;
             }
-            <F as Poseidon>::sbox_layer(&mut state);
-            state = <F as Poseidon>::mds_layer(&state);
+            Poseidon64::sbox_layer(&mut state);
+            state = Poseidon64::mds_layer(&state);
             round_ctr += 1;
         }
 
@@ -294,7 +294,7 @@ where
     ) -> Vec<ExtensionTarget<D>> {
         // The naive method is more efficient if we have enough routed wires for PoseidonMdsGate.
         let use_mds_gate =
-            builder.config.num_routed_wires >= PoseidonMdsGate::<F, D>::new().num_wires();
+            builder.config.num_routed_wires >= PoseidonMdsGate::<F,D>::new().num_wires();
 
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
@@ -327,8 +327,8 @@ where
         let mut round_ctr = 0;
 
         // First set of full rounds.
-        for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer_circuit(builder, &mut state, round_ctr);
+        for r in 0..HALF_N_FULL_ROUNDS {
+            Poseidon64::constant_layer_circuit(builder, &mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     let sbox_in = vars.local_wires[Self::wire_full_sbox_0(r, i)];
@@ -336,55 +336,55 @@ where
                     state[i] = sbox_in;
                 }
             }
-            <F as Poseidon>::sbox_layer_circuit(builder, &mut state);
-            state = <F as Poseidon>::mds_layer_circuit(builder, &state);
+            Poseidon64::sbox_layer_circuit(builder, &mut state);
+            state = Poseidon64::mds_layer_circuit(builder, &state);
             round_ctr += 1;
         }
 
         // Partial rounds.
         if use_mds_gate {
-            for r in 0..poseidon::N_PARTIAL_ROUNDS {
-                <F as Poseidon>::constant_layer_circuit(builder, &mut state, round_ctr);
+            for r in 0..N_PARTIAL_ROUNDS {
+                Poseidon64::constant_layer_circuit(builder, &mut state, round_ctr);
                 let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
                 constraints.push(builder.sub_extension(state[0], sbox_in));
-                state[0] = <F as Poseidon>::sbox_monomial_circuit(builder, sbox_in);
-                state = <F as Poseidon>::mds_layer_circuit(builder, &state);
+                state[0] = Poseidon64::sbox_monomial_circuit(builder, sbox_in);
+                state = Poseidon64::mds_layer_circuit(builder, &state);
                 round_ctr += 1;
             }
         } else {
-            <F as Poseidon>::partial_first_constant_layer_circuit(builder, &mut state);
-            state = <F as Poseidon>::mds_partial_layer_init_circuit(builder, &state);
-            for r in 0..(poseidon::N_PARTIAL_ROUNDS - 1) {
+            Poseidon64::partial_first_constant_layer_circuit(builder, &mut state);
+            state = Poseidon64::mds_partial_layer_init_circuit(builder, &state);
+            for r in 0..(N_PARTIAL_ROUNDS - 1) {
                 let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
                 constraints.push(builder.sub_extension(state[0], sbox_in));
-                state[0] = <F as Poseidon>::sbox_monomial_circuit(builder, sbox_in);
-                let c = <F as Poseidon>::FAST_PARTIAL_ROUND_CONSTANTS[r];
-                let c = F::Extension::from_canonical_u64(c);
+                state[0] = Poseidon64::sbox_monomial_circuit(builder, sbox_in);
+                let c = Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r];
+                let c = <F as HasExtension<D>>::Extension::from_canonical_u64(c);
                 let c = builder.constant_extension(c);
                 state[0] = builder.add_extension(state[0], c);
-                state = <F as Poseidon>::mds_partial_layer_fast_circuit(builder, &state, r);
+                state = Poseidon64::mds_partial_layer_fast_circuit(builder, &state, r);
             }
-            let sbox_in = vars.local_wires[Self::wire_partial_sbox(poseidon::N_PARTIAL_ROUNDS - 1)];
+            let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
             constraints.push(builder.sub_extension(state[0], sbox_in));
-            state[0] = <F as Poseidon>::sbox_monomial_circuit(builder, sbox_in);
-            state = <F as Poseidon>::mds_partial_layer_fast_circuit(
+            state[0] = Poseidon64::sbox_monomial_circuit(builder, sbox_in);
+            state = Poseidon64::mds_partial_layer_fast_circuit(
                 builder,
                 &state,
-                poseidon::N_PARTIAL_ROUNDS - 1,
+                N_PARTIAL_ROUNDS - 1,
             );
-            round_ctr += poseidon::N_PARTIAL_ROUNDS;
+            round_ctr += N_PARTIAL_ROUNDS;
         }
 
         // Second set of full rounds.
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer_circuit(builder, &mut state, round_ctr);
+            Poseidon64::constant_layer_circuit(builder, &mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 let sbox_in = vars.local_wires[Self::wire_full_sbox_1(r, i)];
                 constraints.push(builder.sub_extension(state[i], sbox_in));
                 state[i] = sbox_in;
             }
-            <F as Poseidon>::sbox_layer_circuit(builder, &mut state);
-            state = <F as Poseidon>::mds_layer_circuit(builder, &state);
+            Poseidon64::sbox_layer_circuit(builder, &mut state);
+            state = Poseidon64::mds_layer_circuit(builder, &state);
             round_ctr += 1;
         }
 
@@ -418,7 +418,7 @@ where
 
     fn num_constraints(&self) -> usize {
         SPONGE_WIDTH * (poseidon::N_FULL_ROUNDS_TOTAL - 1)
-            + poseidon::N_PARTIAL_ROUNDS
+            + N_PARTIAL_ROUNDS
             + SPONGE_WIDTH
             + 1
             + 4
@@ -426,12 +426,12 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct PoseidonGenerator<F: RichField + HasExtension<D> + Poseidon, const D: usize> {
+pub struct PoseidonGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
-    _phantom: PhantomData<F>,
+    _phantom: PhantomData<F>
 }
 
-impl<F: RichField + HasExtension<D> + Poseidon, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
     for PoseidonGenerator<F, D>
 where
     F::Extension: TwoAdicField,
@@ -442,8 +442,8 @@ where
 
     fn dependencies(&self) -> Vec<Target> {
         (0..SPONGE_WIDTH)
-            .map(|i| PoseidonGate::<F, D>::wire_input(i))
-            .chain(Some(PoseidonGate::<F, D>::WIRE_SWAP))
+            .map(|i| PoseidonGate::<F,D>::wire_input(i))
+            .chain(Some(PoseidonGate::<F,D>::WIRE_SWAP))
             .map(|column| Target::wire(self.row, column))
             .collect()
     }
@@ -455,15 +455,15 @@ where
         };
 
         let mut state = (0..SPONGE_WIDTH)
-            .map(|i| witness.get_wire(local_wire(PoseidonGate::<F, D>::wire_input(i))))
+            .map(|i| witness.get_wire(local_wire(PoseidonGate::<F,D>::wire_input(i))))
             .collect::<Vec<_>>();
 
-        let swap_value = witness.get_wire(local_wire(PoseidonGate::<F, D>::WIRE_SWAP));
+        let swap_value = witness.get_wire(local_wire(PoseidonGate::<F,D>::WIRE_SWAP));
         debug_assert!(swap_value == F::zero() || swap_value == F::one());
 
         for i in 0..4 {
             let delta_i = swap_value * (state[i + 4] - state[i]);
-            out_buffer.set_wire(local_wire(PoseidonGate::<F, D>::wire_delta(i)), delta_i);
+            out_buffer.set_wire(local_wire(PoseidonGate::<F,D>::wire_delta(i)), delta_i);
         }
 
         if swap_value == F::one() {
@@ -476,57 +476,57 @@ where
         let mut round_ctr = 0;
 
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer_field(&mut state, round_ctr);
+            Poseidon64::constant_layer_field(&mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     out_buffer.set_wire(
-                        local_wire(PoseidonGate::<F, D>::wire_full_sbox_0(r, i)),
+                        local_wire(PoseidonGate::<F,D>::wire_full_sbox_0(r, i)),
                         state[i],
                     );
                 }
             }
-            <F as Poseidon>::sbox_layer_field(&mut state);
-            state = <F as Poseidon>::mds_layer_field(&state);
+            Poseidon64::sbox_layer_field::<F, F>(&mut state);
+            state = Poseidon64::mds_layer_field(&state);
             round_ctr += 1;
         }
 
-        <F as Poseidon>::partial_first_constant_layer(&mut state);
-        state = <F as Poseidon>::mds_partial_layer_init(&state);
-        for r in 0..(poseidon::N_PARTIAL_ROUNDS - 1) {
+        Poseidon64::partial_first_constant_layer(&mut state);
+        state = Poseidon64::mds_partial_layer_init(&state);
+        for r in 0..(N_PARTIAL_ROUNDS - 1) {
             out_buffer.set_wire(
-                local_wire(PoseidonGate::<F, D>::wire_partial_sbox(r)),
+                local_wire(PoseidonGate::<F,D>::wire_partial_sbox(r)),
                 state[0],
             );
-            state[0] = <F as Poseidon>::sbox_monomial(state[0]);
-            state[0] += F::from_canonical_u64(<F as Poseidon>::FAST_PARTIAL_ROUND_CONSTANTS[r]);
-            state = <F as Poseidon>::mds_partial_layer_fast_field(&state, r);
+            state[0] = Poseidon64::sbox_monomial(state[0]);
+            state[0] += F::from_canonical_u64(Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r]);
+            state = Poseidon64::mds_partial_layer_fast_field(&state, r);
         }
         out_buffer.set_wire(
-            local_wire(PoseidonGate::<F, D>::wire_partial_sbox(
-                poseidon::N_PARTIAL_ROUNDS - 1,
+            local_wire(PoseidonGate::<F,D>::wire_partial_sbox(
+                N_PARTIAL_ROUNDS - 1,
             )),
             state[0],
         );
-        state[0] = <F as Poseidon>::sbox_monomial(state[0]);
+        state[0] = Poseidon64::sbox_monomial(state[0]);
         state =
-            <F as Poseidon>::mds_partial_layer_fast_field(&state, poseidon::N_PARTIAL_ROUNDS - 1);
-        round_ctr += poseidon::N_PARTIAL_ROUNDS;
+            Poseidon64::mds_partial_layer_fast_field(&state, N_PARTIAL_ROUNDS - 1);
+        round_ctr += N_PARTIAL_ROUNDS;
 
         for r in 0..poseidon::HALF_N_FULL_ROUNDS {
-            <F as Poseidon>::constant_layer_field(&mut state, round_ctr);
+            Poseidon64::constant_layer_field(&mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 out_buffer.set_wire(
-                    local_wire(PoseidonGate::<F, D>::wire_full_sbox_1(r, i)),
+                    local_wire(PoseidonGate::<F,D>::wire_full_sbox_1(r, i)),
                     state[i],
                 );
             }
-            <F as Poseidon>::sbox_layer_field(&mut state);
-            state = <F as Poseidon>::mds_layer_field(&state);
+            Poseidon64::sbox_layer_field::<F,F>(&mut state);
+            state = Poseidon64::mds_layer_field(&state);
             round_ctr += 1;
         }
 
         for i in 0..SPONGE_WIDTH {
-            out_buffer.set_wire(local_wire(PoseidonGate::<F, D>::wire_output(i)), state[i]);
+            out_buffer.set_wire(local_wire(PoseidonGate::<F,D>::wire_output(i)), state[i]);
         }
     }
 
@@ -558,7 +558,8 @@ mod tests {
     #[test]
     fn wire_indices() {
         type F = Goldilocks;
-        type Gate = PoseidonGate<F, 2>;
+        const D: usize = 2;
+        type Gate = PoseidonGate<F,D>;
 
         assert_eq!(Gate::wire_input(0), 0);
         assert_eq!(Gate::wire_input(11), 11);
@@ -588,7 +589,7 @@ mod tests {
             ..CircuitConfig::standard_recursion_config()
         };
         let mut builder = CircuitBuilder::new(config);
-        type Gate = PoseidonGate<F, D>;
+        type Gate = PoseidonGate<F,D>;
         let gate = Gate::new();
         let row = builder.add_gate(gate, vec![]);
         let circuit = builder.build_prover::<C>();
@@ -618,7 +619,7 @@ mod tests {
         let witness = generate_partial_witness(inputs, &circuit.prover_only, &circuit.common);
 
         let expected_outputs: [F; SPONGE_WIDTH] =
-            F::poseidon(permutation_inputs.try_into().unwrap());
+            Poseidon64::poseidon(permutation_inputs.try_into().unwrap());
         for i in 0..SPONGE_WIDTH {
             let out = witness.get_wire(Wire {
                 row: 0,
@@ -631,7 +632,7 @@ mod tests {
     #[test]
     fn low_degree() {
         type F = Goldilocks;
-        let gate = PoseidonGate::<F, 2>::new();
+        let gate = PoseidonGate::<F,2>::new();
         test_low_degree(gate)
     }
 
@@ -640,7 +641,7 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        let gate = PoseidonGate::<F, 2>::new();
+        let gate = PoseidonGate::<F,2>::new();
         test_eval_fns::<F, C, _, D>(gate)
     }
 }
