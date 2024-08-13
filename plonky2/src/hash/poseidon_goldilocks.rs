@@ -18,7 +18,6 @@ use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::{Target, BoolTarget};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
-use p3_goldilocks::Goldilocks;
 use p3_field::{AbstractField, ExtensionField, Field, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use plonky2_util::{assume, branch_hint};
@@ -1004,7 +1003,7 @@ impl Poseidon64 {
     }
 
     #[inline]
-    pub(crate) fn poseidon<F: RichField>(input: [F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
+    pub fn poseidon<F: RichField>(input: [F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
         let mut state = input;
         let mut round_ctr = 0;
 

@@ -5,7 +5,8 @@ use p3_goldilocks::Goldilocks;
 use plonky2::field::types::Sample;
 use plonky2::hash::hash_types::{BytesHash, RichField};
 use plonky2::hash::keccak::KeccakHash;
-use plonky2::hash::poseidon::{Poseidon, SPONGE_WIDTH};
+use plonky2::hash::poseidon::SPONGE_WIDTH;
+use plonky2::hash::poseidon_goldilocks::Poseidon64;
 use plonky2::plonk::config::Hasher;
 use tynm::type_name;
 
@@ -19,13 +20,13 @@ pub(crate) fn bench_keccak<F: RichField>(c: &mut Criterion) {
     });
 }
 
-pub(crate) fn bench_poseidon<F: Sample + Poseidon>(c: &mut Criterion) {
+pub(crate) fn bench_poseidon<F: Sample + RichField>(c: &mut Criterion) {
     c.bench_function(
         &format!("poseidon<{}, {SPONGE_WIDTH}>", type_name::<F>()),
         |b| {
             b.iter_batched(
                 || F::rand_array::<SPONGE_WIDTH>(),
-                |state| F::poseidon(state),
+                |state| Poseidon64::poseidon(state),
                 BatchSize::SmallInput,
             )
         },

@@ -3,7 +3,6 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_goldilocks::Goldilocks;
 use core::fmt::Debug;
 
 
@@ -203,6 +202,7 @@ impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<
 #[cfg(test)]
 pub(crate) mod test_helpers {
     use p3_field::{AbstractField, PrimeField64};
+    use p3_goldilocks::Goldilocks;
 
     use crate::hash::poseidon_goldilocks::Poseidon64;
 

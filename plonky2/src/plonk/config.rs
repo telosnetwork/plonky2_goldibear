@@ -11,7 +11,7 @@ use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
 use p3_field::extension::BinomialExtensionField;
-use p3_field::{ExtensionField, Field, PrimeField64, TwoAdicField};
+use p3_field::{ExtensionField, Field, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use plonky2_field::types::HasExtension;
 use serde::de::DeserializeOwned;
