@@ -8,5 +8,4 @@ pub mod keccak;
 pub mod merkle_proofs;
 pub mod merkle_tree;
 pub mod path_compression;
-pub mod poseidon;
-pub mod poseidon_goldilocks;
+pub mod poseidon_64bits;

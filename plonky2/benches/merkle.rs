@@ -5,7 +5,7 @@ use p3_goldilocks::Goldilocks;
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::keccak::KeccakHash;
 use plonky2::hash::merkle_tree::MerkleTree;
-use plonky2::hash::poseidon_goldilocks::PoseidonHash;
+use plonky2::hash::poseidon_64bits::PoseidonHash;
 use plonky2::plonk::config::Hasher;
 use tynm::type_name;
 

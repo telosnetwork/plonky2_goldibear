@@ -6,25 +6,104 @@
 
 use core::fmt::Debug;
 
-use crate::{field::packed::PackedField, plonk::config::Hasher};
-use crate::gates::gate::Gate;
-use crate::gates::poseidon_mds::PoseidonMdsGate;
-use crate::gates::poseidon::PoseidonGate;
-use crate::hash::hash_types::RichField;
-use crate::hash::hashing::PlonkyPermutation;
-use crate::hash::hashing::{hash_n_to_hash_no_pad, compress};
-use crate::hash::poseidon::{SPONGE_WIDTH, SPONGE_RATE, N_ROUNDS,N_PARTIAL_ROUNDS, HALF_N_FULL_ROUNDS, Permuter};
-use crate::iop::ext_target::ExtensionTarget;
-use crate::iop::target::{Target, BoolTarget};
-use crate::plonk::circuit_builder::CircuitBuilder;
-use crate::plonk::config::AlgebraicHasher;
 use p3_field::{AbstractField, ExtensionField, Field, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use plonky2_util::{assume, branch_hint};
 use unroll::unroll_for_loops;
 
 use super::hash_types::HashOut;
+use crate::field::packed::PackedField;
+use crate::gates::gate::Gate;
+use crate::gates::poseidon::PoseidonGate;
+use crate::gates::poseidon_mds::PoseidonMdsGate;
+use crate::hash::hash_types::RichField;
+use crate::hash::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
+use crate::iop::ext_target::ExtensionTarget;
+use crate::iop::target::{BoolTarget, Target};
+use crate::plonk::circuit_builder::CircuitBuilder;
+use crate::plonk::config::{AlgebraicHasher, Hasher};
 
+/// Note that these work for the Goldilocks field, but not necessarily others. See
+/// `generate_constants` about how these were generated. We include enough for a width of 12;
+/// smaller widths just use a subset.
+#[rustfmt::skip]
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct PoseidonPermutation<T> {
+    state: [T; SPONGE_WIDTH],
+}
+
+impl<T: Eq> Eq for PoseidonPermutation<T> {}
+
+impl<T> AsRef<[T]> for PoseidonPermutation<T> {
+    fn as_ref(&self) -> &[T] {
+        &self.state
+    }
+}
+
+pub(crate) trait Permuter: Sized {
+    fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH];
+}
+
+impl Permuter for Target {
+    fn permute(_input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
+        panic!("Call `permute_swapped()` instead of `permute()`");
+    }
+}
+
+impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<T>
+    for PoseidonPermutation<T>
+{
+    const RATE: usize = SPONGE_RATE;
+    const WIDTH: usize = SPONGE_WIDTH;
+
+    fn new<I: IntoIterator<Item = T>>(elts: I) -> Self {
+        let mut perm = Self {
+            state: [T::default(); SPONGE_WIDTH],
+        };
+        perm.set_from_iter(elts, 0);
+        perm
+    }
+
+    fn set_elt(&mut self, elt: T, idx: usize) {
+        self.state[idx] = elt;
+    }
+
+    fn set_from_slice(&mut self, elts: &[T], start_idx: usize) {
+        let begin = start_idx;
+        let end = start_idx + elts.len();
+        self.state[begin..end].copy_from_slice(elts);
+    }
+
+    fn set_from_iter<I: IntoIterator<Item = T>>(&mut self, elts: I, start_idx: usize) {
+        for (s, e) in self.state[start_idx..].iter_mut().zip(elts) {
+            *s = e;
+        }
+    }
+
+    fn permute(&mut self) {
+        self.state = T::permute(self.state);
+    }
+
+    fn squeeze(&self) -> &[T] {
+        &self.state[..Self::RATE]
+    }
+}
+
+pub const SPONGE_RATE: usize = 8;
+pub const SPONGE_CAPACITY: usize = 4;
+pub const SPONGE_WIDTH: usize = SPONGE_RATE + SPONGE_CAPACITY;
+
+// The number of full rounds and partial rounds is given by the
+// calc_round_numbers.py script. They happen to be the same for both
+// width 8 and width 12 with s-box x^7.
+//
+// NB: Changing any of these values will require regenerating all of
+// the precomputed constant arrays in this file.
+pub const N_PARTIAL_ROUNDS: usize = 22;
+pub const HALF_N_FULL_ROUNDS: usize = 4;
+pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
+pub const N_ROUNDS: usize = N_FULL_ROUNDS_TOTAL + N_PARTIAL_ROUNDS;
 const MAX_WIDTH: usize = 12; // we only have width 8 and 12, and 12 is bigger. :)
 /// Note that these work for the Goldilocks field, but not necessarily others. See
 /// `generate_constants` about how these were generated. We include enough for a width of 12;
@@ -1179,61 +1258,9 @@ mod poseidon12_mds {
     }
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq)]
-pub struct PoseidonPermutation<T> {
-    state: [T; SPONGE_WIDTH],
-}
-
-impl<T: Eq> Eq for PoseidonPermutation<T> {}
-
-impl<T> AsRef<[T]> for PoseidonPermutation<T> {
-    fn as_ref(&self) -> &[T] {
-        &self.state
-    }
-}
-
 impl<F: RichField> Permuter for F {
     fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
         Poseidon64::poseidon(input)
-    }
-}
-
-impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<T>
-    for PoseidonPermutation<T>
-{
-    const RATE: usize = SPONGE_RATE;
-    const WIDTH: usize = SPONGE_WIDTH;
-
-    fn new<I: IntoIterator<Item = T>>(elts: I) -> Self {
-        let mut perm = Self {
-            state: [T::default(); SPONGE_WIDTH],
-        };
-        perm.set_from_iter(elts, 0);
-        perm
-    }
-
-    fn set_elt(&mut self, elt: T, idx: usize) {
-        self.state[idx] = elt;
-    }
-
-    fn set_from_slice(&mut self, elts: &[T], start_idx: usize) {
-        let begin = start_idx;
-        let end = start_idx + elts.len();
-        self.state[begin..end].copy_from_slice(elts);
-    }
-
-    fn set_from_iter<I: IntoIterator<Item = T>>(&mut self, elts: I, start_idx: usize) {
-        for (s, e) in self.state[start_idx..].iter_mut().zip(elts) {
-            *s = e;
-        }
-    }
-
-    fn permute(&mut self) {
-        self.state = T::permute(self.state);
-    }
-
-    fn squeeze(&self) -> &[T] {
-        &self.state[..Self::RATE]
     }
 }
 
@@ -1266,28 +1293,27 @@ impl<F: RichField> AlgebraicHasher<F> for PoseidonHash {
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
     {
-        let gate_type = PoseidonGate::<F,D>::new();
+        let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);
 
-        let swap_wire = PoseidonGate::<F,D>::WIRE_SWAP;
+        let swap_wire = PoseidonGate::<F, D>::WIRE_SWAP;
         let swap_wire = Target::wire(gate, swap_wire);
         builder.connect(swap.target, swap_wire);
 
         // Route input wires.
         let inputs = inputs.as_ref();
         for i in 0..SPONGE_WIDTH {
-            let in_wire = PoseidonGate::<F,D>::wire_input(i);
+            let in_wire = PoseidonGate::<F, D>::wire_input(i);
             let in_wire = Target::wire(gate, in_wire);
             builder.connect(inputs[i], in_wire);
         }
 
         // Collect output wires.
         Self::AlgebraicPermutation::new(
-            (0..SPONGE_WIDTH).map(|i| Target::wire(gate, PoseidonGate::<F,D>::wire_output(i))),
+            (0..SPONGE_WIDTH).map(|i| Target::wire(gate, PoseidonGate::<F, D>::wire_output(i))),
         )
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1297,7 +1323,7 @@ mod tests {
     use p3_field::PrimeField64;
     use p3_goldilocks::Goldilocks;
 
-    use crate::hash::poseidon::test_helpers::{check_consistency, check_test_vectors};
+    use crate::hash::poseidon_64bits::test_helpers::{check_consistency, check_test_vectors};
 
     type F = Goldilocks;
     #[test]
@@ -1341,5 +1367,46 @@ mod tests {
     #[test]
     fn consistency() {
         check_consistency();
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test_helpers {
+    use p3_field::{AbstractField, PrimeField64};
+    use p3_goldilocks::Goldilocks;
+
+    use super::*;
+    use crate::hash::poseidon_64bits::Poseidon64;
+
+    type F = Goldilocks;
+    pub(crate) fn check_test_vectors(
+        test_vectors: Vec<([u64; SPONGE_WIDTH], [u64; SPONGE_WIDTH])>,
+    ) {
+        for (input_, expected_output_) in test_vectors.into_iter() {
+            let mut input = [F::zero(); SPONGE_WIDTH];
+            for i in 0..SPONGE_WIDTH {
+                input[i] = F::from_canonical_u64(input_[i]);
+            }
+            let output = Poseidon64::poseidon(input);
+            for i in 0..SPONGE_WIDTH {
+                let ex_output = F::from_canonical_u64(expected_output_[i]);
+                assert_eq!(output[i], ex_output);
+            }
+        }
+    }
+
+    pub(crate) fn check_consistency()
+    where
+        F: PrimeField64,
+    {
+        let mut input = [F::zero(); SPONGE_WIDTH];
+        for i in 0..SPONGE_WIDTH {
+            input[i] = F::from_canonical_u64(i as u64);
+        }
+        let output = Poseidon64::poseidon(input);
+        let output_naive = Poseidon64::poseidon_naive(input);
+        for i in 0..SPONGE_WIDTH {
+            assert_eq!(output[i], output_naive[i]);
+        }
     }
 }

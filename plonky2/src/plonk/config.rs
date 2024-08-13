@@ -20,7 +20,7 @@ use serde::Serialize;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
-use crate::hash::poseidon_goldilocks::PoseidonHash;
+use crate::hash::poseidon_64bits::PoseidonHash;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 

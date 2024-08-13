@@ -228,7 +228,7 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 mod tests {
     use anyhow::Result;
     use p3_field::TwoAdicField;
-    use plonky2_field::types::{HasExtension};
+    use plonky2_field::types::HasExtension;
 
     use super::*;
     use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;

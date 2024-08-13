@@ -225,8 +225,7 @@ mod tests {
     use crate::gates::noop::NoopGate;
     use crate::hash::hash_types::{HashOutTarget, RichField};
     use crate::hash::hashing::hash_n_to_hash_no_pad;
-    use crate::hash::poseidon::PoseidonPermutation;
-    use crate::hash::poseidon_goldilocks::PoseidonHash;
+    use crate::hash::poseidon_64bits::{PoseidonHash, PoseidonPermutation};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::{CircuitConfig, CommonCircuitData};

@@ -5,15 +5,17 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::{marker::PhantomData, ops::Range};
+use core::marker::PhantomData;
+use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
-use crate::{gates::gate::Gate, hash::{hash_types::RichField, poseidon_goldilocks::Poseidon64}};
+use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
-use crate::hash::poseidon::SPONGE_WIDTH;
+use crate::hash::hash_types::RichField;
+use crate::hash::poseidon_64bits::{Poseidon64, SPONGE_WIDTH};
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
 use crate::iop::target::Target;
@@ -25,12 +27,12 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// Poseidon MDS Gate
 #[derive(Debug, Default)]
-pub struct PoseidonMdsGate<F: RichField + HasExtension<D>, const D: usize>(
-    PhantomData<F>,
-);
+pub struct PoseidonMdsGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F,D>
-where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F, D>
+where
+    F::Extension: TwoAdicField,
+{
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -81,15 +83,17 @@ where F::Extension: TwoAdicField{
         let mut res = builder.zero_ext_algebra();
 
         for i in 0..SPONGE_WIDTH {
-            let coeff = builder.constant_extension(<F as HasExtension<D>>::Extension::from_canonical_u64(
-                Poseidon64::MDS_MATRIX_CIRC[i],
-            ));
+            let coeff =
+                builder.constant_extension(<F as HasExtension<D>>::Extension::from_canonical_u64(
+                    Poseidon64::MDS_MATRIX_CIRC[i],
+                ));
             res = builder.scalar_mul_add_ext_algebra(coeff, v[(i + r) % SPONGE_WIDTH], res);
         }
         {
-            let coeff = builder.constant_extension(<F as HasExtension<D>>::Extension::from_canonical_u64(
-                Poseidon64::MDS_MATRIX_DIAG[r],
-            ));
+            let coeff =
+                builder.constant_extension(<F as HasExtension<D>>::Extension::from_canonical_u64(
+                    Poseidon64::MDS_MATRIX_DIAG[r],
+                ));
             res = builder.scalar_mul_add_ext_algebra(coeff, v[r], res);
         }
 
@@ -124,10 +128,11 @@ where F::Extension: TwoAdicField{
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonMdsGate<F,D>
-where 
+impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonMdsGate<F, D>
+where
     F: HasExtension<D>,
-    F::Extension: TwoAdicField{
+    F::Extension: TwoAdicField,
+{
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
     }
@@ -144,7 +149,10 @@ where
         Ok(PoseidonMdsGate::new())
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<<F as HasExtension<D>>::Extension> {
+    fn eval_unfiltered(
+        &self,
+        vars: EvaluationVars<F, D>,
+    ) -> Vec<<F as HasExtension<D>>::Extension> {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
             .map(|i| vars.get_local_ext_algebra(Self::wires_input(i)))
             .collect::<Vec<_>>()
@@ -164,15 +172,14 @@ where
         &self,
         vars: EvaluationVarsBase<F>,
         mut yield_constr: StridedConstraintConsumer<F>,
-    )
-    {
+    ) {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
             .map(|i| vars.get_local_ext(Self::wires_input(i)))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
 
-        let computed_outputs = Poseidon64::mds_layer_field::<F,F::Extension>(&inputs);
+        let computed_outputs = Poseidon64::mds_layer_field::<F, F::Extension>(&inputs);
 
         for i in 0..SPONGE_WIDTH {
             let out = vars.get_local_ext(Self::wires_output(i));
@@ -249,18 +256,19 @@ where
     fn dependencies(&self) -> Vec<Target> {
         (0..SPONGE_WIDTH)
             .flat_map(|i| {
-                Target::wires_from_range(self.row, PoseidonMdsGate::<F,D>::wires_input(i))
+                Target::wires_from_range(self.row, PoseidonMdsGate::<F, D>::wires_input(i))
             })
             .collect()
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
-        let get_local_get_target = |wire_range| ExtensionTarget::<D>::from_range(self.row, wire_range);
+        let get_local_get_target =
+            |wire_range| ExtensionTarget::<D>::from_range(self.row, wire_range);
         let get_local_ext =
             |wire_range| witness.get_extension_target(get_local_get_target(wire_range));
 
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
-            .map(|i| get_local_ext(PoseidonMdsGate::<F,D>::wires_input(i)))
+            .map(|i| get_local_ext(PoseidonMdsGate::<F, D>::wires_input(i)))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
@@ -269,7 +277,7 @@ where
 
         for (i, &out) in outputs.iter().enumerate() {
             out_buffer.set_extension_target(
-                get_local_get_target(PoseidonMdsGate::<F,D>::wires_output(i)),
+                get_local_get_target(PoseidonMdsGate::<F, D>::wires_output(i)),
                 out,
             );
         }
@@ -296,7 +304,7 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        let gate = PoseidonMdsGate::<F,D>::new();
+        let gate = PoseidonMdsGate::<F, D>::new();
         test_low_degree(gate)
     }
 
