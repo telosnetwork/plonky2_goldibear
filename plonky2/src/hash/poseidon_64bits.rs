@@ -6,7 +6,7 @@
 
 use core::fmt::Debug;
 
-use p3_field::{AbstractField, ExtensionField, Field, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, ExtensionField, Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use plonky2_util::{assume, branch_hint};
 use unroll::unroll_for_loops;
@@ -29,30 +29,30 @@ use crate::plonk::config::{AlgebraicHasher, Hasher};
 #[rustfmt::skip]
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
-pub struct PoseidonPermutation<T> {
+pub struct Poseidon64Permutation<T> {
     state: [T; SPONGE_WIDTH],
 }
 
-impl<T: Eq> Eq for PoseidonPermutation<T> {}
+impl<T: Eq> Eq for Poseidon64Permutation<T> {}
 
-impl<T> AsRef<[T]> for PoseidonPermutation<T> {
+impl<T> AsRef<[T]> for Poseidon64Permutation<T> {
     fn as_ref(&self) -> &[T] {
         &self.state
     }
 }
 
-pub(crate) trait Permuter: Sized {
+pub(crate) trait Permuter64: Sized {
     fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH];
 }
 
-impl Permuter for Target {
+impl Permuter64 for Target {
     fn permute(_input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
         panic!("Call `permute_swapped()` instead of `permute()`");
     }
 }
 
-impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<T>
-    for PoseidonPermutation<T>
+impl<T: Copy + Debug + Default + Eq + Permuter64 + Send + Sync> PlonkyPermutation<T>
+    for Poseidon64Permutation<T>
 {
     const RATE: usize = SPONGE_RATE;
     const WIDTH: usize = SPONGE_WIDTH;
@@ -90,8 +90,8 @@ impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<
     }
 }
 
-pub const SPONGE_RATE: usize = 8;
-pub const SPONGE_CAPACITY: usize = 4;
+const SPONGE_RATE: usize = 8;
+const SPONGE_CAPACITY: usize = 4;
 pub const SPONGE_WIDTH: usize = SPONGE_RATE + SPONGE_CAPACITY;
 
 // The number of full rounds and partial rounds is given by the
@@ -100,16 +100,16 @@ pub const SPONGE_WIDTH: usize = SPONGE_RATE + SPONGE_CAPACITY;
 //
 // NB: Changing any of these values will require regenerating all of
 // the precomputed constant arrays in this file.
-pub const N_PARTIAL_ROUNDS: usize = 22;
-pub const HALF_N_FULL_ROUNDS: usize = 4;
+pub(crate) const N_PARTIAL_ROUNDS: usize = 22;
+pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
-pub const N_ROUNDS: usize = N_FULL_ROUNDS_TOTAL + N_PARTIAL_ROUNDS;
+const N_ROUNDS: usize = N_FULL_ROUNDS_TOTAL + N_PARTIAL_ROUNDS;
 const MAX_WIDTH: usize = 12; // we only have width 8 and 12, and 12 is bigger. :)
 /// Note that these work for the Goldilocks field, but not necessarily others. See
 /// `generate_constants` about how these were generated. We include enough for a width of 12;
 /// smaller widths just use a subset.
 #[rustfmt::skip]
-pub const ALL_ROUND_CONSTANTS: [u64; MAX_WIDTH * N_ROUNDS]  = [
+const ALL_ROUND_CONSTANTS: [u64; MAX_WIDTH * N_ROUNDS]  = [
     // WARNING: The AVX2 Goldilocks specialization relies on all round constants being in
     // 0..0xfffeeac900011537. If these constants are randomly regenerated, there is a ~.6% chance
     // that this condition will no longer hold.
@@ -284,10 +284,10 @@ impl Poseidon64 {
     //  - FAST_PARTIAL_ROUND_VS
     //  - FAST_PARTIAL_ROUND_W_HATS
     //  - FAST_PARTIAL_ROUND_INITIAL_MATRIX
-    pub const MDS_MATRIX_CIRC: [u64; 12] = [17, 15, 41, 16, 2, 28, 13, 13, 39, 18, 34, 20];
-    pub const MDS_MATRIX_DIAG: [u64; 12] = [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    pub(crate) const MDS_MATRIX_CIRC: [u64; 12] = [17, 15, 41, 16, 2, 28, 13, 13, 39, 18, 34, 20];
+    pub(crate) const MDS_MATRIX_DIAG: [u64; 12] = [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    pub(crate) const FAST_PARTIAL_FIRST_ROUND_CONSTANT: [u64; 12]  = [
+    const FAST_PARTIAL_FIRST_ROUND_CONSTANT: [u64; 12]  = [
         0x3cc3f892184df408, 0xe993fd841e7e97f1, 0xf2831d3575f0f3af, 0xd2500e0a350994ca,
         0xc5571f35d7288633, 0x91d89c5184109a02, 0xf37f925d04e5667b, 0x2d6e448371955a69,
         0x740ef19ce01398a1, 0x694d24c0752fdf45, 0x60936af96ee2f148, 0xc33448feadc78f0c,
@@ -302,7 +302,7 @@ impl Poseidon64 {
         0x1aca78f31c97c876, 0x0,
     ];
 
-    pub(crate) const FAST_PARTIAL_ROUND_VS: [[u64; 12 - 1]; N_PARTIAL_ROUNDS] = [
+    const FAST_PARTIAL_ROUND_VS: [[u64; 12 - 1]; N_PARTIAL_ROUNDS] = [
         [0x94877900674181c3, 0xc6c67cc37a2a2bbd, 0xd667c2055387940f, 0x0ba63a63e94b5ff0,
          0x99460cc41b8f079f, 0x7ff02375ed524bb3, 0xea0870b47a8caf0e, 0xabcad82633b7bc9d,
          0x3b8d135261052241, 0xfb4515f5e5b0d539, 0x3ee8011c2b37f77c, ],
@@ -371,7 +371,7 @@ impl Poseidon64 {
          0x0000000000000010, 0x0000000000000029, 0x000000000000000f, ],
     ];
 
-    pub(crate) const FAST_PARTIAL_ROUND_W_HATS: [[u64; 12 - 1]; N_PARTIAL_ROUNDS] = [
+    const FAST_PARTIAL_ROUND_W_HATS: [[u64; 12 - 1]; N_PARTIAL_ROUNDS] = [
         [0x3d999c961b7c63b0, 0x814e82efcd172529, 0x2421e5d236704588, 0x887af7d4dd482328,
          0xa5e9c291f6119b27, 0xbdc52b2676a4b4aa, 0x64832009d29bcf57, 0x09c4155174a552cc,
          0x463f9ee03d290810, 0xc810936e64982542, 0x043b1c289f7bc3ac, ],
@@ -441,7 +441,7 @@ impl Poseidon64 {
     ];
 
     // NB: This is in ROW-major order to support cache-friendly pre-multiplication.
-    pub(crate) const FAST_PARTIAL_ROUND_INITIAL_MATRIX: [[u64; 12 - 1]; 12 - 1] = [
+    const FAST_PARTIAL_ROUND_INITIAL_MATRIX: [[u64; 12 - 1]; 12 - 1] = [
         [0x80772dc2645b280b, 0xdc927721da922cf8, 0xc1978156516879ad, 0x90e80c591f48b603,
          0x3a2432625475e3ae, 0x00a2d4321cca94fe, 0x77736f524010c932, 0x904d3f2804a36c54,
          0xbf9b39e28a16f354, 0x3a1ded54a6cd058b, 0x42392870da5737cf, ],
@@ -514,7 +514,7 @@ impl Poseidon64 {
 
     #[cfg(all(target_arch="aarch64", target_feature="neon"))]
     #[inline(always)]
-    pub(crate) fn sbox_layer(state: &mut [Self; 12]) {
+    fn sbox_layer(state: &mut [Self; 12]) {
         unsafe {
             crate::hash::arch::aarch64::poseidon_goldilocks_neon::sbox_layer(state);
         }
@@ -522,7 +522,7 @@ impl Poseidon64 {
 
     #[cfg(all(target_arch="aarch64", target_feature="neon"))]
     #[inline(always)]
-    pub(crate) fn mds_layer(state: &[Self; 12]) -> [Self; 12] {
+    fn mds_layer(state: &[Self; 12]) -> [Self; 12] {
         unsafe {
             crate::hash::arch::aarch64::poseidon_goldilocks_neon::mds_layer(state)
         }
@@ -530,7 +530,7 @@ impl Poseidon64 {
     
     // Total number of round constants required: width of the input
     // times number of rounds.
-    pub(crate) const N_ROUND_CONSTANTS: usize = SPONGE_WIDTH * N_ROUNDS;
+    const N_ROUND_CONSTANTS: usize = SPONGE_WIDTH * N_ROUNDS;
 
     // The MDS matrix we use is C + D, where C is the circulant matrix whose first
     // row is given by `MDS_MATRIX_CIRC`, and D is the diagonal matrix whose
@@ -539,7 +539,7 @@ impl Poseidon64 {
 
     #[inline(always)]
     #[unroll_for_loops]
-    pub(crate) fn mds_row_shf(r: usize, v: &[u64; SPONGE_WIDTH]) -> u128 {
+    fn mds_row_shf(r: usize, v: &[u64; SPONGE_WIDTH]) -> u128 {
         debug_assert!(r < SPONGE_WIDTH);
         // The values of `MDS_MATRIX_CIRC` and `MDS_MATRIX_DIAG` are
         // known to be small, so we can accumulate all the products for
@@ -562,7 +562,7 @@ impl Poseidon64 {
     }
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
-    pub(crate) fn mds_row_shf_field<BF: Field, F: ExtensionField<BF>>(r: usize, v: &[F; SPONGE_WIDTH]) -> F {
+    fn mds_row_shf_field<BF: Field, F: ExtensionField<BF>>(r: usize, v: &[F; SPONGE_WIDTH]) -> F {
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = F::zero();
 
@@ -575,7 +575,7 @@ impl Poseidon64 {
     }
 
     /// Same as `mds_row_shf` for `PackedField`.
-    pub(crate) fn mds_row_shf_packed_field<
+    fn mds_row_shf_packed_field<
         F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
@@ -600,7 +600,7 @@ impl Poseidon64 {
     }
 
     /// Recursive version of `mds_row_shf`.
-    pub(crate) fn mds_row_shf_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    fn mds_row_shf_circuit<F: RichField + HasExtension<D>, const D: usize>(
         builder: &mut CircuitBuilder<F, D>,
         r: usize,
         v: &[ExtensionTarget<D>; SPONGE_WIDTH],
@@ -634,7 +634,7 @@ impl Poseidon64 {
     }
 
     /// Same as `mds_layer` for `PackedField`.
-    pub(crate) fn mds_layer_packed_field<
+    fn mds_layer_packed_field<
         F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
@@ -701,7 +701,7 @@ impl Poseidon64 {
     /// Same as `partial_first_constant_layer` for `PackedField`.
     #[inline(always)]
     #[unroll_for_loops]
-    pub(crate) fn partial_first_constant_layer_packed_field<
+    fn partial_first_constant_layer_packed_field<
         F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
@@ -768,7 +768,7 @@ impl Poseidon64 {
     /// Same as `mds_partial_layer_init` for `PackedField`.
     #[inline(always)]
     #[unroll_for_loops]
-    pub(crate) fn mds_partial_layer_init_packed_field<
+    fn mds_partial_layer_init_packed_field<
         F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
@@ -888,7 +888,7 @@ impl Poseidon64 {
     }
 
     /// Same as `mds_partial_layer_fast` for `PackedField.
-    pub(crate) fn mds_partial_layer_fast_packed_field<
+    fn mds_partial_layer_fast_packed_field<
         F: RichField + HasExtension<D> + HasExtension<D2>,
         const D: usize,
         P,
@@ -1059,7 +1059,7 @@ impl Poseidon64 {
     }
 
     #[inline]
-    pub(crate) fn full_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
+    fn full_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
         for _ in 0..HALF_N_FULL_ROUNDS {
             Self::constant_layer(state, *round_ctr);
             Self::sbox_layer(state);
@@ -1069,7 +1069,7 @@ impl Poseidon64 {
     }
 
     #[inline]
-    pub(crate) fn partial_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
+    fn partial_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
         Self::partial_first_constant_layer(state);
         *state = Self::mds_partial_layer_init(state);
 
@@ -1106,7 +1106,7 @@ impl Poseidon64 {
     }
 
     #[inline]
-    pub(crate) fn poseidon_naive<F: RichField>(input: [F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
+    fn poseidon_naive<F: RichField>(input: [F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
         let mut state = input;
         let mut round_ctr = 0;
 
@@ -1220,20 +1220,20 @@ mod poseidon12_mds {
 
     /// Real 2-FFT over u64 integers.
     #[inline(always)]
-    pub(crate) const fn fft2_real(x: [u64; 2]) -> [i64; 2] {
+    const fn fft2_real(x: [u64; 2]) -> [i64; 2] {
         [(x[0] as i64 + x[1] as i64), (x[0] as i64 - x[1] as i64)]
     }
 
     /// Real 2-iFFT over u64 integers.
     /// Division by two to complete the inverse FFT is not performed here.
     #[inline(always)]
-    pub(crate) const fn ifft2_real_unreduced(y: [i64; 2]) -> [u64; 2] {
+    const fn ifft2_real_unreduced(y: [i64; 2]) -> [u64; 2] {
         [(y[0] + y[1]) as u64, (y[0] - y[1]) as u64]
     }
 
     /// Real 4-FFT over u64 integers.
     #[inline(always)]
-    pub(crate) const fn fft4_real(x: [u64; 4]) -> (i64, (i64, i64), i64) {
+    const fn fft4_real(x: [u64; 4]) -> (i64, (i64, i64), i64) {
         let [z0, z2] = fft2_real([x[0], x[2]]);
         let [z1, z3] = fft2_real([x[1], x[3]]);
         let y0 = z0 + z1;
@@ -1245,7 +1245,7 @@ mod poseidon12_mds {
     /// Real 4-iFFT over u64 integers.
     /// Division by four to complete the inverse FFT is not performed here.
     #[inline(always)]
-    pub(crate) const fn ifft4_real_unreduced(y: (i64, (i64, i64), i64)) -> [u64; 4] {
+    const fn ifft4_real_unreduced(y: (i64, (i64, i64), i64)) -> [u64; 4] {
         let z0 = y.0 + y.2;
         let z1 = y.0 - y.2;
         let z2 = y.1 .0;
@@ -1258,7 +1258,7 @@ mod poseidon12_mds {
     }
 }
 
-impl<F: RichField> Permuter for F {
+impl<F: RichField> Permuter64 for F {
     fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
         Poseidon64::poseidon(input)
     }
@@ -1266,11 +1266,11 @@ impl<F: RichField> Permuter for F {
 
 /// Poseidon hash function.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct PoseidonHash;
-impl<F: RichField> Hasher<F> for PoseidonHash {
+pub struct Poseidon64Hash;
+impl<F: RichField> Hasher<F> for Poseidon64Hash {
     const HASH_SIZE: usize = 4 * 8;
     type Hash = HashOut<F>;
-    type Permutation = PoseidonPermutation<F>;
+    type Permutation = Poseidon64Permutation<F>;
 
     fn hash_no_pad(input: &[F]) -> Self::Hash {
         hash_n_to_hash_no_pad::<F, Self::Permutation>(input)
@@ -1281,8 +1281,8 @@ impl<F: RichField> Hasher<F> for PoseidonHash {
     }
 }
 
-impl<F: RichField> AlgebraicHasher<F> for PoseidonHash {
-    type AlgebraicPermutation = PoseidonPermutation<Target>;
+impl<F: RichField> AlgebraicHasher<F> for Poseidon64Hash {
+    type AlgebraicPermutation = Poseidon64Permutation<Target>;
 
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,

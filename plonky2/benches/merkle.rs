@@ -5,7 +5,7 @@ use p3_goldilocks::Goldilocks;
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::keccak::KeccakHash;
 use plonky2::hash::merkle_tree::MerkleTree;
-use plonky2::hash::poseidon_64bits::PoseidonHash;
+use plonky2::hash::poseidon_64bits::Poseidon64Hash;
 use plonky2::plonk::config::Hasher;
 use tynm::type_name;
 
@@ -29,7 +29,7 @@ pub(crate) fn bench_merkle_tree<F: RichField, H: Hasher<F>>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_merkle_tree::<Goldilocks, PoseidonHash>(c);
+    bench_merkle_tree::<Goldilocks, Poseidon64Hash>(c);
     bench_merkle_tree::<Goldilocks, KeccakHash<25>>(c);
 }
 

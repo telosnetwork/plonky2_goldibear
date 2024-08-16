@@ -20,7 +20,7 @@ use serde::Serialize;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
-use crate::hash::poseidon_64bits::PoseidonHash;
+use crate::hash::poseidon_64bits::Poseidon64Hash;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 
@@ -113,8 +113,8 @@ pub struct PoseidonGoldilocksConfig;
 impl GenericConfig<2> for PoseidonGoldilocksConfig {
     type F = Goldilocks;
     type FE = BinomialExtensionField<Self::F, 2>;
-    type Hasher = PoseidonHash;
-    type InnerHasher = PoseidonHash;
+    type Hasher = Poseidon64Hash;
+    type InnerHasher = Poseidon64Hash;
 }
 
 /// Configuration using truncated Keccak over the Goldilocks field.
@@ -124,5 +124,5 @@ impl GenericConfig<2> for KeccakGoldilocksConfig {
     type F = Goldilocks;
     type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = KeccakHash<25>;
-    type InnerHasher = PoseidonHash;
+    type InnerHasher = Poseidon64Hash;
 }

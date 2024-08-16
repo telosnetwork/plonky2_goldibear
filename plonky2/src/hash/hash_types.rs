@@ -2,6 +2,7 @@
 use alloc::vec::Vec;
 
 use anyhow::ensure;
+use p3_babybear::BabyBear;
 use p3_field::{Field, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -14,6 +15,7 @@ use crate::plonk::config::GenericHashOut;
 pub trait RichField: PrimeField64 + Sample + TwoAdicField {}
 
 impl RichField for Goldilocks {}
+impl RichField for BabyBear {}
 
 pub const NUM_HASH_OUT_ELTS: usize = 4;
 
