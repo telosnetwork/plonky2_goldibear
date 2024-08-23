@@ -11,11 +11,11 @@ use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
-use crate::gates::poseidon_mds::PoseidonMdsGate;
+use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
-use crate::hash::poseidon_64bits::{
-    Poseidon64, HALF_N_FULL_ROUNDS, N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_WIDTH,
+use crate::hash::poseidon_goldilocks::{
+    PoseidonGoldilocks, HALF_N_FULL_ROUNDS, N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -159,7 +159,7 @@ where
 
         // First set of full rounds.
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer_field::<F, F::Extension>(&mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer_field::<F, F::Extension>(&mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     let sbox_in = vars.local_wires[Self::wire_full_sbox_0(r, i)];
@@ -167,39 +167,39 @@ where
                     state[i] = sbox_in;
                 }
             }
-            Poseidon64::sbox_layer_field::<F, F::Extension>(&mut state);
-            state = Poseidon64::mds_layer_field(&state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F::Extension>(&mut state);
+            state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
 
         // Partial rounds.
-        Poseidon64::partial_first_constant_layer(&mut state);
-        state = Poseidon64::mds_partial_layer_init(&state);
+        PoseidonGoldilocks::partial_first_constant_layer(&mut state);
+        state = PoseidonGoldilocks::mds_partial_layer_init(&state);
         for r in 0..(N_PARTIAL_ROUNDS - 1) {
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             constraints.push(state[0] - sbox_in);
-            state[0] = Poseidon64::sbox_monomial(sbox_in);
+            state[0] = PoseidonGoldilocks::sbox_monomial(sbox_in);
             state[0] += <F as HasExtension<D>>::Extension::from_canonical_u64(
-                Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r],
+                PoseidonGoldilocks::FAST_PARTIAL_ROUND_CONSTANTS[r],
             );
-            state = Poseidon64::mds_partial_layer_fast_field(&state, r);
+            state = PoseidonGoldilocks::mds_partial_layer_fast_field(&state, r);
         }
         let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
         constraints.push(state[0] - sbox_in);
-        state[0] = Poseidon64::sbox_monomial(sbox_in);
-        state = Poseidon64::mds_partial_layer_fast_field(&state, N_PARTIAL_ROUNDS - 1);
+        state[0] = PoseidonGoldilocks::sbox_monomial(sbox_in);
+        state = PoseidonGoldilocks::mds_partial_layer_fast_field(&state, N_PARTIAL_ROUNDS - 1);
         round_ctr += N_PARTIAL_ROUNDS;
 
         // Second set of full rounds.
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer_field(&mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer_field(&mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 let sbox_in = vars.local_wires[Self::wire_full_sbox_1(r, i)];
                 constraints.push(state[i] - sbox_in);
                 state[i] = sbox_in;
             }
-            Poseidon64::sbox_layer_field::<F, F::Extension>(&mut state);
-            state = Poseidon64::mds_layer_field(&state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F::Extension>(&mut state);
+            state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
 
@@ -244,7 +244,7 @@ where
 
         // First set of full rounds.
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer(&mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer(&mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     let sbox_in = vars.local_wires[Self::wire_full_sbox_0(r, i)];
@@ -252,37 +252,37 @@ where
                     state[i] = sbox_in;
                 }
             }
-            Poseidon64::sbox_layer(&mut state);
-            state = Poseidon64::mds_layer(&state);
+            PoseidonGoldilocks::sbox_layer(&mut state);
+            state = PoseidonGoldilocks::mds_layer(&state);
             round_ctr += 1;
         }
 
         // Partial rounds.
-        Poseidon64::partial_first_constant_layer(&mut state);
-        state = Poseidon64::mds_partial_layer_init(&state);
+        PoseidonGoldilocks::partial_first_constant_layer(&mut state);
+        state = PoseidonGoldilocks::mds_partial_layer_init(&state);
         for r in 0..(N_PARTIAL_ROUNDS - 1) {
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             yield_constr.one(state[0] - sbox_in);
-            state[0] = Poseidon64::sbox_monomial(sbox_in);
-            state[0] += F::from_canonical_u64(Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r]);
-            state = Poseidon64::mds_partial_layer_fast(&state, r);
+            state[0] = PoseidonGoldilocks::sbox_monomial(sbox_in);
+            state[0] += F::from_canonical_u64(PoseidonGoldilocks::FAST_PARTIAL_ROUND_CONSTANTS[r]);
+            state = PoseidonGoldilocks::mds_partial_layer_fast(&state, r);
         }
         let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
         yield_constr.one(state[0] - sbox_in);
-        state[0] = Poseidon64::sbox_monomial(sbox_in);
-        state = Poseidon64::mds_partial_layer_fast(&state, N_PARTIAL_ROUNDS - 1);
+        state[0] = PoseidonGoldilocks::sbox_monomial(sbox_in);
+        state = PoseidonGoldilocks::mds_partial_layer_fast(&state, N_PARTIAL_ROUNDS - 1);
         round_ctr += N_PARTIAL_ROUNDS;
 
         // Second set of full rounds.
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer(&mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer(&mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 let sbox_in = vars.local_wires[Self::wire_full_sbox_1(r, i)];
                 yield_constr.one(state[i] - sbox_in);
                 state[i] = sbox_in;
             }
-            Poseidon64::sbox_layer(&mut state);
-            state = Poseidon64::mds_layer(&state);
+            PoseidonGoldilocks::sbox_layer(&mut state);
+            state = PoseidonGoldilocks::mds_layer(&state);
             round_ctr += 1;
         }
 
@@ -332,7 +332,7 @@ where
 
         // First set of full rounds.
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer_circuit(builder, &mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer_circuit(builder, &mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     let sbox_in = vars.local_wires[Self::wire_full_sbox_0(r, i)];
@@ -340,52 +340,52 @@ where
                     state[i] = sbox_in;
                 }
             }
-            Poseidon64::sbox_layer_circuit(builder, &mut state);
-            state = Poseidon64::mds_layer_circuit(builder, &state);
+            PoseidonGoldilocks::sbox_layer_circuit(builder, &mut state);
+            state = PoseidonGoldilocks::mds_layer_circuit(builder, &state);
             round_ctr += 1;
         }
 
         // Partial rounds.
         if use_mds_gate {
             for r in 0..N_PARTIAL_ROUNDS {
-                Poseidon64::constant_layer_circuit(builder, &mut state, round_ctr);
+                PoseidonGoldilocks::constant_layer_circuit(builder, &mut state, round_ctr);
                 let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
                 constraints.push(builder.sub_extension(state[0], sbox_in));
-                state[0] = Poseidon64::sbox_monomial_circuit(builder, sbox_in);
-                state = Poseidon64::mds_layer_circuit(builder, &state);
+                state[0] = PoseidonGoldilocks::sbox_monomial_circuit(builder, sbox_in);
+                state = PoseidonGoldilocks::mds_layer_circuit(builder, &state);
                 round_ctr += 1;
             }
         } else {
-            Poseidon64::partial_first_constant_layer_circuit(builder, &mut state);
-            state = Poseidon64::mds_partial_layer_init_circuit(builder, &state);
+            PoseidonGoldilocks::partial_first_constant_layer_circuit(builder, &mut state);
+            state = PoseidonGoldilocks::mds_partial_layer_init_circuit(builder, &state);
             for r in 0..(N_PARTIAL_ROUNDS - 1) {
                 let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
                 constraints.push(builder.sub_extension(state[0], sbox_in));
-                state[0] = Poseidon64::sbox_monomial_circuit(builder, sbox_in);
-                let c = Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r];
+                state[0] = PoseidonGoldilocks::sbox_monomial_circuit(builder, sbox_in);
+                let c = PoseidonGoldilocks::FAST_PARTIAL_ROUND_CONSTANTS[r];
                 let c = <F as HasExtension<D>>::Extension::from_canonical_u64(c);
                 let c = builder.constant_extension(c);
                 state[0] = builder.add_extension(state[0], c);
-                state = Poseidon64::mds_partial_layer_fast_circuit(builder, &state, r);
+                state = PoseidonGoldilocks::mds_partial_layer_fast_circuit(builder, &state, r);
             }
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
             constraints.push(builder.sub_extension(state[0], sbox_in));
-            state[0] = Poseidon64::sbox_monomial_circuit(builder, sbox_in);
+            state[0] = PoseidonGoldilocks::sbox_monomial_circuit(builder, sbox_in);
             state =
-                Poseidon64::mds_partial_layer_fast_circuit(builder, &state, N_PARTIAL_ROUNDS - 1);
+                PoseidonGoldilocks::mds_partial_layer_fast_circuit(builder, &state, N_PARTIAL_ROUNDS - 1);
             round_ctr += N_PARTIAL_ROUNDS;
         }
 
         // Second set of full rounds.
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer_circuit(builder, &mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer_circuit(builder, &mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 let sbox_in = vars.local_wires[Self::wire_full_sbox_1(r, i)];
                 constraints.push(builder.sub_extension(state[i], sbox_in));
                 state[i] = sbox_in;
             }
-            Poseidon64::sbox_layer_circuit(builder, &mut state);
-            state = Poseidon64::mds_layer_circuit(builder, &state);
+            PoseidonGoldilocks::sbox_layer_circuit(builder, &mut state);
+            state = PoseidonGoldilocks::mds_layer_circuit(builder, &state);
             round_ctr += 1;
         }
 
@@ -473,7 +473,7 @@ where
         let mut round_ctr = 0;
 
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer_field(&mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer_field(&mut state, round_ctr);
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     out_buffer.set_wire(
@@ -482,21 +482,21 @@ where
                     );
                 }
             }
-            Poseidon64::sbox_layer_field::<F, F>(&mut state);
-            state = Poseidon64::mds_layer_field(&state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F>(&mut state);
+            state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
 
-        Poseidon64::partial_first_constant_layer(&mut state);
-        state = Poseidon64::mds_partial_layer_init(&state);
+        PoseidonGoldilocks::partial_first_constant_layer(&mut state);
+        state = PoseidonGoldilocks::mds_partial_layer_init(&state);
         for r in 0..(N_PARTIAL_ROUNDS - 1) {
             out_buffer.set_wire(
                 local_wire(PoseidonGate::<F, D>::wire_partial_sbox(r)),
                 state[0],
             );
-            state[0] = Poseidon64::sbox_monomial(state[0]);
-            state[0] += F::from_canonical_u64(Poseidon64::FAST_PARTIAL_ROUND_CONSTANTS[r]);
-            state = Poseidon64::mds_partial_layer_fast_field(&state, r);
+            state[0] = PoseidonGoldilocks::sbox_monomial(state[0]);
+            state[0] += F::from_canonical_u64(PoseidonGoldilocks::FAST_PARTIAL_ROUND_CONSTANTS[r]);
+            state = PoseidonGoldilocks::mds_partial_layer_fast_field(&state, r);
         }
         out_buffer.set_wire(
             local_wire(PoseidonGate::<F, D>::wire_partial_sbox(
@@ -504,20 +504,20 @@ where
             )),
             state[0],
         );
-        state[0] = Poseidon64::sbox_monomial(state[0]);
-        state = Poseidon64::mds_partial_layer_fast_field(&state, N_PARTIAL_ROUNDS - 1);
+        state[0] = PoseidonGoldilocks::sbox_monomial(state[0]);
+        state = PoseidonGoldilocks::mds_partial_layer_fast_field(&state, N_PARTIAL_ROUNDS - 1);
         round_ctr += N_PARTIAL_ROUNDS;
 
         for r in 0..HALF_N_FULL_ROUNDS {
-            Poseidon64::constant_layer_field(&mut state, round_ctr);
+            PoseidonGoldilocks::constant_layer_field(&mut state, round_ctr);
             for i in 0..SPONGE_WIDTH {
                 out_buffer.set_wire(
                     local_wire(PoseidonGate::<F, D>::wire_full_sbox_1(r, i)),
                     state[i],
                 );
             }
-            Poseidon64::sbox_layer_field::<F, F>(&mut state);
-            state = Poseidon64::mds_layer_field(&state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F>(&mut state);
+            state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
 
@@ -615,7 +615,7 @@ mod tests {
         let witness = generate_partial_witness(inputs, &circuit.prover_only, &circuit.common);
 
         let expected_outputs: [F; SPONGE_WIDTH] =
-            Poseidon64::poseidon(permutation_inputs.try_into().unwrap());
+            PoseidonGoldilocks::poseidon(permutation_inputs.try_into().unwrap());
         for i in 0..SPONGE_WIDTH {
             let out = witness.get_wire(Wire {
                 row: 0,

@@ -14,8 +14,8 @@ use unroll::unroll_for_loops;
 use super::hash_types::HashOut;
 use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
-use crate::gates::poseidon::PoseidonGate;
-use crate::gates::poseidon_mds::PoseidonMdsGate;
+use crate::gates::poseidon_goldilocks::PoseidonGate;
+use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 use crate::iop::ext_target::ExtensionTarget;
@@ -234,7 +234,7 @@ unsafe fn add_no_canonicalize_trashing_input(x: u64, y: u64) -> u64 {
     res_wrapped + adjustment
 }
 #[derive(Debug)]
-pub struct Poseidon64;
+pub struct PoseidonGoldilocks;
 
 fn from_noncanonical_u128<F: RichField>(x: u128) -> F {
     let epsilon = (1 << 32) - 1;
@@ -274,7 +274,7 @@ fn reduce_u160<F: RichField>((n_lo, n_hi): (u128, u32)) -> F {
     from_noncanonical_u128::<F>(reduced128)
 }
 #[rustfmt::skip]
-impl Poseidon64 {
+impl PoseidonGoldilocks {
     // The MDS matrix we use is C + D, where C is the circulant matrix whose first row is given by
     // `MDS_MATRIX_CIRC`, and D is the diagonal matrix whose diagonal is given by `MDS_MATRIX_DIAG`.
     //
@@ -1260,7 +1260,7 @@ mod poseidon12_mds {
 
 impl<F: RichField> Permuter64 for F {
     fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
-        Poseidon64::poseidon(input)
+        PoseidonGoldilocks::poseidon(input)
     }
 }
 
@@ -1323,7 +1323,7 @@ mod tests {
     use p3_field::PrimeField64;
     use p3_goldilocks::Goldilocks;
 
-    use crate::hash::poseidon_64bits::test_helpers::{check_consistency, check_test_vectors};
+    use crate::hash::poseidon_goldilocks::test_helpers::{check_consistency, check_test_vectors};
 
     type F = Goldilocks;
     #[test]
@@ -1376,7 +1376,7 @@ pub(crate) mod test_helpers {
     use p3_goldilocks::Goldilocks;
 
     use super::*;
-    use crate::hash::poseidon_64bits::Poseidon64;
+    use crate::hash::poseidon_goldilocks::PoseidonGoldilocks;
 
     type F = Goldilocks;
     pub(crate) fn check_test_vectors(
@@ -1387,7 +1387,7 @@ pub(crate) mod test_helpers {
             for i in 0..SPONGE_WIDTH {
                 input[i] = F::from_canonical_u64(input_[i]);
             }
-            let output = Poseidon64::poseidon(input);
+            let output = PoseidonGoldilocks::poseidon(input);
             for i in 0..SPONGE_WIDTH {
                 let ex_output = F::from_canonical_u64(expected_output_[i]);
                 assert_eq!(output[i], ex_output);
@@ -1403,8 +1403,8 @@ pub(crate) mod test_helpers {
         for i in 0..SPONGE_WIDTH {
             input[i] = F::from_canonical_u64(i as u64);
         }
-        let output = Poseidon64::poseidon(input);
-        let output_naive = Poseidon64::poseidon_naive(input);
+        let output = PoseidonGoldilocks::poseidon(input);
+        let output_naive = PoseidonGoldilocks::poseidon_naive(input);
         for i in 0..SPONGE_WIDTH {
             assert_eq!(output[i], output_naive[i]);
         }

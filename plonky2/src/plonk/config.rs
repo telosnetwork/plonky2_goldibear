@@ -8,6 +8,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use p3_babybear::BabyBear;
 use core::fmt::Debug;
 
 use p3_field::extension::BinomialExtensionField;
@@ -20,7 +21,8 @@ use serde::Serialize;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
-use crate::hash::poseidon_64bits::Poseidon64Hash;
+use crate::hash::poseidon2_babybear::Poseidon2BabyBearHash;
+use crate::hash::poseidon_goldilocks::Poseidon64Hash;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 
@@ -115,6 +117,15 @@ impl GenericConfig<2> for PoseidonGoldilocksConfig {
     type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = Poseidon64Hash;
     type InnerHasher = Poseidon64Hash;
+}
+
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize)]
+pub struct Poseidon2BabyBearConfig;
+impl GenericConfig<4> for Poseidon2BabyBearConfig {
+    type F = BabyBear;
+    type FE = BinomialExtensionField<Self::F, 4>;
+    type Hasher = Poseidon2BabyBearHash;
+    type InnerHasher = Poseidon2BabyBearHash;
 }
 
 /// Configuration using truncated Keccak over the Goldilocks field.

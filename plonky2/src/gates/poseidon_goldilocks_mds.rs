@@ -15,7 +15,7 @@ use plonky2_field::types::HasExtension;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
-use crate::hash::poseidon_64bits::{Poseidon64, SPONGE_WIDTH};
+use crate::hash::poseidon_goldilocks::{PoseidonGoldilocks, SPONGE_WIDTH};
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
 use crate::iop::target::Target;
@@ -59,13 +59,13 @@ where
 
         for i in 0..SPONGE_WIDTH {
             let coeff = <<F as HasExtension<D>>::Extension as AbstractField>::from_canonical_u64(
-                Poseidon64::MDS_MATRIX_CIRC[i],
+                PoseidonGoldilocks::MDS_MATRIX_CIRC[i],
             );
             res += v[(i + r) % SPONGE_WIDTH].scalar_mul(coeff);
         }
         {
             let coeff = <<F as HasExtension<D>>::Extension as AbstractField>::from_canonical_u64(
-                Poseidon64::MDS_MATRIX_DIAG[r],
+                PoseidonGoldilocks::MDS_MATRIX_DIAG[r],
             );
             res += v[r].scalar_mul(coeff);
         }
@@ -85,14 +85,14 @@ where
         for i in 0..SPONGE_WIDTH {
             let coeff =
                 builder.constant_extension(<F as HasExtension<D>>::Extension::from_canonical_u64(
-                    Poseidon64::MDS_MATRIX_CIRC[i],
+                    PoseidonGoldilocks::MDS_MATRIX_CIRC[i],
                 ));
             res = builder.scalar_mul_add_ext_algebra(coeff, v[(i + r) % SPONGE_WIDTH], res);
         }
         {
             let coeff =
                 builder.constant_extension(<F as HasExtension<D>>::Extension::from_canonical_u64(
-                    Poseidon64::MDS_MATRIX_DIAG[r],
+                    PoseidonGoldilocks::MDS_MATRIX_DIAG[r],
                 ));
             res = builder.scalar_mul_add_ext_algebra(coeff, v[r], res);
         }
@@ -179,7 +179,7 @@ where
             .try_into()
             .unwrap();
 
-        let computed_outputs = Poseidon64::mds_layer_field::<F, F::Extension>(&inputs);
+        let computed_outputs = PoseidonGoldilocks::mds_layer_field::<F, F::Extension>(&inputs);
 
         for i in 0..SPONGE_WIDTH {
             let out = vars.get_local_ext(Self::wires_output(i));
@@ -273,7 +273,7 @@ where
             .try_into()
             .unwrap();
 
-        let outputs = Poseidon64::mds_layer_field(&inputs);
+        let outputs = PoseidonGoldilocks::mds_layer_field(&inputs);
 
         for (i, &out) in outputs.iter().enumerate() {
             out_buffer.set_extension_target(
@@ -296,7 +296,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::gates::poseidon_mds::PoseidonMdsGate;
+    use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]

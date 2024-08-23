@@ -121,8 +121,8 @@ pub mod default {
     use crate::gates::lookup::LookupGenerator;
     use crate::gates::lookup_table::LookupTableGenerator;
     use crate::gates::multiplication_extension::MulExtensionGenerator;
-    use crate::gates::poseidon::PoseidonGenerator;
-    use crate::gates::poseidon_mds::PoseidonMdsGenerator;
+    use crate::gates::poseidon_goldilocks::PoseidonGenerator;
+    use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGenerator;
     use crate::gates::random_access::RandomAccessGenerator;
     use crate::gates::reducing::ReducingGenerator;
     use crate::gates::reducing_extension::ReducingGenerator as ReducingExtensionGenerator;
