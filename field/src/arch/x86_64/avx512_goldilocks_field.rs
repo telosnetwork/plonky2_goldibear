@@ -5,23 +5,24 @@ use core::iter::{Product, Sum};
 use core::mem::transmute;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::goldilocks_field::GoldilocksField;
+use p3_goldilocks::Goldilocks;
 use crate::ops::Square;
 use crate::packed::PackedField;
-use crate::types::{Field, Field64};
+use p3_field::{AbstractField, Field, PrimeField64};
+
 
 /// AVX512 Goldilocks Field
 ///
-/// Ideally `Avx512GoldilocksField` would wrap `__m512i`. Unfortunately, `__m512i` has an alignment
-/// of 64B, which would preclude us from casting `[GoldilocksField; 8]` (alignment 8B) to
-/// `Avx512GoldilocksField`. We need to ensure that `Avx512GoldilocksField` has the same alignment as
-/// `GoldilocksField`. Thus we wrap `[GoldilocksField; 8]` and use the `new` and `get` methods to
+/// Ideally `Avx512Goldilocks` would wrap `__m512i`. Unfortunately, `__m512i` has an alignment
+/// of 64B, which would preclude us from casting `[Goldilocks; 8]` (alignment 8B) to
+/// `Avx512Goldilocks`. We need to ensure that `Avx512Goldilocks` has the same alignment as
+/// `Goldilocks`. Thus we wrap `[Goldilocks; 8]` and use the `new` and `get` methods to
 /// convert to and from `__m512i`.
 #[derive(Copy, Clone)]
 #[repr(transparent)]
-pub struct Avx512GoldilocksField(pub [GoldilocksField; 8]);
+pub struct Avx512Goldilocks(pub [Goldilocks; 8]);
 
-impl Avx512GoldilocksField {
+impl Avx512Goldilocks {
     #[inline]
     fn new(x: __m512i) -> Self {
         unsafe { transmute(x) }
@@ -32,13 +33,139 @@ impl Avx512GoldilocksField {
     }
 }
 
-unsafe impl PackedField for Avx512GoldilocksField {
+impl Add<Self> for Avx512Goldilocks {
+    type Output = Self;
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        Self::new(unsafe { add(self.get(), rhs.get()) })
+    }
+}
+impl Add<Goldilocks> for Avx512Goldilocks {
+    type Output = Self;
+    #[inline]
+    fn add(self, rhs: Goldilocks) -> Self {
+        self + Self::from(rhs)
+    }
+}
+impl Add<Avx512Goldilocks> for Goldilocks {
+    type Output = Avx512Goldilocks;
+    #[inline]
+    fn add(self, rhs: Self::Output) -> Self::Output {
+        Self::Output::from(self) + rhs
+    }
+}
+impl AddAssign<Self> for Avx512Goldilocks {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+impl AddAssign<Goldilocks> for Avx512Goldilocks {
+    #[inline]
+    fn add_assign(&mut self, rhs: Goldilocks) {
+        *self = *self + rhs;
+    }
+}
+
+impl Debug for Avx512Goldilocks {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "({:?})", self.get())
+    }
+}
+
+impl Default for Avx512Goldilocks {
+    #[inline]
+    fn default() -> Self {
+        Self::zeros()
+    }
+}
+
+impl Div<Goldilocks> for Avx512Goldilocks {
+    type Output = Self;
+    #[inline]
+    fn div(self, rhs: Goldilocks) -> Self {
+        self * rhs.inverse()
+    }
+}
+impl DivAssign<Goldilocks> for Avx512Goldilocks {
+    #[inline]
+    fn div_assign(&mut self, rhs: Goldilocks) {
+        *self *= rhs.inverse();
+    }
+}
+
+impl From<Goldilocks> for Avx512Goldilocks {
+    fn from(x: Goldilocks) -> Self {
+        Self([x; 8])
+    }
+}
+
+impl Mul<Self> for Avx512Goldilocks {
+    type Output = Self;
+    #[inline]
+    fn mul(self, rhs: Self) -> Self {
+        Self::new(unsafe { mul(self.get(), rhs.get()) })
+    }
+}
+impl Mul<Goldilocks> for Avx512Goldilocks {
+    type Output = Self;
+    #[inline]
+    fn mul(self, rhs: Goldilocks) -> Self {
+        self * Self::from(rhs)
+    }
+}
+impl Mul<Avx512Goldilocks> for Goldilocks {
+    type Output = Avx512Goldilocks;
+    #[inline]
+    fn mul(self, rhs: Avx512Goldilocks) -> Self::Output {
+        Self::Output::from(self) * rhs
+    }
+}
+impl MulAssign<Self> for Avx512Goldilocks {
+    #[inline]
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+impl MulAssign<Goldilocks> for Avx512Goldilocks {
+    #[inline]
+    fn mul_assign(&mut self, rhs: Goldilocks) {
+        *self = *self * rhs;
+    }
+}
+
+impl Neg for Avx512Goldilocks {
+    type Output = Self;
+    #[inline]
+    fn neg(self) -> Self {
+        Self::new(unsafe { neg(self.get()) })
+    }
+}
+
+impl Product for Avx512Goldilocks {
+    #[inline]
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.reduce(|x, y| x * y).unwrap_or(Self::ones())
+    }
+}
+
+unsafe impl PackedField for Avx512Goldilocks {
     const WIDTH: usize = 8;
 
-    type Scalar = GoldilocksField;
+    type Scalar = Goldilocks;
 
-    const ZEROS: Self = Self([GoldilocksField::ZERO; 8]);
-    const ONES: Self = Self([GoldilocksField::ONE; 8]);
+    fn zeros() -> Self{
+        Self([Goldilocks::zero();8])
+    }
+
+    fn ones() -> Self{
+        Self([Goldilocks::one();8])
+    }
+
+    fn twos() -> Self{
+        Self([Goldilocks::two();8])
+    }
 
     #[inline]
     fn from_slice(slice: &[Self::Scalar]) -> &Self {
@@ -73,173 +200,56 @@ unsafe impl PackedField for Avx512GoldilocksField {
     }
 }
 
-impl Add<Self> for Avx512GoldilocksField {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(unsafe { add(self.get(), rhs.get()) })
-    }
-}
-impl Add<GoldilocksField> for Avx512GoldilocksField {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: GoldilocksField) -> Self {
-        self + Self::from(rhs)
-    }
-}
-impl Add<Avx512GoldilocksField> for GoldilocksField {
-    type Output = Avx512GoldilocksField;
-    #[inline]
-    fn add(self, rhs: Self::Output) -> Self::Output {
-        Self::Output::from(self) + rhs
-    }
-}
-impl AddAssign<Self> for Avx512GoldilocksField {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-impl AddAssign<GoldilocksField> for Avx512GoldilocksField {
-    #[inline]
-    fn add_assign(&mut self, rhs: GoldilocksField) {
-        *self = *self + rhs;
-    }
-}
-
-impl Debug for Avx512GoldilocksField {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "({:?})", self.get())
-    }
-}
-
-impl Default for Avx512GoldilocksField {
-    #[inline]
-    fn default() -> Self {
-        Self::ZEROS
-    }
-}
-
-impl Div<GoldilocksField> for Avx512GoldilocksField {
-    type Output = Self;
-    #[inline]
-    fn div(self, rhs: GoldilocksField) -> Self {
-        self * rhs.inverse()
-    }
-}
-impl DivAssign<GoldilocksField> for Avx512GoldilocksField {
-    #[inline]
-    fn div_assign(&mut self, rhs: GoldilocksField) {
-        *self *= rhs.inverse();
-    }
-}
-
-impl From<GoldilocksField> for Avx512GoldilocksField {
-    fn from(x: GoldilocksField) -> Self {
-        Self([x; 8])
-    }
-}
-
-impl Mul<Self> for Avx512GoldilocksField {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        Self::new(unsafe { mul(self.get(), rhs.get()) })
-    }
-}
-impl Mul<GoldilocksField> for Avx512GoldilocksField {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: GoldilocksField) -> Self {
-        self * Self::from(rhs)
-    }
-}
-impl Mul<Avx512GoldilocksField> for GoldilocksField {
-    type Output = Avx512GoldilocksField;
-    #[inline]
-    fn mul(self, rhs: Avx512GoldilocksField) -> Self::Output {
-        Self::Output::from(self) * rhs
-    }
-}
-impl MulAssign<Self> for Avx512GoldilocksField {
-    #[inline]
-    fn mul_assign(&mut self, rhs: Self) {
-        *self = *self * rhs;
-    }
-}
-impl MulAssign<GoldilocksField> for Avx512GoldilocksField {
-    #[inline]
-    fn mul_assign(&mut self, rhs: GoldilocksField) {
-        *self = *self * rhs;
-    }
-}
-
-impl Neg for Avx512GoldilocksField {
-    type Output = Self;
-    #[inline]
-    fn neg(self) -> Self {
-        Self::new(unsafe { neg(self.get()) })
-    }
-}
-
-impl Product for Avx512GoldilocksField {
-    #[inline]
-    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.reduce(|x, y| x * y).unwrap_or(Self::ONES)
-    }
-}
-
-impl Square for Avx512GoldilocksField {
+impl Square for Avx512Goldilocks {
     #[inline]
     fn square(&self) -> Self {
         Self::new(unsafe { square(self.get()) })
     }
 }
 
-impl Sub<Self> for Avx512GoldilocksField {
+impl Sub<Self> for Avx512Goldilocks {
     type Output = Self;
     #[inline]
     fn sub(self, rhs: Self) -> Self {
         Self::new(unsafe { sub(self.get(), rhs.get()) })
     }
 }
-impl Sub<GoldilocksField> for Avx512GoldilocksField {
+impl Sub<Goldilocks> for Avx512Goldilocks {
     type Output = Self;
     #[inline]
-    fn sub(self, rhs: GoldilocksField) -> Self {
+    fn sub(self, rhs: Goldilocks) -> Self {
         self - Self::from(rhs)
     }
 }
-impl Sub<Avx512GoldilocksField> for GoldilocksField {
-    type Output = Avx512GoldilocksField;
+impl Sub<Avx512Goldilocks> for Goldilocks {
+    type Output = Avx512Goldilocks;
     #[inline]
-    fn sub(self, rhs: Avx512GoldilocksField) -> Self::Output {
+    fn sub(self, rhs: Avx512Goldilocks) -> Self::Output {
         Self::Output::from(self) - rhs
     }
 }
-impl SubAssign<Self> for Avx512GoldilocksField {
+impl SubAssign<Self> for Avx512Goldilocks {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
-impl SubAssign<GoldilocksField> for Avx512GoldilocksField {
+impl SubAssign<Goldilocks> for Avx512Goldilocks {
     #[inline]
-    fn sub_assign(&mut self, rhs: GoldilocksField) {
+    fn sub_assign(&mut self, rhs: Goldilocks) {
         *self = *self - rhs;
     }
 }
 
-impl Sum for Avx512GoldilocksField {
+impl Sum for Avx512Goldilocks {
     #[inline]
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.reduce(|x, y| x + y).unwrap_or(Self::ZEROS)
+        iter.reduce(|x, y| x + y).unwrap_or(Self::zeros())
     }
 }
 
-const FIELD_ORDER: __m512i = unsafe { transmute([GoldilocksField::ORDER; 8]) };
-const EPSILON: __m512i = unsafe { transmute([GoldilocksField::ORDER.wrapping_neg(); 8]) };
+const FIELD_ORDER: __m512i = unsafe { transmute([Goldilocks::ORDER_U64; 8]) };
+const EPSILON: __m512i = unsafe { transmute([Goldilocks::ORDER_U64.wrapping_neg(); 8]) };
 
 #[inline]
 unsafe fn canonicalize(x: __m512i) -> __m512i {
@@ -398,34 +408,34 @@ unsafe fn interleave4(x: __m512i, y: __m512i) -> (__m512i, __m512i) {
 
 #[cfg(test)]
 mod tests {
-    use crate::arch::x86_64::avx512_goldilocks_field::Avx512GoldilocksField;
-    use crate::goldilocks_field::GoldilocksField;
+    use crate::arch::x86_64::avx512_goldilocks_field::Avx512Goldilocks;
+    use crate::goldilocks_field::Goldilocks;
     use crate::ops::Square;
     use crate::packed::PackedField;
     use crate::types::Field;
 
-    fn test_vals_a() -> [GoldilocksField; 8] {
+    fn test_vals_a() -> [Goldilocks; 8] {
         [
-            GoldilocksField::from_noncanonical_u64(14479013849828404771),
-            GoldilocksField::from_noncanonical_u64(9087029921428221768),
-            GoldilocksField::from_noncanonical_u64(2441288194761790662),
-            GoldilocksField::from_noncanonical_u64(5646033492608483824),
-            GoldilocksField::from_noncanonical_u64(2779181197214900072),
-            GoldilocksField::from_noncanonical_u64(2989742820063487116),
-            GoldilocksField::from_noncanonical_u64(727880025589250743),
-            GoldilocksField::from_noncanonical_u64(3803926346107752679),
+            Goldilocks::from_noncanonical_u64(14479013849828404771),
+            Goldilocks::from_noncanonical_u64(9087029921428221768),
+            Goldilocks::from_noncanonical_u64(2441288194761790662),
+            Goldilocks::from_noncanonical_u64(5646033492608483824),
+            Goldilocks::from_noncanonical_u64(2779181197214900072),
+            Goldilocks::from_noncanonical_u64(2989742820063487116),
+            Goldilocks::from_noncanonical_u64(727880025589250743),
+            Goldilocks::from_noncanonical_u64(3803926346107752679),
         ]
     }
-    fn test_vals_b() -> [GoldilocksField; 8] {
+    fn test_vals_b() -> [Goldilocks; 8] {
         [
-            GoldilocksField::from_noncanonical_u64(17891926589593242302),
-            GoldilocksField::from_noncanonical_u64(11009798273260028228),
-            GoldilocksField::from_noncanonical_u64(2028722748960791447),
-            GoldilocksField::from_noncanonical_u64(7929433601095175579),
-            GoldilocksField::from_noncanonical_u64(6632528436085461172),
-            GoldilocksField::from_noncanonical_u64(2145438710786785567),
-            GoldilocksField::from_noncanonical_u64(11821483668392863016),
-            GoldilocksField::from_noncanonical_u64(15638272883309521929),
+            Goldilocks::from_noncanonical_u64(17891926589593242302),
+            Goldilocks::from_noncanonical_u64(11009798273260028228),
+            Goldilocks::from_noncanonical_u64(2028722748960791447),
+            Goldilocks::from_noncanonical_u64(7929433601095175579),
+            Goldilocks::from_noncanonical_u64(6632528436085461172),
+            Goldilocks::from_noncanonical_u64(2145438710786785567),
+            Goldilocks::from_noncanonical_u64(11821483668392863016),
+            Goldilocks::from_noncanonical_u64(15638272883309521929),
         ]
     }
 
@@ -434,8 +444,8 @@ mod tests {
         let a_arr = test_vals_a();
         let b_arr = test_vals_b();
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&a_arr);
-        let packed_b = *Avx512GoldilocksField::from_slice(&b_arr);
+        let packed_a = *Avx512Goldilocks::from_slice(&a_arr);
+        let packed_b = *Avx512Goldilocks::from_slice(&b_arr);
         let packed_res = packed_a + packed_b;
         let arr_res = packed_res.as_slice();
 
@@ -450,8 +460,8 @@ mod tests {
         let a_arr = test_vals_a();
         let b_arr = test_vals_b();
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&a_arr);
-        let packed_b = *Avx512GoldilocksField::from_slice(&b_arr);
+        let packed_a = *Avx512Goldilocks::from_slice(&a_arr);
+        let packed_b = *Avx512Goldilocks::from_slice(&b_arr);
         let packed_res = packed_a * packed_b;
         let arr_res = packed_res.as_slice();
 
@@ -465,7 +475,7 @@ mod tests {
     fn test_square() {
         let a_arr = test_vals_a();
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&a_arr);
+        let packed_a = *Avx512Goldilocks::from_slice(&a_arr);
         let packed_res = packed_a.square();
         let arr_res = packed_res.as_slice();
 
@@ -479,7 +489,7 @@ mod tests {
     fn test_neg() {
         let a_arr = test_vals_a();
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&a_arr);
+        let packed_a = *Avx512Goldilocks::from_slice(&a_arr);
         let packed_res = -packed_a;
         let arr_res = packed_res.as_slice();
 
@@ -494,8 +504,8 @@ mod tests {
         let a_arr = test_vals_a();
         let b_arr = test_vals_b();
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&a_arr);
-        let packed_b = *Avx512GoldilocksField::from_slice(&b_arr);
+        let packed_a = *Avx512Goldilocks::from_slice(&a_arr);
+        let packed_b = *Avx512Goldilocks::from_slice(&b_arr);
         let packed_res = packed_a - packed_b;
         let arr_res = packed_res.as_slice();
 
@@ -510,8 +520,8 @@ mod tests {
         let a_arr = test_vals_a();
         let b_arr = test_vals_b();
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&a_arr);
-        let packed_b = *Avx512GoldilocksField::from_slice(&b_arr);
+        let packed_a = *Avx512Goldilocks::from_slice(&a_arr);
+        let packed_b = *Avx512Goldilocks::from_slice(&b_arr);
         {
             // Interleave, then deinterleave.
             let (x, y) = packed_a.interleave(packed_b, 1);
@@ -541,89 +551,89 @@ mod tests {
 
     #[test]
     fn test_interleave() {
-        let in_a: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(00),
-            GoldilocksField::from_noncanonical_u64(01),
-            GoldilocksField::from_noncanonical_u64(02),
-            GoldilocksField::from_noncanonical_u64(03),
-            GoldilocksField::from_noncanonical_u64(04),
-            GoldilocksField::from_noncanonical_u64(05),
-            GoldilocksField::from_noncanonical_u64(06),
-            GoldilocksField::from_noncanonical_u64(07),
+        let in_a: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(00),
+            Goldilocks::from_noncanonical_u64(01),
+            Goldilocks::from_noncanonical_u64(02),
+            Goldilocks::from_noncanonical_u64(03),
+            Goldilocks::from_noncanonical_u64(04),
+            Goldilocks::from_noncanonical_u64(05),
+            Goldilocks::from_noncanonical_u64(06),
+            Goldilocks::from_noncanonical_u64(07),
         ];
-        let in_b: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(10),
-            GoldilocksField::from_noncanonical_u64(11),
-            GoldilocksField::from_noncanonical_u64(12),
-            GoldilocksField::from_noncanonical_u64(13),
-            GoldilocksField::from_noncanonical_u64(14),
-            GoldilocksField::from_noncanonical_u64(15),
-            GoldilocksField::from_noncanonical_u64(16),
-            GoldilocksField::from_noncanonical_u64(17),
+        let in_b: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(10),
+            Goldilocks::from_noncanonical_u64(11),
+            Goldilocks::from_noncanonical_u64(12),
+            Goldilocks::from_noncanonical_u64(13),
+            Goldilocks::from_noncanonical_u64(14),
+            Goldilocks::from_noncanonical_u64(15),
+            Goldilocks::from_noncanonical_u64(16),
+            Goldilocks::from_noncanonical_u64(17),
         ];
-        let int1_a: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(00),
-            GoldilocksField::from_noncanonical_u64(10),
-            GoldilocksField::from_noncanonical_u64(02),
-            GoldilocksField::from_noncanonical_u64(12),
-            GoldilocksField::from_noncanonical_u64(04),
-            GoldilocksField::from_noncanonical_u64(14),
-            GoldilocksField::from_noncanonical_u64(06),
-            GoldilocksField::from_noncanonical_u64(16),
+        let int1_a: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(00),
+            Goldilocks::from_noncanonical_u64(10),
+            Goldilocks::from_noncanonical_u64(02),
+            Goldilocks::from_noncanonical_u64(12),
+            Goldilocks::from_noncanonical_u64(04),
+            Goldilocks::from_noncanonical_u64(14),
+            Goldilocks::from_noncanonical_u64(06),
+            Goldilocks::from_noncanonical_u64(16),
         ];
-        let int1_b: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(01),
-            GoldilocksField::from_noncanonical_u64(11),
-            GoldilocksField::from_noncanonical_u64(03),
-            GoldilocksField::from_noncanonical_u64(13),
-            GoldilocksField::from_noncanonical_u64(05),
-            GoldilocksField::from_noncanonical_u64(15),
-            GoldilocksField::from_noncanonical_u64(07),
-            GoldilocksField::from_noncanonical_u64(17),
+        let int1_b: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(01),
+            Goldilocks::from_noncanonical_u64(11),
+            Goldilocks::from_noncanonical_u64(03),
+            Goldilocks::from_noncanonical_u64(13),
+            Goldilocks::from_noncanonical_u64(05),
+            Goldilocks::from_noncanonical_u64(15),
+            Goldilocks::from_noncanonical_u64(07),
+            Goldilocks::from_noncanonical_u64(17),
         ];
-        let int2_a: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(00),
-            GoldilocksField::from_noncanonical_u64(01),
-            GoldilocksField::from_noncanonical_u64(10),
-            GoldilocksField::from_noncanonical_u64(11),
-            GoldilocksField::from_noncanonical_u64(04),
-            GoldilocksField::from_noncanonical_u64(05),
-            GoldilocksField::from_noncanonical_u64(14),
-            GoldilocksField::from_noncanonical_u64(15),
+        let int2_a: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(00),
+            Goldilocks::from_noncanonical_u64(01),
+            Goldilocks::from_noncanonical_u64(10),
+            Goldilocks::from_noncanonical_u64(11),
+            Goldilocks::from_noncanonical_u64(04),
+            Goldilocks::from_noncanonical_u64(05),
+            Goldilocks::from_noncanonical_u64(14),
+            Goldilocks::from_noncanonical_u64(15),
         ];
-        let int2_b: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(02),
-            GoldilocksField::from_noncanonical_u64(03),
-            GoldilocksField::from_noncanonical_u64(12),
-            GoldilocksField::from_noncanonical_u64(13),
-            GoldilocksField::from_noncanonical_u64(06),
-            GoldilocksField::from_noncanonical_u64(07),
-            GoldilocksField::from_noncanonical_u64(16),
-            GoldilocksField::from_noncanonical_u64(17),
+        let int2_b: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(02),
+            Goldilocks::from_noncanonical_u64(03),
+            Goldilocks::from_noncanonical_u64(12),
+            Goldilocks::from_noncanonical_u64(13),
+            Goldilocks::from_noncanonical_u64(06),
+            Goldilocks::from_noncanonical_u64(07),
+            Goldilocks::from_noncanonical_u64(16),
+            Goldilocks::from_noncanonical_u64(17),
         ];
-        let int4_a: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(00),
-            GoldilocksField::from_noncanonical_u64(01),
-            GoldilocksField::from_noncanonical_u64(02),
-            GoldilocksField::from_noncanonical_u64(03),
-            GoldilocksField::from_noncanonical_u64(10),
-            GoldilocksField::from_noncanonical_u64(11),
-            GoldilocksField::from_noncanonical_u64(12),
-            GoldilocksField::from_noncanonical_u64(13),
+        let int4_a: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(00),
+            Goldilocks::from_noncanonical_u64(01),
+            Goldilocks::from_noncanonical_u64(02),
+            Goldilocks::from_noncanonical_u64(03),
+            Goldilocks::from_noncanonical_u64(10),
+            Goldilocks::from_noncanonical_u64(11),
+            Goldilocks::from_noncanonical_u64(12),
+            Goldilocks::from_noncanonical_u64(13),
         ];
-        let int4_b: [GoldilocksField; 8] = [
-            GoldilocksField::from_noncanonical_u64(04),
-            GoldilocksField::from_noncanonical_u64(05),
-            GoldilocksField::from_noncanonical_u64(06),
-            GoldilocksField::from_noncanonical_u64(07),
-            GoldilocksField::from_noncanonical_u64(14),
-            GoldilocksField::from_noncanonical_u64(15),
-            GoldilocksField::from_noncanonical_u64(16),
-            GoldilocksField::from_noncanonical_u64(17),
+        let int4_b: [Goldilocks; 8] = [
+            Goldilocks::from_noncanonical_u64(04),
+            Goldilocks::from_noncanonical_u64(05),
+            Goldilocks::from_noncanonical_u64(06),
+            Goldilocks::from_noncanonical_u64(07),
+            Goldilocks::from_noncanonical_u64(14),
+            Goldilocks::from_noncanonical_u64(15),
+            Goldilocks::from_noncanonical_u64(16),
+            Goldilocks::from_noncanonical_u64(17),
         ];
 
-        let packed_a = *Avx512GoldilocksField::from_slice(&in_a);
-        let packed_b = *Avx512GoldilocksField::from_slice(&in_b);
+        let packed_a = *Avx512Goldilocks::from_slice(&in_a);
+        let packed_b = *Avx512Goldilocks::from_slice(&in_b);
         {
             let (x1, y1) = packed_a.interleave(packed_b, 1);
             assert_eq!(x1.as_slice(), int1_a);
