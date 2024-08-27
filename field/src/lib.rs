@@ -1,3 +1,11 @@
+#![cfg_attr(all(
+    target_feature = "avx512bw",
+    target_feature = "avx512cd",
+    target_feature = "avx512dq",
+    target_feature = "avx512f",
+    target_feature = "avx512vl"
+), feature(stdarch_x86_avx512))]
+
 #![allow(incomplete_features)]
 #![allow(clippy::len_without_is_empty)]
 #![allow(clippy::needless_range_loop)]
