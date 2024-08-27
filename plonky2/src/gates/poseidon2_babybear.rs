@@ -69,7 +69,7 @@ where
 
     const START_DELTA: usize = 2 * SPONGE_WIDTH + 1;
 
-    /// A wire which stores `swap * (input[i + 4] - input[i])`; used to compute the swapped inputs.
+    /// A wire which stores `swap * (input[i + SPONGE_CAPACITY] - input[i])`; used to compute the swapped inputs.
     const fn wire_delta(i: usize) -> usize {
         assert!(i < SPONGE_CAPACITY);
         Self::START_DELTA + i
@@ -324,6 +324,7 @@ where
         builder: &mut CircuitBuilder<F, D>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
+        panic!();
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         // Assert that `swap` is binary.
@@ -331,9 +332,9 @@ where
         constraints.push(builder.mul_sub_extension(swap, swap, swap));
 
         // Assert that each delta wire is set properly: `delta_i = swap * (rhs - lhs)`.
-        for i in 0..4 {
+        for i in 0..SPONGE_CAPACITY {
             let input_lhs = vars.local_wires[Self::wire_input(i)];
-            let input_rhs = vars.local_wires[Self::wire_input(i + 4)];
+            let input_rhs = vars.local_wires[Self::wire_input(i + SPONGE_CAPACITY)];
             let delta_i = vars.local_wires[Self::wire_delta(i)];
             let diff = builder.sub_extension(input_rhs, input_lhs);
             constraints.push(builder.mul_sub_extension(swap, diff, delta_i));
@@ -341,12 +342,12 @@ where
 
         // Compute the possibly-swapped input layer.
         let mut state = [builder.zero_extension(); SPONGE_WIDTH];
-        for i in 0..4 {
+        for i in 0..SPONGE_CAPACITY {
             let delta_i = vars.local_wires[Self::wire_delta(i)];
             let input_lhs = vars.local_wires[Self::wire_input(i)];
-            let input_rhs = vars.local_wires[Self::wire_input(i + 4)];
+            let input_rhs = vars.local_wires[Self::wire_input(i + SPONGE_CAPACITY)];
             state[i] = builder.add_extension(input_lhs, delta_i);
-            state[i + 4] = builder.sub_extension(input_rhs, delta_i);
+            state[i + SPONGE_CAPACITY] = builder.sub_extension(input_rhs, delta_i);
         }
         for i in 8..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
@@ -476,14 +477,14 @@ where
         let swap_value = witness.get_wire(local_wire(Poseidon2BabyBearGate::<F, D>::WIRE_SWAP));
         debug_assert!(swap_value == F::zero() || swap_value == F::one());
 
-        for i in 0..4 {
-            let delta_i = swap_value * (state[i + 4] - state[i]);
+        for i in 0..SPONGE_CAPACITY {
+            let delta_i = swap_value * (state[i + SPONGE_CAPACITY] - state[i]);
             out_buffer.set_wire(local_wire(Poseidon2BabyBearGate::<F, D>::wire_delta(i)), delta_i);
         }
 
         if swap_value == F::one() {
-            for i in 0..4 {
-                state.swap(i, 4 + i);
+            for i in 0..SPONGE_CAPACITY {
+                state.swap(i, SPONGE_CAPACITY + i);
             }
         }
 
@@ -797,6 +798,7 @@ mod tests {
             F::zero(),
         );
         for i in 0..SPONGE_WIDTH {
+            println!("{i}");
             inputs.set_wire(
                 Wire {
                     row,
