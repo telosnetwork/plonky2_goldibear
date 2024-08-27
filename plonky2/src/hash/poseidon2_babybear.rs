@@ -1,8 +1,10 @@
 use core::fmt::Debug;
 
-use p3_babybear::BabyBear;
+use lazy_static::lazy_static;
+use p3_babybear::{BabyBear, DiffusionMatrixBabyBear};
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use p3_poseidon2;
+use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_symmetric::Permutation;
 use plonky2_field::types::HasExtension;
 
@@ -74,6 +76,23 @@ pub(crate) const INTERNAL_CONSTANTS: [u32; N_PARTIAL_ROUNDS] = [
     143950039, 1011062373, 1888518418, 744902302, 1685783724,
 ];
 
+lazy_static! {
+    pub static ref poseidon2: Poseidon2<BabyBear, Poseidon2ExternalMatrixGeneral, DiffusionMatrixBabyBear, 24, 7> = {
+        Poseidon2::new(
+            N_FULL_ROUNDS_TOTAL,
+            EXTERNAL_CONSTANTS
+                .map(|arr| arr.map(BabyBear::from_canonical_u32))
+                .to_vec(),
+            Poseidon2ExternalMatrixGeneral,
+            N_PARTIAL_ROUNDS,
+            INTERNAL_CONSTANTS
+                .map(BabyBear::from_canonical_u32)
+                .to_vec(),
+            DiffusionMatrixBabyBear::default(),
+        )
+    };
+}
+
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Poseidon31Permutation<T> {
     state: [T; SPONGE_WIDTH],
@@ -140,35 +159,6 @@ impl<T: Copy + Debug + Default + Eq + Permuter31 + Send + Sync> PlonkyPermutatio
 
 impl<F: RichField> Permuter31 for F {
     fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
-        use p3_babybear::DiffusionMatrixBabyBear;
-        use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
-        let rounds_f = 8;
-        EXTERNAL_CONSTANTS
-            .map(|arr| arr.map(BabyBear::from_canonical_u32))
-            .to_vec();
-        let external_linear_layer = Poseidon2ExternalMatrixGeneral;
-        let rounds_p = 21;
-        let external_constants = EXTERNAL_CONSTANTS
-            .map(|arr| arr.map(BabyBear::from_canonical_u32))
-            .to_vec();
-        let internal_constants = INTERNAL_CONSTANTS
-            .map(BabyBear::from_canonical_u32)
-            .to_vec();
-        let internal_linear_layer = DiffusionMatrixBabyBear::default();
-        let poseidon2: Poseidon2<
-            BabyBear,
-            Poseidon2ExternalMatrixGeneral,
-            DiffusionMatrixBabyBear,
-            24,
-            7,
-        > = Poseidon2::new(
-            rounds_f,
-            external_constants,
-            external_linear_layer,
-            rounds_p,
-            internal_constants,
-            internal_linear_layer,
-        );
         let mut res = input
             .map(|x| <F as PrimeField64>::as_canonical_u64(&x))
             .map(BabyBear::from_canonical_u64);

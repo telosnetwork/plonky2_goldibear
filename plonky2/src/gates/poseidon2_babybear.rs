@@ -5,7 +5,8 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::{marker::PhantomData, usize};
+use core::marker::PhantomData;
+use core::usize;
 
 use p3_babybear::{
     BabyBear, BabyBearDiffusionMatrixParameters, BabyBearParameters, DiffusionMatrixBabyBear,
@@ -199,7 +200,7 @@ where
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             constraints.push(state[0] - sbox_in);
             state[0] = state[0].exp_const_u64::<SBOX_EXP>();
-            permute_internal_mut_extension::<F,D>(&mut state);
+            permute_internal_mut_extension::<F, D>(&mut state);
         }
 
         // Second set of full rounds.
@@ -218,7 +219,6 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             round_ctr += 1;
-
         }
 
         for i in 0..SPONGE_WIDTH {
@@ -233,7 +233,6 @@ where
         vars: EvaluationVarsBase<F>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
-
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
         yield_constr.one(swap * (swap - <F as AbstractField>::one()));
@@ -312,7 +311,6 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             round_ctr += 1;
-
         }
 
         for i in 0..SPONGE_WIDTH {
@@ -324,7 +322,6 @@ where
         builder: &mut CircuitBuilder<F, D>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
-        panic!();
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         // Assert that `swap` is binary.
@@ -383,7 +380,8 @@ where
         // }
         for r in 0..N_PARTIAL_ROUNDS {
             round_ctr += 1;
-            state[0] = builder.add_const_extension(state[0], F::from_canonical_u32(INTERNAL_CONSTANTS[r]));
+            state[0] =
+                builder.add_const_extension(state[0], F::from_canonical_u32(INTERNAL_CONSTANTS[r]));
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             constraints.push(builder.sub_extension(state[0], sbox_in));
             state[0] = sbox_circuit(builder, state[0]);
@@ -406,11 +404,11 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = sbox_circuit(builder, state[i]));
             round_ctr += 1;
-
         }
 
         for i in 0..SPONGE_WIDTH {
-            constraints.push(builder.sub_extension(state[i], vars.local_wires[Self::wire_output(i)]));
+            constraints
+                .push(builder.sub_extension(state[i], vars.local_wires[Self::wire_output(i)]));
         }
 
         constraints
@@ -437,7 +435,11 @@ where
     }
 
     fn num_constraints(&self) -> usize {
-        SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1) + N_PARTIAL_ROUNDS + SPONGE_WIDTH + 1 + SPONGE_CAPACITY
+        SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1)
+            + N_PARTIAL_ROUNDS
+            + SPONGE_WIDTH
+            + 1
+            + SPONGE_CAPACITY
     }
 }
 
@@ -479,7 +481,10 @@ where
 
         for i in 0..SPONGE_CAPACITY {
             let delta_i = swap_value * (state[i + SPONGE_CAPACITY] - state[i]);
-            out_buffer.set_wire(local_wire(Poseidon2BabyBearGate::<F, D>::wire_delta(i)), delta_i);
+            out_buffer.set_wire(
+                local_wire(Poseidon2BabyBearGate::<F, D>::wire_delta(i)),
+                delta_i,
+            );
         }
 
         if swap_value == F::one() {
@@ -490,7 +495,7 @@ where
 
         let mut state: [F; SPONGE_WIDTH] = state.try_into().unwrap();
         let mut round_ctr = 0;
-       
+
         for r in 0..HALF_N_FULL_ROUNDS {
             add_rc(&mut state, round_ctr);
             if r != 0 {
@@ -510,28 +515,33 @@ where
             round_ctr += 1;
             state[0] += F::from_canonical_u32(INTERNAL_CONSTANTS[r]);
             out_buffer.set_wire(
-                local_wire(Poseidon2BabyBearGate::<F, D>::wire_partial_sbox(
-                    N_PARTIAL_ROUNDS - 1,
-                )),
+                local_wire(Poseidon2BabyBearGate::<F, D>::wire_partial_sbox(r)),
                 state[0],
             );
             state[0] = state[0].exp_const_u64::<SBOX_EXP>();
             permute_internal_mut(&mut state);
         }
-        
 
         for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
             add_rc(&mut state, r);
             for i in 0..SPONGE_WIDTH {
-                out_buffer.set_wire(local_wire(Poseidon2BabyBearGate::<F,D>::wire_full_sbox_1(r - HALF_N_FULL_ROUNDS, i)), state[i])
+                out_buffer.set_wire(
+                    local_wire(Poseidon2BabyBearGate::<F, D>::wire_full_sbox_1(
+                        r - HALF_N_FULL_ROUNDS,
+                        i,
+                    )),
+                    state[i],
+                )
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             round_ctr += 1;
-
         }
 
         for i in 0..SPONGE_WIDTH {
-            out_buffer.set_wire(local_wire(Poseidon2BabyBearGate::<F, D>::wire_output(i)), state[i]);
+            out_buffer.set_wire(
+                local_wire(Poseidon2BabyBearGate::<F, D>::wire_output(i)),
+                state[i],
+            );
         }
     }
 
@@ -548,8 +558,12 @@ where
     }
 }
 
-fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize>(builder: &mut CircuitBuilder<F,D>, input: ExtensionTarget<D>) -> ExtensionTarget<D> 
-where F::Extension: TwoAdicField
+fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    builder: &mut CircuitBuilder<F, D>,
+    input: ExtensionTarget<D>,
+) -> ExtensionTarget<D>
+where
+    F::Extension: TwoAdicField,
 {
     let x2 = builder.square_extension(input);
     let x3 = builder.mul_extension(input, x2);
@@ -557,13 +571,19 @@ where F::Extension: TwoAdicField
     builder.mul_extension(x3, x4)
 }
 
-fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize>(builder: &mut CircuitBuilder<F,D>, state: &mut [ExtensionTarget<D>; SPONGE_WIDTH], round_idx: usize) 
-where F::Extension: TwoAdicField
+fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    builder: &mut CircuitBuilder<F, D>,
+    state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
+    round_idx: usize,
+) where
+    F::Extension: TwoAdicField,
 {
-    (0..SPONGE_WIDTH)
-        .for_each(|i| {
-            state[i] = builder.add_const_extension(state[i], F::from_canonical_u32(EXTERNAL_CONSTANTS[round_idx][i]))
-        })
+    (0..SPONGE_WIDTH).for_each(|i| {
+        state[i] = builder.add_const_extension(
+            state[i],
+            F::from_canonical_u32(EXTERNAL_CONSTANTS[round_idx][i]),
+        )
+    })
 }
 
 fn add_rc<F: AbstractField>(state: &mut [F; SPONGE_WIDTH], round_idx: usize) {
@@ -573,23 +593,35 @@ fn add_rc<F: AbstractField>(state: &mut [F; SPONGE_WIDTH], round_idx: usize) {
 }
 
 fn permute_internal_mut<F: PrimeField64>(state: &mut [F; SPONGE_WIDTH]) {
-    let mut state_bb = state.map(|x| x.as_canonical_u64()).map(BabyBear::from_canonical_u64);
+    let mut state_bb = state
+        .map(|x| x.as_canonical_u64())
+        .map(BabyBear::from_canonical_u64);
     <BabyBearDiffusionMatrixParameters as DiffusionMatrixParameters<
         BabyBearParameters,
         SPONGE_WIDTH,
     >>::permute_state(&mut state_bb);
-    *state = state_bb.map(|x| x.as_canonical_u64()).map(F::from_canonical_u64);
+    *state = state_bb
+        .map(|x| x.as_canonical_u64())
+        .map(F::from_canonical_u64);
 }
 
-fn permute_internal_mut_extension<F: PrimeField64 + HasExtension<D>, const D: usize>(state: &mut [F::Extension; SPONGE_WIDTH]) {
-    let base_field_array: [[F;D]; SPONGE_WIDTH] = state.map(|arr| arr.as_base_slice().try_into().unwrap());
+fn permute_internal_mut_extension<F: PrimeField64 + HasExtension<D>, const D: usize>(
+    state: &mut [F::Extension; SPONGE_WIDTH],
+) {
+    let base_field_array: [[F; D]; SPONGE_WIDTH] =
+        state.map(|arr| arr.as_base_slice().try_into().unwrap());
     let mut base_field_array_transposed = transpose_2d_array(base_field_array);
-    base_field_array_transposed.iter_mut().for_each(|x| permute_internal_mut(x));
-    *state = transpose_2d_array(base_field_array_transposed).map(|arr| F::Extension::from_base_slice(&arr));
+    base_field_array_transposed
+        .iter_mut()
+        .for_each(|x| permute_internal_mut(x));
+    *state = transpose_2d_array(base_field_array_transposed)
+        .map(|arr| F::Extension::from_base_slice(&arr));
 }
 
-fn transpose_2d_array<T: Default + Copy, const M: usize, const N: usize>(arr: [[T;M];N]) -> [[T;N]; M] {
-    let mut res: [[T; N]; M] = [[T::default();N]; M];
+fn transpose_2d_array<T: Default + Copy, const M: usize, const N: usize>(
+    arr: [[T; M]; N],
+) -> [[T; N]; M] {
+    let mut res: [[T; N]; M] = [[T::default(); N]; M];
     (0..M).for_each(|i| (0..N).for_each(|j| res[i][j] = arr[j][i]));
     res
 }
@@ -630,8 +662,16 @@ fn permute_external_mut<AF: AbstractField, const WIDTH: usize>(state: &mut [AF; 
     }
 }
 
-fn permute_mut_external_circuit<F: RichField + HasExtension<D>, const D: usize, const WIDTH: usize>(builder: &mut CircuitBuilder<F,D>, state: &mut [ExtensionTarget<D>; WIDTH]) 
-where F::Extension: TwoAdicField{
+fn permute_mut_external_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const WIDTH: usize,
+>(
+    builder: &mut CircuitBuilder<F, D>,
+    state: &mut [ExtensionTarget<D>; WIDTH],
+) where
+    F::Extension: TwoAdicField,
+{
     assert_eq!(WIDTH % 4, 0);
     for i in (0..WIDTH).step_by(4) {
         // Would be nice to find a better way to do this.
@@ -648,11 +688,7 @@ where F::Extension: TwoAdicField{
 
     // We first precompute the four sums of every four elements.
     let sums: [ExtensionTarget<D>; 4] = core::array::from_fn(|k| {
-        builder.add_many_extension(
-        (0..WIDTH)
-            .step_by(4)
-            .map(|j| state[j + k].clone())
-        )
+        builder.add_many_extension((0..WIDTH).step_by(4).map(|j| state[j + k].clone()))
     });
 
     // The formula for each y_i involves 2x_i' term and x_j' terms for each j that equals i mod 4.
@@ -662,8 +698,10 @@ where F::Extension: TwoAdicField{
     }
 }
 
-fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize>(builder: &mut CircuitBuilder<F,D>, x: &mut [ExtensionTarget<D>; 4])
-where
+fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    builder: &mut CircuitBuilder<F, D>,
+    x: &mut [ExtensionTarget<D>; 4],
+) where
     F::Extension: TwoAdicField,
 {
     let t01 = builder.add_extension(x[0], x[1]); //x[0].clone() + x[1].clone();
@@ -671,8 +709,8 @@ where
     let t0123 = builder.add_extension(t01, t23); //t01.clone() + t23.clone();
     let t01123 = builder.add_extension(t0123, x[1]); //t0123.clone() + x[1].clone();
     let t01233 = builder.add_extension(t0123, x[3]); //t0123.clone() + x[3].clone();
-    // The order here is important. Need to overwrite x[0] and x[2] after x[1] and x[3].
-    x[3] = builder.mul_const_add_extension(F::two(), x[0], t01233);//t01233.clone() + x[0].double(); // 3*x[0] + x[1] + x[2] + 2*x[3]
+                                                     // The order here is important. Need to overwrite x[0] and x[2] after x[1] and x[3].
+    x[3] = builder.mul_const_add_extension(F::two(), x[0], t01233); //t01233.clone() + x[0].double(); // 3*x[0] + x[1] + x[2] + 2*x[3]
     x[1] = builder.mul_const_add_extension(F::two(), x[2], t01123); //t01123.clone() + x[2].double(); // x[0] + 2*x[1] + 3*x[2] + x[3]
     x[0] = builder.add_extension(t01123, t01); //t01123 + t01; // 2*x[0] + 3*x[1] + x[2] + x[3]
     x[2] = builder.add_extension(t01123, t01); //t01233 + t23; // x[0] + x[1] + 2*x[2] + 3*x[3]
@@ -703,6 +741,7 @@ mod tests {
 
     use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::poseidon2_babybear::Permuter31;
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
@@ -729,44 +768,6 @@ mod tests {
         assert_eq!(Gate::wire_full_sbox_1(0, 0), 150);
         assert_eq!(Gate::wire_full_sbox_1(3, 0), 222);
         assert_eq!(Gate::wire_full_sbox_1(3, 23), 245);
-    }
-
-    fn poseidon2<F: RichField>(input: [F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
-        use p3_babybear::DiffusionMatrixBabyBear;
-        use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
-        let rounds_f = 8;
-        EXTERNAL_CONSTANTS
-            .map(|arr| arr.map(BabyBear::from_canonical_u32))
-            .to_vec();
-        let external_linear_layer = Poseidon2ExternalMatrixGeneral;
-        let rounds_p = 21;
-        let external_constants = EXTERNAL_CONSTANTS
-            .map(|arr| arr.map(BabyBear::from_canonical_u32))
-            .to_vec();
-        let internal_constants = INTERNAL_CONSTANTS
-            .map(BabyBear::from_canonical_u32)
-            .to_vec();
-        let internal_linear_layer = DiffusionMatrixBabyBear::default();
-        let poseidon2: Poseidon2<
-            BabyBear,
-            Poseidon2ExternalMatrixGeneral,
-            DiffusionMatrixBabyBear,
-            24,
-            7,
-        > = Poseidon2::new(
-            rounds_f,
-            external_constants,
-            external_linear_layer,
-            rounds_p,
-            internal_constants,
-            internal_linear_layer,
-        );
-        let mut res = input
-            .map(|x| <F as PrimeField64>::as_canonical_u64(&x))
-            .map(BabyBear::from_canonical_u64);
-        poseidon2.permute_mut(&mut res);
-        res.map(|x| <BabyBear as PrimeField64>::as_canonical_u64(&x))
-            .map(F::from_canonical_u64)
     }
 
     #[test]
@@ -811,7 +812,7 @@ mod tests {
         let witness = generate_partial_witness(inputs, &circuit.prover_only, &circuit.common);
 
         let expected_outputs: [F; SPONGE_WIDTH] =
-            poseidon2(permutation_inputs.try_into().unwrap());
+            <F as Permuter31>::permute(permutation_inputs.try_into().unwrap());
         for i in 0..SPONGE_WIDTH {
             let out = witness.get_wire(Wire {
                 row: 0,
@@ -847,12 +848,15 @@ mod tests {
         let mut state_ext = state.map(|x| <F as HasExtension<D>>::Extension::from_base(x));
         let r = <F as HasExtension<D>>::Extension::rand();
         let r_inv = r.inverse();
-        state_ext.iter_mut().for_each(|x| {*x = *x * r});
+        state_ext.iter_mut().for_each(|x| *x = *x * r);
 
         permute_internal_mut(&mut state_base);
-        permute_internal_mut_extension::<BabyBear,D>(&mut state_ext);
-        state_ext.iter_mut().for_each(|x| {*x = *x * r_inv});
+        permute_internal_mut_extension::<BabyBear, D>(&mut state_ext);
+        state_ext.iter_mut().for_each(|x| *x = *x * r_inv);
 
-        assert_eq!(state_ext, state_base.map( <F as HasExtension<D>>::Extension::from_base))
+        assert_eq!(
+            state_ext,
+            state_base.map(<F as HasExtension<D>>::Extension::from_base)
+        )
     }
 }
