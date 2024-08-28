@@ -8,12 +8,9 @@ use alloc::{
 use core::marker::PhantomData;
 use core::usize;
 
-use p3_babybear::{
-    BabyBear, BabyBearDiffusionMatrixParameters, BabyBearParameters, DiffusionMatrixBabyBear,
-};
+use p3_babybear::{BabyBear, BabyBearDiffusionMatrixParameters, BabyBearParameters};
 use p3_field::{AbstractExtensionField, AbstractField, PrimeField64, TwoAdicField};
 use p3_monty31::DiffusionMatrixParameters;
-use p3_symmetric::Permutation;
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -165,7 +162,7 @@ where
         for i in SPONGE_RATE..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
-
+        permute_external_mut(&mut state);
         let mut round_ctr = 0;
 
         // First set of full rounds.
@@ -218,6 +215,7 @@ where
                 state[i] = sbox_in;
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
+            permute_external_mut(&mut state);
             round_ctr += 1;
         }
 
@@ -258,6 +256,7 @@ where
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
 
+        permute_external_mut(&mut state);
         let mut round_ctr = 0;
 
         // First set of full rounds.
@@ -310,6 +309,7 @@ where
                 state[i] = sbox_in;
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
+            permute_external_mut(&mut state);
             round_ctr += 1;
         }
 
@@ -346,10 +346,10 @@ where
             state[i] = builder.add_extension(input_lhs, delta_i);
             state[i + SPONGE_CAPACITY] = builder.sub_extension(input_rhs, delta_i);
         }
-        for i in 8..SPONGE_WIDTH {
+        for i in SPONGE_RATE..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
-
+        permute_mut_external_circuit(builder, &mut state);
         let mut round_ctr = 0;
 
         // First set of full rounds.
@@ -385,7 +385,7 @@ where
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             constraints.push(builder.sub_extension(state[0], sbox_in));
             state[0] = sbox_circuit(builder, state[0]);
-            // permute_internal_mut_circuit(builder, &mut state);
+            permute_internal_mut_circuit(builder, &mut state);
         }
 
         // Second set of full rounds.
@@ -403,6 +403,7 @@ where
                 state[i] = sbox_in;
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = sbox_circuit(builder, state[i]));
+            permute_mut_external_circuit(builder, &mut state);
             round_ctr += 1;
         }
 
@@ -475,7 +476,6 @@ where
         let mut state = (0..SPONGE_WIDTH)
             .map(|i| witness.get_wire(local_wire(Poseidon2BabyBearGate::<F, D>::wire_input(i))))
             .collect::<Vec<_>>();
-
         let swap_value = witness.get_wire(local_wire(Poseidon2BabyBearGate::<F, D>::WIRE_SWAP));
         debug_assert!(swap_value == F::zero() || swap_value == F::one());
 
@@ -494,10 +494,13 @@ where
         }
 
         let mut state: [F; SPONGE_WIDTH] = state.try_into().unwrap();
+
+        permute_external_mut(&mut state);
         let mut round_ctr = 0;
 
         for r in 0..HALF_N_FULL_ROUNDS {
             add_rc(&mut state, round_ctr);
+
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
                     out_buffer.set_wire(
@@ -507,13 +510,16 @@ where
                 }
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
+
             permute_external_mut(&mut state);
+
             round_ctr += 1;
         }
 
         for r in 0..N_PARTIAL_ROUNDS {
             round_ctr += 1;
             state[0] += F::from_canonical_u32(INTERNAL_CONSTANTS[r]);
+
             out_buffer.set_wire(
                 local_wire(Poseidon2BabyBearGate::<F, D>::wire_partial_sbox(r)),
                 state[0],
@@ -524,6 +530,7 @@ where
 
         for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
             add_rc(&mut state, r);
+
             for i in 0..SPONGE_WIDTH {
                 out_buffer.set_wire(
                     local_wire(Poseidon2BabyBearGate::<F, D>::wire_full_sbox_1(
@@ -534,6 +541,9 @@ where
                 )
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
+
+            permute_external_mut(&mut state);
+
             round_ctr += 1;
         }
 
@@ -590,6 +600,13 @@ fn add_rc<F: AbstractField>(state: &mut [F; SPONGE_WIDTH], round_idx: usize) {
     assert!(round_idx < N_FULL_ROUNDS_TOTAL);
     (0..SPONGE_WIDTH)
         .for_each(|i| state[i] += F::from_canonical_u32(EXTERNAL_CONSTANTS[round_idx][i]))
+}
+
+fn permute_internal_mut_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    builder: &mut CircuitBuilder<F, D>,
+    state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
+) where  F::Extension: TwoAdicField{
+    todo!()
 }
 
 fn permute_internal_mut<F: PrimeField64>(state: &mut [F; SPONGE_WIDTH]) {
@@ -799,7 +816,6 @@ mod tests {
             F::zero(),
         );
         for i in 0..SPONGE_WIDTH {
-            println!("{i}");
             inputs.set_wire(
                 Wire {
                     row,
@@ -859,4 +875,7 @@ mod tests {
             state_base.map(<F as HasExtension<D>>::Extension::from_base)
         )
     }
+
+    #[test]
+    fn test_permute_internal_circuit() {}
 }
