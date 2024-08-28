@@ -139,7 +139,7 @@ where
                 .collect::<Vec<_>>()
     );
 
-    // Test that `eval_unfiltered` and `eval_unfiltered_recursively` are coherent.
+    // Test that `eval_unfiltered` and `eval_unfiltered_circuit` are coherent.
     let wires = F::Extension::rand_vec(gate.num_wires());
     let constants = F::Extension::rand_vec(gate.num_constants());
 

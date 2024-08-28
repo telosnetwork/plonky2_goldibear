@@ -31,6 +31,9 @@ use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 const SBOX_EXP: u64 = 7;
+const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] = [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23,
+    ];
 
 /// Evaluates a full Poseidon permutation with 12 state elements.
 ///
@@ -349,7 +352,7 @@ where
         for i in SPONGE_RATE..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
-        permute_mut_external_circuit(builder, &mut state);
+        permute_external_mut_circuit(builder, &mut state);
         let mut round_ctr = 0;
 
         // First set of full rounds.
@@ -368,7 +371,7 @@ where
                 }
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = sbox_circuit(builder, state[i]));
-            permute_mut_external_circuit(builder, &mut state);
+            permute_external_mut_circuit(builder, &mut state);
             round_ctr += 1;
         }
 
@@ -403,7 +406,7 @@ where
                 state[i] = sbox_in;
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = sbox_circuit(builder, state[i]));
-            permute_mut_external_circuit(builder, &mut state);
+            permute_external_mut_circuit(builder, &mut state);
             round_ctr += 1;
         }
 
@@ -606,7 +609,13 @@ fn permute_internal_mut_circuit<F: RichField + HasExtension<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
 ) where  F::Extension: TwoAdicField{
-    todo!()
+    let part_sum = builder.add_many_extension(state[1..].into_iter());
+    let full_sum = builder.add_extension(part_sum, state[0]);
+    state[0] = builder.sub_extension(part_sum, state[0]);
+    (0..SPONGE_WIDTH - 1).for_each(|i| {
+        let shift = F::from_canonical_usize(1 << INTERNAL_DIAG_SHIFTS[i]);
+        state[i + 1] = builder.mul_const_add_extension(shift, state[i + 1], full_sum);
+    });
 }
 
 fn permute_internal_mut<F: PrimeField64>(state: &mut [F; SPONGE_WIDTH]) {
@@ -679,7 +688,7 @@ fn permute_external_mut<AF: AbstractField, const WIDTH: usize>(state: &mut [AF; 
     }
 }
 
-fn permute_mut_external_circuit<
+fn permute_external_mut_circuit<
     F: RichField + HasExtension<D>,
     const D: usize,
     const WIDTH: usize,
@@ -758,11 +767,11 @@ mod tests {
 
     use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::poseidon2_babybear::Permuter31;
+    use crate::hash::poseidon2_babybear::{Permuter31, Poseidon2BabyBearHash};
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
-    use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
+    use crate::plonk::config::{self, GenericConfig, Poseidon2BabyBearConfig};
 
     #[test]
     fn wire_indices() {
@@ -877,5 +886,22 @@ mod tests {
     }
 
     #[test]
-    fn test_permute_internal_circuit() {}
+    fn test_permute_internal_circuit() {
+        const D: usize = 4;
+        type F = BabyBear;
+        type EF = <F as HasExtension<D>>::Extension;
+
+        let mut state: [EF; SPONGE_WIDTH] = [EF::zero(); SPONGE_WIDTH];
+        let config = CircuitConfig::standard_recursion_config();
+        let mut builder = CircuitBuilder::<F,D>::new(config);
+        let mut pw = PartialWitness::<F>::new();
+        let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder.add_virtual_extension_targets(SPONGE_WIDTH).try_into().unwrap();
+        pw.set_extension_targets(&state_target, &state);
+        permute_internal_mut_extension::<F,D>(&mut state);
+        permute_internal_mut_circuit(&mut builder, &mut state_target);
+        pw.set_extension_targets(&state_target, &state);
+        let data = builder.build::<Poseidon2BabyBearConfig>();
+        let proof = data.prove(pw);
+        data.verify(proof.unwrap()).unwrap();
+    }
 }
