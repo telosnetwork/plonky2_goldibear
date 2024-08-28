@@ -371,8 +371,11 @@ where
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(N_PARTIAL_ROUNDS - 1)];
             constraints.push(builder.sub_extension(state[0], sbox_in));
             state[0] = PoseidonGoldilocks::sbox_monomial_circuit(builder, sbox_in);
-            state =
-                PoseidonGoldilocks::mds_partial_layer_fast_circuit(builder, &state, N_PARTIAL_ROUNDS - 1);
+            state = PoseidonGoldilocks::mds_partial_layer_fast_circuit(
+                builder,
+                &state,
+                N_PARTIAL_ROUNDS - 1,
+            );
             round_ctr += N_PARTIAL_ROUNDS;
         }
 

@@ -8,9 +8,9 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
-use p3_babybear::BabyBear;
 use core::fmt::Debug;
 
+use p3_babybear::BabyBear;
 use p3_field::extension::BinomialExtensionField;
 use p3_field::{ExtensionField, Field, TwoAdicField};
 use p3_goldilocks::Goldilocks;

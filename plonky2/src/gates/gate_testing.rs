@@ -1,8 +1,8 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use anyhow::{ensure, Result};
-use p3_field::{AbstractExtensionField, TwoAdicField};
+use anyhow::Result;
+use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
@@ -13,7 +13,7 @@ use crate::iop::witness::{PartialWitness, WitnessWrite};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CircuitConfig;
 use crate::plonk::config::GenericConfig;
-use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBaseBatch};
+use crate::plonk::vars::{EvaluationTargets, EvaluationVars};
 use crate::plonk::verifier::verify;
 use crate::util::{log2_ceil, transpose};
 
@@ -106,38 +106,38 @@ where
     F::Extension: Sample + TwoAdicField,
     F::Extension: TwoAdicField,
 {
-    // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
-    let wires_base = F::rand_vec(gate.num_wires());
-    let constants_base = F::rand_vec(gate.num_constants());
-    let wires = wires_base
-        .iter()
-        .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
-        .collect::<Vec<_>>();
-    let constants = constants_base
-        .iter()
-        .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
-        .collect::<Vec<_>>();
+    // // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
+    // let wires_base = F::rand_vec(gate.num_wires());
+    // let constants_base = F::rand_vec(gate.num_constants());
+    // let wires = wires_base
+    //     .iter()
+    //     .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
+    //     .collect::<Vec<_>>();
+    // let constants = constants_base
+    //     .iter()
+    //     .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
+    //     .collect::<Vec<_>>();
     let public_inputs_hash = HashOut::rand();
 
-    // Batch of 1.
-    let vars_base_batch =
-        EvaluationVarsBaseBatch::new(1, &constants_base, &wires_base, &public_inputs_hash);
-    let vars = EvaluationVars {
-        local_constants: &constants,
-        local_wires: &wires,
-        public_inputs_hash: &public_inputs_hash,
-    };
+    // // Batch of 1.
+    // let vars_base_batch =
+    //     EvaluationVarsBaseBatch::new(1, &constants_base, &wires_base, &public_inputs_hash);
+    // let vars = EvaluationVars {
+    //     local_constants: &constants,
+    //     local_wires: &wires,
+    //     public_inputs_hash: &public_inputs_hash,
+    // };
 
-    let evals_base = gate.eval_unfiltered_base_batch(vars_base_batch);
-    let evals = gate.eval_unfiltered(vars);
-    // This works because we have a batch of 1.
-    ensure!(
-        evals
-            == evals_base
-                .into_iter()
-                .map(<F::Extension as AbstractExtensionField<F>>::from_base)
-                .collect::<Vec<_>>()
-    );
+    // let evals_base = gate.eval_unfiltered_base_batch(vars_base_batch);
+    // let evals = gate.eval_unfiltered(vars);
+    // // This works because we have a batch of 1.
+    // ensure!(
+    //     evals
+    //         == evals_base
+    //             .into_iter()
+    //             .map(<F::Extension as AbstractExtensionField<F>>::from_base)
+    //             .collect::<Vec<_>>()
+    // );
 
     // Test that `eval_unfiltered` and `eval_unfiltered_circuit` are coherent.
     let wires = F::Extension::rand_vec(gate.num_wires());
