@@ -17,16 +17,16 @@ pub trait RichField: PrimeField64 + Sample + TwoAdicField {}
 impl RichField for Goldilocks {}
 impl RichField for BabyBear {}
 
-pub const NUM_HASH_OUT_ELTS: usize = 4;
+//pub const NUM_HASH_OUT_ELTS: usize = 4;
 
 /// Represents a ~256 bit hash output.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(bound = "")]
-pub struct HashOut<F: Field> {
+pub struct HashOut<F: Field, const NUM_HASH_OUT_ELTS: usize> {
     pub elements: [F; NUM_HASH_OUT_ELTS],
 }
 
-impl<F: Field> HashOut<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> HashOut<F, NUM_HASH_OUT_ELTS> {
     pub fn zero() -> Self {
         Self {
             elements: [F::zero(); NUM_HASH_OUT_ELTS],
@@ -48,13 +48,13 @@ impl<F: Field> HashOut<F> {
     }
 }
 
-impl<F: Field> From<[F; NUM_HASH_OUT_ELTS]> for HashOut<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> From<[F; NUM_HASH_OUT_ELTS]> for HashOut<F, NUM_HASH_OUT_ELTS> {
     fn from(elements: [F; NUM_HASH_OUT_ELTS]) -> Self {
         Self { elements }
     }
 }
 
-impl<F: Field> TryFrom<&[F]> for HashOut<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> TryFrom<&[F]> for HashOut<F, NUM_HASH_OUT_ELTS> {
     type Error = anyhow::Error;
 
     fn try_from(elements: &[F]) -> Result<Self, Self::Error> {
@@ -65,7 +65,7 @@ impl<F: Field> TryFrom<&[F]> for HashOut<F> {
     }
 }
 
-impl<F> Sample for HashOut<F>
+impl<F, const NUM_HASH_OUT_ELTS: usize> Sample for HashOut<F, NUM_HASH_OUT_ELTS>
 where
     F: Field + Sample,
 {
@@ -75,17 +75,12 @@ where
         R: rand::RngCore + ?Sized,
     {
         Self {
-            elements: [
-                F::sample(rng),
-                F::sample(rng),
-                F::sample(rng),
-                F::sample(rng),
-            ],
+            elements: (0..NUM_HASH_OUT_ELTS).map(|_|{F::sample(rng)}).collect::<Vec<F>>().try_into().unwrap(),
         }
     }
 }
 
-impl<F: RichField> GenericHashOut<F> for HashOut<F> {
+impl<F: RichField, const NUM_HASH_OUT_ELTS: usize> GenericHashOut<F> for HashOut<F, NUM_HASH_OUT_ELTS> {
     fn to_bytes(&self) -> Vec<u8> {
         self.elements
             .into_iter()
@@ -110,7 +105,7 @@ impl<F: RichField> GenericHashOut<F> for HashOut<F> {
     }
 }
 
-impl<F: Field> Default for HashOut<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> Default for HashOut<F, NUM_HASH_OUT_ELTS> {
     fn default() -> Self {
         Self::zero()
     }
@@ -118,11 +113,11 @@ impl<F: Field> Default for HashOut<F> {
 
 /// Represents a ~256 bit hash output.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct HashOutTarget {
+pub struct HashOutTarget<const NUM_HASH_OUT_ELTS: usize> {
     pub elements: [Target; NUM_HASH_OUT_ELTS],
 }
 
-impl HashOutTarget {
+impl<const NUM_HASH_OUT_ELTS: usize> HashOutTarget<NUM_HASH_OUT_ELTS> {
     // TODO: Switch to a TryFrom impl.
     pub fn from_vec(elements: Vec<Target>) -> Self {
         debug_assert!(elements.len() == NUM_HASH_OUT_ELTS);
@@ -138,13 +133,13 @@ impl HashOutTarget {
     }
 }
 
-impl From<[Target; NUM_HASH_OUT_ELTS]> for HashOutTarget {
+impl<const NUM_HASH_OUT_ELTS: usize> From<[Target; NUM_HASH_OUT_ELTS]> for HashOutTarget<NUM_HASH_OUT_ELTS> {
     fn from(elements: [Target; NUM_HASH_OUT_ELTS]) -> Self {
         Self { elements }
     }
 }
 
-impl TryFrom<&[Target]> for HashOutTarget {
+impl<const NUM_HASH_OUT_ELTS: usize> TryFrom<&[Target]> for HashOutTarget<NUM_HASH_OUT_ELTS> {
     type Error = anyhow::Error;
 
     fn try_from(elements: &[Target]) -> Result<Self, Self::Error> {
@@ -156,7 +151,7 @@ impl TryFrom<&[Target]> for HashOutTarget {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MerkleCapTarget(pub Vec<HashOutTarget>);
+pub struct MerkleCapTarget<const NUM_HASH_OUT_ELTS: usize>(pub Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>);
 
 /// Hash consisting of a byte array.
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]

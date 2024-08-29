@@ -7,7 +7,7 @@ use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 use serde::{Deserialize, Serialize};
 
-use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField, NUM_HASH_OUT_ELTS};
+use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -33,9 +33,9 @@ impl<F: RichField, H: Hasher<F>> MerkleProof<F, H> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MerkleProofTarget {
+pub struct MerkleProofTarget<const NUM_HASH_OUT_ELTS: usize> {
     /// The Merkle digest of each sibling subtree, staying from the bottommost layer.
-    pub siblings: Vec<HashOutTarget>,
+    pub siblings: Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>,
 }
 
 /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
@@ -77,7 +77,7 @@ pub fn verify_merkle_proof_to_cap<F: RichField, H: Hasher<F>>(
     Ok(())
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -87,8 +87,8 @@ where
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
-        merkle_root: HashOutTarget,
-        proof: &MerkleProofTarget,
+        merkle_root: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        proof: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
     ) {
         let merkle_cap = MerkleCapTarget(vec![merkle_root]);
         self.verify_merkle_proof_to_cap::<H>(leaf_data, leaf_index_bits, &merkle_cap, proof);
@@ -100,8 +100,8 @@ where
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
-        merkle_cap: &MerkleCapTarget,
-        proof: &MerkleProofTarget,
+        merkle_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        proof: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
     ) {
         let cap_index = self.le_sum(leaf_index_bits[proof.siblings.len()..].iter().copied());
         self.verify_merkle_proof_to_cap_with_cap_index::<H>(
@@ -120,13 +120,13 @@ where
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
         cap_index: Target,
-        merkle_cap: &MerkleCapTarget,
-        proof: &MerkleProofTarget,
+        merkle_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        proof: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
     ) {
         debug_assert!(H::AlgebraicPermutation::RATE >= NUM_HASH_OUT_ELTS);
 
         let zero = self.zero();
-        let mut state: HashOutTarget = self.hash_or_noop::<H>(leaf_data);
+        let mut state: HashOutTarget<NUM_HASH_OUT_ELTS> = self.hash_or_noop::<H>(leaf_data);
         debug_assert_eq!(state.elements.len(), NUM_HASH_OUT_ELTS);
 
         for (&bit, &sibling) in leaf_index_bits.iter().zip(&proof.siblings) {
@@ -155,13 +155,13 @@ where
         }
     }
 
-    pub fn connect_hashes(&mut self, x: HashOutTarget, y: HashOutTarget) {
+    pub fn connect_hashes(&mut self, x: HashOutTarget<NUM_HASH_OUT_ELTS>, y: HashOutTarget<NUM_HASH_OUT_ELTS>) {
         for i in 0..NUM_HASH_OUT_ELTS {
             self.connect(x.elements[i], y.elements[i]);
         }
     }
 
-    pub fn connect_merkle_caps(&mut self, x: &MerkleCapTarget, y: &MerkleCapTarget) {
+    pub fn connect_merkle_caps(&mut self, x: &MerkleCapTarget<NUM_HASH_OUT_ELTS>, y: &MerkleCapTarget<NUM_HASH_OUT_ELTS>) {
         for (h0, h1) in x.0.iter().zip_eq(&y.0) {
             self.connect_hashes(*h0, *h1);
         }
@@ -175,6 +175,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU8;
     use p3_field::{AbstractField, Field};
     use plonky2_field::types::Sample;
     use rand::rngs::OsRng;
@@ -194,11 +195,12 @@ mod tests {
     #[test]
     fn test_recursive_merkle_proof() -> Result<()> {
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
         let config = CircuitConfig::standard_recursion_config();
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS >::new(config);
 
         let log_n = 8;
         let n = 1 << log_n;

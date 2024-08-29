@@ -6,16 +6,16 @@ use core::fmt::Debug;
 use p3_field::{Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::hash::hash_types::{HashOut, HashOutTarget, RichField, NUM_HASH_OUT_ELTS};
+use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn hash_or_noop<H: AlgebraicHasher<F>>(&mut self, inputs: Vec<Target>) -> HashOutTarget {
+    pub fn hash_or_noop<H: AlgebraicHasher<F>>(&mut self, inputs: Vec<Target>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         let zero = self.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {
             HashOutTarget::from_partial(&inputs, zero)
@@ -27,7 +27,7 @@ where
     pub fn hash_n_to_hash_no_pad<H: AlgebraicHasher<F>>(
         &mut self,
         inputs: Vec<Target>,
-    ) -> HashOutTarget {
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget::from_vec(self.hash_n_to_m_no_pad::<H>(inputs, NUM_HASH_OUT_ELTS))
     }
 
@@ -98,7 +98,7 @@ pub trait PlonkyPermutation<T: Copy + Default>:
 }
 
 /// A one-way compression function which takes two ~256 bit inputs and returns a ~256 bit output.
-pub fn compress<F: Field, P: PlonkyPermutation<F>>(x: HashOut<F>, y: HashOut<F>) -> HashOut<F> {
+pub fn compress<F: Field, P: PlonkyPermutation<F>, const NUM_HASH_OUT_ELTS: usize>(x: HashOut<F, NUM_HASH_OUT_ELTS>, y: HashOut<F, NUM_HASH_OUT_ELTS>) -> HashOut<F, NUM_HASH_OUT_ELTS> {
     // TODO: With some refactoring, this function could be implemented as
     // hash_n_to_m_no_pad(chain(x.elements, y.elements), NUM_HASH_OUT_ELTS).
 
@@ -144,6 +144,6 @@ pub fn hash_n_to_m_no_pad<F: RichField, P: PlonkyPermutation<F>>(
     }
 }
 
-pub fn hash_n_to_hash_no_pad<F: RichField, P: PlonkyPermutation<F>>(inputs: &[F]) -> HashOut<F> {
+pub fn hash_n_to_hash_no_pad<F: RichField, P: PlonkyPermutation<F>, const NUM_HASH_OUT_ELTS: usize>(inputs: &[F]) -> HashOut<F, NUM_HASH_OUT_ELTS> {
     HashOut::from_vec(hash_n_to_m_no_pad::<F, P>(inputs, NUM_HASH_OUT_ELTS))
 }

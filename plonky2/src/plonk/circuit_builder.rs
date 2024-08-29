@@ -101,11 +101,12 @@ pub struct LookupWire {
 ///
 /// // Define parameters for this circuit
 /// const D: usize = 2;
+/// const NUM_HASH_OUT_ELTS: usize = 4;
 /// type C = PoseidonGoldilocksConfig;
 /// type F = <C as GenericConfig<D>>::F;
 ///
 /// let config = CircuitConfig::standard_recursion_config();
-/// let mut builder = CircuitBuilder::<F, D>::new(config);
+/// let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 ///
 /// // Build a circuit for the statement: "I know the 100th term
 /// // of the Fibonacci sequence, starting from 0 and 1".
@@ -138,7 +139,7 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize>
+pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
@@ -205,7 +206,7 @@ where
     pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -347,34 +348,34 @@ where
     }
 
     /// Adds a new `HashOutTarget`.
-    pub fn add_virtual_hash(&mut self) -> HashOutTarget {
-        HashOutTarget::from(self.add_virtual_target_arr::<4>())
+    pub fn add_virtual_hash(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+        HashOutTarget::from(self.add_virtual_target_arr::<NUM_HASH_OUT_ELTS>())
     }
 
     /// Registers a new `HashOutTarget` as a public input, adding
     /// internally `NUM_HASH_OUT_ELTS` virtual targets.
-    pub fn add_virtual_hash_public_input(&mut self) -> HashOutTarget {
-        HashOutTarget::from(self.add_virtual_public_input_arr::<4>())
+    pub fn add_virtual_hash_public_input(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+        HashOutTarget::from(self.add_virtual_public_input_arr::<NUM_HASH_OUT_ELTS>())
     }
 
     /// Adds a new `MerkleCapTarget`, consisting in `1 << cap_height` `HashOutTarget`.
-    pub fn add_virtual_cap(&mut self, cap_height: usize) -> MerkleCapTarget {
+    pub fn add_virtual_cap(&mut self, cap_height: usize) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         MerkleCapTarget(self.add_virtual_hashes(1 << cap_height))
     }
 
     /// Adds `n` new `HashOutTarget` in a vector fashion.
-    pub fn add_virtual_hashes(&mut self, n: usize) -> Vec<HashOutTarget> {
+    pub fn add_virtual_hashes(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n).map(|_i| self.add_virtual_hash()).collect()
     }
 
     /// Registers `n` new `HashOutTarget` as public inputs, in a vector fashion.
-    pub fn add_virtual_hashes_public_input(&mut self, n: usize) -> Vec<HashOutTarget> {
+    pub fn add_virtual_hashes_public_input(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n)
             .map(|_i| self.add_virtual_hash_public_input())
             .collect()
     }
 
-    pub(crate) fn add_virtual_merkle_proof(&mut self, len: usize) -> MerkleProofTarget {
+    pub(crate) fn add_virtual_merkle_proof(&mut self, len: usize) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
         MerkleProofTarget {
             siblings: self.add_virtual_hashes(len),
         }
@@ -633,17 +634,17 @@ where
     }
 
     /// Returns a routable [`HashOutTarget`].
-    pub fn constant_hash(&mut self, h: HashOut<F>) -> HashOutTarget {
+    pub fn constant_hash(&mut self, h: HashOut<F, NUM_HASH_OUT_ELTS>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
             elements: h.elements.map(|x| self.constant(x)),
         }
     }
 
     /// Returns a routable [`MerkleCapTarget`].
-    pub fn constant_merkle_cap<H: Hasher<F, Hash = HashOut<F>>>(
+    pub fn constant_merkle_cap<H: Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>>>(
         &mut self,
         cap: &MerkleCap<F, H>,
-    ) -> MerkleCapTarget {
+    ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         MerkleCapTarget(cap.0.iter().map(|h| self.constant_hash(*h)).collect())
     }
 

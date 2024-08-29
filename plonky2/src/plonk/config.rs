@@ -80,7 +80,7 @@ pub trait Hasher<F: RichField>: Sized + Copy + Debug + Eq + PartialEq {
 }
 
 /// Trait for algebraic hash functions, built from a permutation using the sponge construction.
-pub trait AlgebraicHasher<F: RichField>: Hasher<F, Hash = HashOut<F>> {
+pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>: Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>> {
     type AlgebraicPermutation: PlonkyPermutation<Target>;
 
     /// Circuit to conditionally swap two chunks of the inputs (useful in verifying Merkle proofs),
@@ -88,7 +88,7 @@ pub trait AlgebraicHasher<F: RichField>: Hasher<F, Hash = HashOut<F>> {
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,
         swap: BoolTarget,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,
@@ -96,7 +96,7 @@ pub trait AlgebraicHasher<F: RichField>: Hasher<F, Hash = HashOut<F>> {
 }
 
 /// Generic configuration trait.
-pub trait GenericConfig<const D: usize>:
+pub trait GenericConfig<const D: usize, const NUM_HASH_OUT_ELTS: usize>:
     Debug + Clone + Sync + Sized + Send + Eq + PartialEq
 {
     /// Main field.
@@ -106,13 +106,13 @@ pub trait GenericConfig<const D: usize>:
     /// Hash function used for building Merkle trees.
     type Hasher: Hasher<Self::F>;
     /// Algebraic hash function used for the challenger and hashing public inputs.
-    type InnerHasher: AlgebraicHasher<Self::F>;
+    type InnerHasher: AlgebraicHasher<Self::F, NUM_HASH_OUT_ELTS>;
 }
 
 /// Configuration using Poseidon over the Goldilocks field.
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize)]
 pub struct PoseidonGoldilocksConfig;
-impl GenericConfig<2> for PoseidonGoldilocksConfig {
+impl GenericConfig<2, 4> for PoseidonGoldilocksConfig {
     type F = Goldilocks;
     type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = Poseidon64Hash;
@@ -121,7 +121,7 @@ impl GenericConfig<2> for PoseidonGoldilocksConfig {
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize)]
 pub struct Poseidon2BabyBearConfig;
-impl GenericConfig<4> for Poseidon2BabyBearConfig {
+impl GenericConfig<4, 8> for Poseidon2BabyBearConfig {
     type F = BabyBear;
     type FE = BinomialExtensionField<Self::F, 4>;
     type Hasher = Poseidon2BabyBearHash;
@@ -131,7 +131,7 @@ impl GenericConfig<4> for Poseidon2BabyBearConfig {
 /// Configuration using truncated Keccak over the Goldilocks field.
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct KeccakGoldilocksConfig;
-impl GenericConfig<2> for KeccakGoldilocksConfig {
+impl GenericConfig<2, 4> for KeccakGoldilocksConfig {
     type F = Goldilocks;
     type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = KeccakHash<25>;

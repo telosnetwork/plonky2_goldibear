@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec::Vec};
+use std::num::NonZeroU8;
 
 use itertools::Itertools;
 use p3_field::TwoAdicField;
@@ -23,7 +24,7 @@ use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -102,16 +103,16 @@ where
         );
     }
 
-    pub fn verify_fri_proof<C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>>(
+    pub fn verify_fri_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>>(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         openings: &FriOpeningsTarget<D>,
         challenges: &FriChallengesTarget<D>,
-        initial_merkle_caps: &[MerkleCapTarget],
-        proof: &FriProofTarget<D>,
+        initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        proof: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
         params: &FriParams,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         if let Some(max_arity_bits) = params.max_arity_bits() {
             self.check_recursion_config(max_arity_bits);
@@ -179,11 +180,11 @@ where
         }
     }
 
-    fn fri_verify_initial_proof<H: AlgebraicHasher<F>>(
+    fn fri_verify_initial_proof<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         x_index_bits: &[BoolTarget],
-        proof: &FriInitialTreeProofTarget,
-        initial_merkle_caps: &[MerkleCapTarget],
+        proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+        initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
         cap_index: Target,
     ) {
         for (i, ((evals, merkle_proof), cap)) in proof
@@ -209,7 +210,7 @@ where
     fn fri_combine_initial(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
-        proof: &FriInitialTreeProofTarget,
+        proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
         alpha: ExtensionTarget<D>,
         subgroup_x: Target,
         precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D>,
@@ -251,20 +252,20 @@ where
     }
 
     fn fri_verifier_query_round<
-        C: GenericConfig<D, F = F, FE = <F as HasExtension<D>>::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
     >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         challenges: &FriChallengesTarget<D>,
         precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D>,
-        initial_merkle_caps: &[MerkleCapTarget],
-        proof: &FriProofTarget<D>,
+        initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        proof: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
         x_index: Target,
         n: usize,
-        round_proof: &FriQueryRoundTarget<D>,
+        round_proof: &FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>,
         params: &FriParams,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let n_log = log2_strict(n);
 
@@ -390,7 +391,7 @@ where
         &mut self,
         num_leaves_per_oracle: &[usize],
         params: &FriParams,
-    ) -> FriProofTarget<D> {
+    ) -> FriProofTarget<D, NUM_HASH_OUT_ELTS> {
         let cap_height = params.config.cap_height;
         let num_queries = params.config.num_query_rounds;
         let commit_phase_merkle_caps = (0..params.reduction_arity_bits.len())
@@ -413,7 +414,7 @@ where
         &mut self,
         num_leaves_per_oracle: &[usize],
         params: &FriParams,
-    ) -> FriQueryRoundTarget<D> {
+    ) -> FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS> {
         let cap_height = params.config.cap_height;
         assert!(params.lde_bits() >= cap_height);
         let mut merkle_proof_len = params.lde_bits() - cap_height;
@@ -438,7 +439,7 @@ where
         &mut self,
         num_leaves_per_oracle: &[usize],
         initial_merkle_proof_len: usize,
-    ) -> FriInitialTreeProofTarget {
+    ) -> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS> {
         let evals_proofs = num_leaves_per_oracle
             .iter()
             .map(|&num_oracle_leaves| {
@@ -454,7 +455,7 @@ where
         &mut self,
         arity_bits: usize,
         merkle_proof_len: usize,
-    ) -> FriQueryStepTarget<D> {
+    ) -> FriQueryStepTarget<D, NUM_HASH_OUT_ELTS> {
         FriQueryStepTarget {
             evals: self.add_virtual_extension_targets(1 << arity_bits),
             merkle_proof: self.add_virtual_merkle_proof(merkle_proof_len),
@@ -469,11 +470,11 @@ struct PrecomputedReducedOpeningsTarget<const D: usize> {
     reduced_openings_at_point: Vec<ExtensionTarget<D>>,
 }
 
-impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> PrecomputedReducedOpeningsTarget<D> {
     fn from_os_and_alpha<F: RichField + HasExtension<D>>(
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
         F::Extension: TwoAdicField,

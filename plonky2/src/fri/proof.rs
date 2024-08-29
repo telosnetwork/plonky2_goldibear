@@ -33,9 +33,9 @@ where
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FriQueryStepTarget<const D: usize> {
+pub struct FriQueryStepTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     pub evals: Vec<ExtensionTarget<D>>,
-    pub merkle_proof: MerkleProofTarget,
+    pub merkle_proof: MerkleProofTarget<NUM_HASH_OUT_ELTS>,
 }
 
 /// Evaluations and Merkle proofs of the original set of polynomials,
@@ -58,11 +58,11 @@ impl<F: RichField, H: Hasher<F>> FriInitialTreeProof<F, H> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FriInitialTreeProofTarget {
-    pub evals_proofs: Vec<(Vec<Target>, MerkleProofTarget)>,
+pub struct FriInitialTreeProofTarget<const NUM_HASH_OUT_ELTS: usize> {
+    pub evals_proofs: Vec<(Vec<Target>, MerkleProofTarget<NUM_HASH_OUT_ELTS>)>,
 }
 
-impl FriInitialTreeProofTarget {
+impl<const NUM_HASH_OUT_ELTS: usize> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS> {
     pub(crate) fn unsalted_eval(
         &self,
         oracle_index: usize,
@@ -90,9 +90,9 @@ where
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FriQueryRoundTarget<const D: usize> {
-    pub initial_trees_proof: FriInitialTreeProofTarget,
-    pub steps: Vec<FriQueryStepTarget<D>>,
+pub struct FriQueryRoundTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub initial_trees_proof: FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+    pub steps: Vec<FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>>,
 }
 
 /// Compressed proof of the FRI query rounds.
@@ -127,9 +127,9 @@ where
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FriProofTarget<const D: usize> {
-    pub commit_phase_merkle_caps: Vec<MerkleCapTarget>,
-    pub query_round_proofs: Vec<FriQueryRoundTarget<D>>,
+pub struct FriProofTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub commit_phase_merkle_caps: Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
+    pub query_round_proofs: Vec<FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>>,
     pub final_poly: PolynomialCoeffsExtTarget<D>,
     pub pow_witness: Target,
 }

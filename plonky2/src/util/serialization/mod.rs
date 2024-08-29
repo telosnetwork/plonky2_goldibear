@@ -265,8 +265,8 @@ pub trait Read {
 
     /// Reads a HashOutTarget value from `self`.
     #[inline]
-    fn read_target_hash(&mut self) -> IoResult<HashOutTarget> {
-        let mut elements = [Target::wire(0, 0); 4];
+    fn read_target_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<HashOutTarget<NUM_HASH_OUT_ELTS>> {
+        let mut elements = [Target::wire(0, 0); NUM_HASH_OUT_ELTS];
         for e in elements.iter_mut() {
             *e = self.read_target()?;
         }
@@ -303,7 +303,7 @@ pub trait Read {
 
     /// Reads a value of type [`MerkleCapTarget`] from `self`.
     #[inline]
-    fn read_target_merkle_cap(&mut self) -> IoResult<MerkleCapTarget> {
+    fn read_target_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<MerkleCapTarget<NUM_HASH_OUT_ELTS>> {
         let length = self.read_usize()?;
         Ok(MerkleCapTarget(
             (0..length)
@@ -339,14 +339,14 @@ pub trait Read {
 
     /// Reads a value of type [`OpeningSet`] from `self` with the given `common_data`.
     #[inline]
-    fn read_opening_set<F, C, const D: usize>(
+    fn read_opening_set<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<OpeningSet<F, D>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let constants = self.read_field_ext_vec::<F, D>(common_data.num_constants)?;
@@ -417,7 +417,7 @@ pub trait Read {
 
     /// Reads a value of type [`MerkleProofTarget`] from `self`.
     #[inline]
-    fn read_target_merkle_proof(&mut self) -> IoResult<MerkleProofTarget> {
+    fn read_target_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<MerkleProofTarget<NUM_HASH_OUT_ELTS>> {
         let length = self.read_u8()?;
         Ok(MerkleProofTarget {
             siblings: (0..length)
@@ -428,14 +428,14 @@ pub trait Read {
 
     /// Reads a value of type [`FriInitialTreeProof`] from `self` with the given `common_data`.
     #[inline]
-    fn read_fri_initial_proof<F, C, const D: usize>(
+    fn read_fri_initial_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<FriInitialTreeProof<F, C::Hasher>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let salt = salt_size(common_data.fri_params.hiding);
@@ -468,7 +468,7 @@ pub trait Read {
 
     /// Reads a value of type [`FriInitialTreeProofTarget`] from `self`.
     #[inline]
-    fn read_target_fri_initial_proof(&mut self) -> IoResult<FriInitialTreeProofTarget> {
+    fn read_target_fri_initial_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>> {
         let len = self.read_usize()?;
         let mut evals_proofs = Vec::with_capacity(len);
 
@@ -482,7 +482,7 @@ pub trait Read {
     /// Reads a value of type [`FriQueryStep`] from `self` with the given `arity` and `compressed`
     /// flag.
     #[inline]
-    fn read_fri_query_step<F, C, const D: usize>(
+    fn read_fri_query_step<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         arity: usize,
         compressed: bool,
@@ -490,7 +490,7 @@ pub trait Read {
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let evals = self.read_field_ext_vec::<F, D>(arity - usize::from(compressed))?;
         let merkle_proof = self.read_merkle_proof()?;
@@ -502,7 +502,7 @@ pub trait Read {
 
     /// Reads a value of type [`FriQueryStepTarget`] from `self`.
     #[inline]
-    fn read_target_fri_query_step<const D: usize>(&mut self) -> IoResult<FriQueryStepTarget<D>> {
+    fn read_target_fri_query_step<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>> {
         let evals = self.read_target_ext_vec::<D>()?;
         let merkle_proof = self.read_target_merkle_proof()?;
         Ok(FriQueryStepTarget {
@@ -514,24 +514,24 @@ pub trait Read {
     /// Reads a vector of [`FriQueryRound`]s from `self` with `common_data`.
     #[inline]
     #[allow(clippy::type_complexity)]
-    fn read_fri_query_rounds<F, C, const D: usize>(
+    fn read_fri_query_rounds<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<Vec<FriQueryRound<F, C::Hasher, D>>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let mut fqrs = Vec::with_capacity(config.fri_config.num_query_rounds);
         for _ in 0..config.fri_config.num_query_rounds {
-            let initial_trees_proof = self.read_fri_initial_proof::<F, C, D>(common_data)?;
+            let initial_trees_proof = self.read_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
             let steps = common_data
                 .fri_params
                 .reduction_arity_bits
                 .iter()
-                .map(|&ar| self.read_fri_query_step::<F, C, D>(1 << ar, false))
+                .map(|&ar| self.read_fri_query_step::<F, C, D, NUM_HASH_OUT_ELTS>(1 << ar, false))
                 .collect::<Result<_, _>>()?;
             fqrs.push(FriQueryRound {
                 initial_trees_proof,
@@ -543,16 +543,16 @@ pub trait Read {
 
     /// Reads a vector of [`FriQueryRoundTarget`]s from `self`.
     #[inline]
-    fn read_target_fri_query_rounds<const D: usize>(
+    fn read_target_fri_query_rounds<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-    ) -> IoResult<Vec<FriQueryRoundTarget<D>>> {
+    ) -> IoResult<Vec<FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>>> {
         let num_query_rounds = self.read_usize()?;
         let mut fqrs = Vec::with_capacity(num_query_rounds);
         for _ in 0..num_query_rounds {
             let initial_trees_proof = self.read_target_fri_initial_proof()?;
             let num_steps = self.read_usize()?;
             let steps = (0..num_steps)
-                .map(|_| self.read_target_fri_query_step::<D>())
+                .map(|_| self.read_target_fri_query_step::<D, NUM_HASH_OUT_ELTS>())
                 .collect::<Result<Vec<_>, _>>()?;
             fqrs.push(FriQueryRoundTarget {
                 initial_trees_proof,
@@ -564,20 +564,20 @@ pub trait Read {
 
     /// Reads a value of type [`FriProof`] from `self` with `common_data`.
     #[inline]
-    fn read_fri_proof<F, C, const D: usize>(
+    fn read_fri_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<FriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let commit_phase_merkle_caps = (0..common_data.fri_params.reduction_arity_bits.len())
             .map(|_| self.read_merkle_cap(config.fri_config.cap_height))
             .collect::<Result<Vec<_>, _>>()?;
-        let query_round_proofs = self.read_fri_query_rounds::<F, C, D>(common_data)?;
+        let query_round_proofs = self.read_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         let final_poly = PolynomialCoeffs::new(
             self.read_field_ext_vec::<F, D>(common_data.fri_params.final_poly_len())?,
         );
@@ -592,12 +592,12 @@ pub trait Read {
 
     /// Reads a value of type [`FriProofTarget`] from `self`.
     #[inline]
-    fn read_target_fri_proof<const D: usize>(&mut self) -> IoResult<FriProofTarget<D>> {
+    fn read_target_fri_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<FriProofTarget<D, NUM_HASH_OUT_ELTS>> {
         let length = self.read_usize()?;
         let commit_phase_merkle_caps = (0..length)
             .map(|_| self.read_target_merkle_cap())
             .collect::<Result<Vec<_>, _>>()?;
-        let query_round_proofs = self.read_target_fri_query_rounds::<D>()?;
+        let query_round_proofs = self.read_target_fri_query_rounds::<D, NUM_HASH_OUT_ELTS>()?;
         let final_poly = PolynomialCoeffsExtTarget(self.read_target_ext_vec::<D>()?);
         let pow_witness = self.read_target()?;
 
@@ -728,8 +728,8 @@ pub trait Read {
 
     fn read_polynomial_batch<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
-        const D: usize,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
     ) -> IoResult<PolynomialBatch<F, C, D>>
@@ -820,8 +820,8 @@ pub trait Read {
 
     fn read_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
-        const D: usize,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
@@ -842,8 +842,9 @@ pub trait Read {
 
     fn read_prover_only_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
@@ -893,7 +894,7 @@ pub trait Read {
             false => None,
         };
 
-        let circuit_digest = self.read_hash::<F, <C as GenericConfig<D>>::Hasher>()?;
+        let circuit_digest = self.read_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>()?;
 
         let length = self.read_usize()?;
         let mut lookup_rows = Vec::with_capacity(length);
@@ -928,8 +929,9 @@ pub trait Read {
 
     fn read_prover_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
@@ -948,8 +950,9 @@ pub trait Read {
 
     fn read_verifier_only_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
     ) -> IoResult<VerifierOnlyCircuitData<C, D>>
@@ -958,7 +961,7 @@ pub trait Read {
     {
         let height = self.read_usize()?;
         let constants_sigmas_cap = self.read_merkle_cap(height)?;
-        let circuit_digest = self.read_hash::<F, <C as GenericConfig<D>>::Hasher>()?;
+        let circuit_digest = self.read_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>()?;
         Ok(VerifierOnlyCircuitData {
             constants_sigmas_cap,
             circuit_digest,
@@ -967,8 +970,9 @@ pub trait Read {
 
     fn read_verifier_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
@@ -995,22 +999,22 @@ pub trait Read {
 
     /// Reads a value of type [`Proof`] from `self` with `common_data`.
     #[inline]
-    fn read_proof<F, C, const D: usize>(
+    fn read_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<Proof<F, C, D>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         F::Extension: TwoAdicField,
     {
         let config = &common_data.config;
         let wires_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
         let plonk_zs_partial_products_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
         let quotient_polys_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
-        let openings = self.read_opening_set::<F, C, D>(common_data)?;
-        let opening_proof = self.read_fri_proof::<F, C, D>(common_data)?;
+        let openings = self.read_opening_set::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
+        let opening_proof = self.read_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         Ok(Proof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -1022,12 +1026,12 @@ pub trait Read {
 
     /// Reads a value of type [`ProofTarget`] from `self`.
     #[inline]
-    fn read_target_proof<const D: usize>(&mut self) -> IoResult<ProofTarget<D>> {
+    fn read_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<ProofTarget<D>> {
         let wires_cap = self.read_target_merkle_cap()?;
         let plonk_zs_partial_products_cap = self.read_target_merkle_cap()?;
         let quotient_polys_cap = self.read_target_merkle_cap()?;
         let openings = self.read_target_opening_set::<D>()?;
-        let opening_proof = self.read_target_fri_proof::<D>()?;
+        let opening_proof = self.read_target_fri_proof::<D, NUM_HASH_OUT_ELTS>()?;
         Ok(ProofTarget {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -1039,7 +1043,7 @@ pub trait Read {
 
     /// Reads a value of type [`ProofWithPublicInputs`] from `self` with `common_data`.
     #[inline]
-    fn read_proof_with_public_inputs<F, C, const D: usize>(
+    fn read_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<ProofWithPublicInputs<F, C, D>>
@@ -1047,7 +1051,7 @@ pub trait Read {
         Self: Remaining,
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let proof = self.read_proof(common_data)?;
         let pi_len = self.read_usize()?;
@@ -1073,14 +1077,14 @@ pub trait Read {
 
     /// Reads a value of type [`CompressedFriQueryRounds`] from `self` with `common_data`.
     #[inline]
-    fn read_compressed_fri_query_rounds<F, C, const D: usize>(
+    fn read_compressed_fri_query_rounds<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedFriQueryRounds<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let original_indices = (0..config.fri_config.num_query_rounds)
@@ -1091,7 +1095,7 @@ pub trait Read {
         indices.dedup();
         let mut pairs = Vec::new();
         for &i in &indices {
-            pairs.push((i, self.read_fri_initial_proof::<F, C, D>(common_data)?));
+            pairs.push((i, self.read_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?));
         }
         let initial_trees_proofs = HashMap::from_iter(pairs);
 
@@ -1102,7 +1106,7 @@ pub trait Read {
             });
             indices.dedup();
             let query_steps = (0..indices.len())
-                .map(|_| self.read_fri_query_step::<F, C, D>(1 << a, true))
+                .map(|_| self.read_fri_query_step::<F, C, D, NUM_HASH_OUT_ELTS>(1 << a, true))
                 .collect::<Result<Vec<_>, _>>()?;
             steps.push(
                 indices
@@ -1122,20 +1126,20 @@ pub trait Read {
 
     /// Reads a value of type [`CompressedFriProof`] from `self` with `common_data`.
     #[inline]
-    fn read_compressed_fri_proof<F, C, const D: usize>(
+    fn read_compressed_fri_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedFriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let commit_phase_merkle_caps = (0..common_data.fri_params.reduction_arity_bits.len())
             .map(|_| self.read_merkle_cap(config.fri_config.cap_height))
             .collect::<Result<Vec<_>, _>>()?;
-        let query_round_proofs = self.read_compressed_fri_query_rounds::<F, C, D>(common_data)?;
+        let query_round_proofs = self.read_compressed_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         let final_poly = PolynomialCoeffs::new(
             self.read_field_ext_vec::<F, D>(common_data.fri_params.final_poly_len())?,
         );
@@ -1150,21 +1154,21 @@ pub trait Read {
 
     /// Reads a value of type [`CompressedProof`] from `self` with `common_data`.
     #[inline]
-    fn read_compressed_proof<F, C, const D: usize>(
+    fn read_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedProof<F, C, D>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
         let wires_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
         let plonk_zs_partial_products_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
         let quotient_polys_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
-        let openings = self.read_opening_set::<F, C, D>(common_data)?;
-        let opening_proof = self.read_compressed_fri_proof::<F, C, D>(common_data)?;
+        let openings = self.read_opening_set::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
+        let opening_proof = self.read_compressed_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         Ok(CompressedProof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -1176,7 +1180,7 @@ pub trait Read {
 
     /// Reads a value of type [`CompressedProofWithPublicInputs`] from `self` with `common_data`.
     #[inline]
-    fn read_compressed_proof_with_public_inputs<F, C, const D: usize>(
+    fn read_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<CompressedProofWithPublicInputs<F, C, D>>
@@ -1184,7 +1188,7 @@ pub trait Read {
         Self: Remaining,
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let proof = self.read_compressed_proof(common_data)?;
         let public_inputs = self.read_field_vec(self.remaining() / size_of::<u64>())?;
@@ -1404,7 +1408,7 @@ pub trait Write {
 
     /// Writes a HashOutTarget `h` to `self`.
     #[inline]
-    fn write_target_hash(&mut self, h: &HashOutTarget) -> IoResult<()> {
+    fn write_target_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self, h: &HashOutTarget<NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         for r in h.elements.iter() {
             self.write_target(*r)?;
         }
@@ -1442,7 +1446,7 @@ pub trait Write {
 
     /// Writes `cap`, a value of type [`MerkleCapTarget`], to `self`.
     #[inline]
-    fn write_target_merkle_cap(&mut self, cap: &MerkleCapTarget) -> IoResult<()> {
+    fn write_target_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(&mut self, cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         self.write_usize(cap.0.len())?;
         for a in &cap.0 {
             self.write_target_hash(a)?;
@@ -1525,7 +1529,7 @@ pub trait Write {
 
     /// Writes a value `pt` of type [`MerkleProofTarget`] to `self.`
     #[inline]
-    fn write_target_merkle_proof(&mut self, pt: &MerkleProofTarget) -> IoResult<()> {
+    fn write_target_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self, pt: &MerkleProofTarget<NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         let length = pt.siblings.len();
         self.write_u8(
             length
@@ -1540,14 +1544,14 @@ pub trait Write {
 
     /// Writes a value `fitp` of type [`FriInitialTreeProof`] to `self.`
     #[inline]
-    fn write_fri_initial_proof<F, C, const D: usize>(
+    fn write_fri_initial_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         fitp: &FriInitialTreeProof<F, C::Hasher>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for (v, p) in &fitp.evals_proofs {
             self.write_field_vec(v)?;
@@ -1558,9 +1562,9 @@ pub trait Write {
 
     /// Writes a value `fitpt` of type [`FriInitialTreeProofTarget`] to `self.`
     #[inline]
-    fn write_target_fri_initial_proof(
+    fn write_target_fri_initial_proof<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        fitpt: &FriInitialTreeProofTarget,
+        fitpt: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         self.write_usize(fitpt.evals_proofs.len())?;
         for (v, p) in &fitpt.evals_proofs {
@@ -1572,14 +1576,14 @@ pub trait Write {
 
     /// Writes a value `fqs` of type [`FriQueryStep`] to `self.`
     #[inline]
-    fn write_fri_query_step<F, C, const D: usize>(
+    fn write_fri_query_step<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         fqs: &FriQueryStep<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_field_ext_vec::<F, D>(&fqs.evals)?;
         self.write_merkle_proof(&fqs.merkle_proof)
@@ -1587,9 +1591,9 @@ pub trait Write {
 
     /// Writes a value `fqst` of type [`FriQueryStepTarget`] to `self.`
     #[inline]
-    fn write_target_fri_query_step<const D: usize>(
+    fn write_target_fri_query_step<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        fqst: &FriQueryStepTarget<D>,
+        fqst: &FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         self.write_target_ext_vec(&fqst.evals)?;
         self.write_target_merkle_proof(&fqst.merkle_proof)
@@ -1597,19 +1601,19 @@ pub trait Write {
 
     /// Writes a value `fqrs` of type [`FriQueryRound`] to `self.`
     #[inline]
-    fn write_fri_query_rounds<F, C, const D: usize>(
+    fn write_fri_query_rounds<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         fqrs: &[FriQueryRound<F, C::Hasher, D>],
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for fqr in fqrs {
-            self.write_fri_initial_proof::<F, C, D>(&fqr.initial_trees_proof)?;
+            self.write_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&fqr.initial_trees_proof)?;
             for fqs in &fqr.steps {
-                self.write_fri_query_step::<F, C, D>(fqs)?;
+                self.write_fri_query_step::<F, C, D, NUM_HASH_OUT_ELTS>(fqs)?;
             }
         }
         Ok(())
@@ -1617,16 +1621,16 @@ pub trait Write {
 
     /// Writes a value `fqrst` of type [`FriQueryRoundTarget`] to `self.`
     #[inline]
-    fn write_target_fri_query_rounds<const D: usize>(
+    fn write_target_fri_query_rounds<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        fqrst: &[FriQueryRoundTarget<D>],
+        fqrst: &[FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>],
     ) -> IoResult<()> {
         self.write_usize(fqrst.len())?;
         for fqr in fqrst {
             self.write_target_fri_initial_proof(&fqr.initial_trees_proof)?;
             self.write_usize(fqr.steps.len())?;
             for fqs in &fqr.steps {
-                self.write_target_fri_query_step::<D>(fqs)?;
+                self.write_target_fri_query_step::<D, NUM_HASH_OUT_ELTS>(fqs)?;
             }
         }
         Ok(())
@@ -1634,31 +1638,31 @@ pub trait Write {
 
     /// Writes a value `fp` of type [`FriProof`] to `self.`
     #[inline]
-    fn write_fri_proof<F, C, const D: usize>(
+    fn write_fri_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         fp: &FriProof<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for cap in &fp.commit_phase_merkle_caps {
             self.write_merkle_cap(cap)?;
         }
-        self.write_fri_query_rounds::<F, C, D>(&fp.query_round_proofs)?;
+        self.write_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(&fp.query_round_proofs)?;
         self.write_field_ext_vec::<F, D>(&fp.final_poly.coeffs)?;
         self.write_field(fp.pow_witness)
     }
 
     /// Writes a value `fpt` of type [`FriProofTarget`] to `self.`
     #[inline]
-    fn write_target_fri_proof<const D: usize>(&mut self, fpt: &FriProofTarget<D>) -> IoResult<()> {
+    fn write_target_fri_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, fpt: &FriProofTarget<D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         self.write_usize(fpt.commit_phase_merkle_caps.len())?;
         for cap in &fpt.commit_phase_merkle_caps {
             self.write_target_merkle_cap(cap)?;
         }
-        self.write_target_fri_query_rounds::<D>(&fpt.query_round_proofs)?;
+        self.write_target_fri_query_rounds::<D, NUM_HASH_OUT_ELTS>(&fpt.query_round_proofs)?;
         self.write_target_ext_vec::<D>(&fpt.final_poly.0)?;
         self.write_target(fpt.pow_witness)
     }
@@ -1790,8 +1794,8 @@ pub trait Write {
 
     fn write_polynomial_batch<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
-        const D: usize,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         poly_batch: &PolynomialBatch<F, C, D>,
@@ -1867,8 +1871,9 @@ pub trait Write {
 
     fn write_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         circuit_data: &CircuitData<F, C, D>,
@@ -1889,8 +1894,9 @@ pub trait Write {
 
     fn write_prover_only_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         prover_only_circuit_data: &ProverOnlyCircuitData<F, C, D>,
@@ -1948,7 +1954,7 @@ pub trait Write {
             None => self.write_bool(false)?,
         }
 
-        self.write_hash::<F, <C as GenericConfig<D>>::Hasher>(*circuit_digest)?;
+        self.write_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>(*circuit_digest)?;
 
         self.write_usize(lookup_rows.len())?;
         for wire in lookup_rows.iter() {
@@ -1967,8 +1973,9 @@ pub trait Write {
 
     fn write_prover_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         prover_circuit_data: &ProverCircuitData<F, C, D>,
@@ -1988,8 +1995,9 @@ pub trait Write {
 
     fn write_verifier_only_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D>,
@@ -2004,15 +2012,16 @@ pub trait Write {
 
         self.write_usize(constants_sigmas_cap.height())?;
         self.write_merkle_cap(constants_sigmas_cap)?;
-        self.write_hash::<F, <C as GenericConfig<D>>::Hasher>(*circuit_digest)?;
+        self.write_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>(*circuit_digest)?;
 
         Ok(())
     }
 
     fn write_verifier_circuit_data<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         verifier_circuit_data: &VerifierCircuitData<F, C, D>,
@@ -2042,39 +2051,39 @@ pub trait Write {
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_proof<F, C, const D: usize>(&mut self, proof: &Proof<F, C, D>) -> IoResult<()>
+    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &Proof<F, C, D>) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
         self.write_merkle_cap(&proof.plonk_zs_partial_products_cap)?;
         self.write_merkle_cap(&proof.quotient_polys_cap)?;
         self.write_opening_set(&proof.openings)?;
-        self.write_fri_proof::<F, C, D>(&proof.opening_proof)
+        self.write_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&proof.opening_proof)
     }
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_target_proof<const D: usize>(&mut self, proof: &ProofTarget<D>) -> IoResult<()> {
+    fn write_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &ProofTarget<D>) -> IoResult<()> {
         self.write_target_merkle_cap(&proof.wires_cap)?;
         self.write_target_merkle_cap(&proof.plonk_zs_partial_products_cap)?;
         self.write_target_merkle_cap(&proof.quotient_polys_cap)?;
         self.write_target_opening_set(&proof.openings)?;
-        self.write_target_fri_proof::<D>(&proof.opening_proof)
+        self.write_target_fri_proof::<D, NUM_HASH_OUT_ELTS>(&proof.opening_proof)
     }
 
     /// Writes a value `proof_with_pis` of type [`ProofWithPublicInputs`] to `self.`
     #[inline]
-    fn write_proof_with_public_inputs<F, C, const D: usize>(
+    fn write_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         proof_with_pis: &ProofWithPublicInputs<F, C, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let ProofWithPublicInputs {
             proof,
@@ -2101,14 +2110,14 @@ pub trait Write {
 
     /// Writes a value `cfqrs` of type [`CompressedFriQueryRounds`] to `self.`
     #[inline]
-    fn write_compressed_fri_query_rounds<F, C, const D: usize>(
+    fn write_compressed_fri_query_rounds<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         cfqrs: &CompressedFriQueryRounds<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for &i in &cfqrs.indices {
             self.write_u32(i as u32)?;
@@ -2116,13 +2125,13 @@ pub trait Write {
         let mut initial_trees_proofs = cfqrs.initial_trees_proofs.iter().collect::<Vec<_>>();
         initial_trees_proofs.sort_by_key(|&x| x.0);
         for (_, itp) in initial_trees_proofs {
-            self.write_fri_initial_proof::<F, C, D>(itp)?;
+            self.write_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(itp)?;
         }
         for h in &cfqrs.steps {
             let mut fri_query_steps = h.iter().collect::<Vec<_>>();
             fri_query_steps.sort_by_key(|&x| x.0);
             for (_, fqs) in fri_query_steps {
-                self.write_fri_query_step::<F, C, D>(fqs)?;
+                self.write_fri_query_step::<F, C, D, NUM_HASH_OUT_ELTS>(fqs)?;
             }
         }
         Ok(())
@@ -2130,51 +2139,51 @@ pub trait Write {
 
     /// Writes a value `fq` of type [`CompressedFriProof`] to `self.`
     #[inline]
-    fn write_compressed_fri_proof<F, C, const D: usize>(
+    fn write_compressed_fri_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         fp: &CompressedFriProof<F, C::Hasher, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for cap in &fp.commit_phase_merkle_caps {
             self.write_merkle_cap(cap)?;
         }
-        self.write_compressed_fri_query_rounds::<F, C, D>(&fp.query_round_proofs)?;
+        self.write_compressed_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(&fp.query_round_proofs)?;
         self.write_field_ext_vec::<F, D>(&fp.final_poly.coeffs)?;
         self.write_field(fp.pow_witness)
     }
 
     /// Writes a value `proof` of type [`CompressedProof`] to `self.`
     #[inline]
-    fn write_compressed_proof<F, C, const D: usize>(
+    fn write_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         proof: &CompressedProof<F, C, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
         self.write_merkle_cap(&proof.plonk_zs_partial_products_cap)?;
         self.write_merkle_cap(&proof.quotient_polys_cap)?;
         self.write_opening_set(&proof.openings)?;
-        self.write_compressed_fri_proof::<F, C, D>(&proof.opening_proof)
+        self.write_compressed_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&proof.opening_proof)
     }
 
     /// Writes a value `proof_with_pis` of type [`CompressedProofWithPublicInputs`] to `self.`
     #[inline]
-    fn write_compressed_proof_with_public_inputs<F, C, const D: usize>(
+    fn write_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         proof_with_pis: &CompressedProofWithPublicInputs<F, C, D>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let CompressedProofWithPublicInputs {
             proof,
