@@ -80,7 +80,7 @@ impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for CustomGeneratorS
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     impl_generator_serializer! {
@@ -100,7 +100,7 @@ where
 fn main() -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
+    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let config = CircuitConfig::standard_recursion_config();
 
@@ -129,7 +129,7 @@ fn main() -> Result<()> {
     let mut pw = PartialWitness::new();
     pw.set_target(x_squared, x_squared_value);
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let proof = data.prove(pw.clone())?;
 
     let x_squared_actual = proof.public_inputs[0];

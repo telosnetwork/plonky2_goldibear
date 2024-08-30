@@ -99,14 +99,9 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
         (0..n).map(|_| self.get_challenge()).collect()
     }
 
-    pub fn get_hash(&mut self) -> HashOut<F> {
+    pub fn get_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> HashOut<F, NUM_HASH_OUT_ELTS> {
         HashOut {
-            elements: [
-                self.get_challenge(),
-                self.get_challenge(),
-                self.get_challenge(),
-                self.get_challenge(),
-            ],
+            elements: self.get_n_challenges(NUM_HASH_OUT_ELTS).try_into().unwrap()
         }
     }
 
@@ -158,7 +153,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     }
 }
 
-impl<F: RichField, H: AlgebraicHasher<F>> Default for Challenger<F, H> {
+impl<F: RichField, H: Hasher<F>> Default for Challenger<F, H> {
     fn default() -> Self {
         Self::new()
     }
@@ -170,8 +165,9 @@ impl<F: RichField, H: AlgebraicHasher<F>> Default for Challenger<F, H> {
 #[derive(Debug)]
 pub struct RecursiveChallenger<
     F: RichField + HasExtension<D>,
-    H: AlgebraicHasher<F>,
+    H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize
 > where
     F::Extension: TwoAdicField,
 {
@@ -181,8 +177,8 @@ pub struct RecursiveChallenger<
     __: PhantomData<(F, H)>,
 }
 
-impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F>, const D: usize>
-    RecursiveChallenger<F, H, D>
+impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -218,11 +214,11 @@ where
         }
     }
 
-    pub fn observe_hash(&mut self, hash: &HashOutTarget) {
+    pub fn observe_hash(&mut self, hash: &HashOutTarget<NUM_HASH_OUT_ELTS>) {
         self.observe_elements(&hash.elements)
     }
 
-    pub fn observe_cap(&mut self, cap: &MerkleCapTarget) {
+    pub fn observe_cap(&mut self, cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>) {
         for hash in &cap.0 {
             self.observe_hash(hash)
         }
@@ -243,7 +239,7 @@ where
 
         if self.output_buffer.is_empty() {
             // Evaluate the permutation to produce `r` new outputs.
-            self.sponge_state = builder.permute::<H>(self.sponge_state);
+            self.sponge_state = builder.permute::<H, NUM_HASH_OUT_ELTS>(self.sponge_state);
             self.output_buffer = self.sponge_state.squeeze().to_vec();
         }
 
@@ -260,14 +256,9 @@ where
         (0..n).map(|_| self.get_challenge(builder)).collect()
     }
 
-    pub fn get_hash(&mut self, builder: &mut CircuitBuilder<F, D>) -> HashOutTarget {
+    pub fn get_hash(&mut self, builder: &mut CircuitBuilder<F, D>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
-            elements: [
-                self.get_challenge(builder),
-                self.get_challenge(builder),
-                self.get_challenge(builder),
-                self.get_challenge(builder),
-            ],
+            elements: self.get_n_challenges(builder, NUM_HASH_OUT_ELTS).try_into().unwrap()
         }
     }
 
@@ -290,7 +281,7 @@ where
             // where we would xor or add in the inputs. This is a well-known variant, though,
             // sometimes called "overwrite mode".
             self.sponge_state.set_from_slice(input_chunk, 0);
-            self.sponge_state = builder.permute::<H>(self.sponge_state);
+            self.sponge_state = builder.permute::<H, NUM_HASH_OUT_ELTS>(self.sponge_state);
         }
 
         self.output_buffer = self.sponge_state.squeeze().to_vec();
@@ -311,6 +302,7 @@ mod tests {
     use alloc::vec::Vec;
 
     use crate::field::types::Sample;
+    use crate::hash::hash_types::RichField;
     use crate::iop::challenger::{Challenger, RecursiveChallenger};
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::target::Target;
@@ -323,8 +315,9 @@ mod tests {
     fn no_duplicate_challenges() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let mut challenger = Challenger::<F, <C as GenericConfig<D>>::InnerHasher>::new();
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let mut challenger = Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
         let mut challenges = Vec::new();
 
         for i in 1..10 {
@@ -345,7 +338,8 @@ mod tests {
     fn test_consistency() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         // These are mostly arbitrary, but we want to test some rounds with enough inputs/outputs to
         // trigger multiple absorptions/squeezes.
@@ -358,7 +352,7 @@ mod tests {
             .map(|&n| F::rand_vec(n))
             .collect();
 
-        let mut challenger = Challenger::<F, <C as GenericConfig<D>>::InnerHasher>::new();
+        let mut challenger = Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
         let mut outputs_per_round: Vec<Vec<F>> = Vec::new();
         for (r, inputs) in inputs_per_round.iter().enumerate() {
             challenger.observe_elements(inputs);
@@ -368,7 +362,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
         let mut builder = CircuitBuilder::<F, D>::new(config);
         let mut recursive_challenger =
-            RecursiveChallenger::<F, <C as GenericConfig<D>>::InnerHasher, D>::new(&mut builder);
+            RecursiveChallenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher, D, NUM_HASH_OUT_ELTS>::new(&mut builder);
         let mut recursive_outputs_per_round: Vec<Vec<Target>> = Vec::new();
         for (r, inputs) in inputs_per_round.iter().enumerate() {
             recursive_challenger.observe_elements(&builder.constants(inputs));
@@ -376,7 +370,7 @@ mod tests {
                 recursive_challenger.get_n_challenges(&mut builder, num_outputs_per_round[r]),
             );
         }
-        let circuit = builder.build::<C>();
+        let circuit = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let inputs = PartialWitness::new();
         let witness = generate_partial_witness(inputs, &circuit.prover_only, &circuit.common);
         let recursive_output_values_per_round: Vec<Vec<F>> = recursive_outputs_per_round

@@ -63,7 +63,8 @@ mod tests {
     fn test_interpolate() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
@@ -110,7 +111,7 @@ mod tests {
             builder.connect_extension(eval_coset_gate, true_eval_target);
         }
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

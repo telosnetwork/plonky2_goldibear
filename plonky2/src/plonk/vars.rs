@@ -18,7 +18,7 @@ where
 {
     pub local_constants: &'a [F::Extension],
     pub local_wires: &'a [F::Extension],
-    pub public_inputs_hash: &'a HashOut<F>,
+    pub public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
 }
 
 /// A batch of evaluation vars, in the base field.
@@ -29,7 +29,7 @@ pub struct EvaluationVarsBaseBatch<'a, F: Field> {
     batch_size: usize,
     pub local_constants: &'a [F],
     pub local_wires: &'a [F],
-    pub public_inputs_hash: &'a HashOut<F>,
+    pub public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
 }
 
 /// A view into `EvaluationVarsBaseBatch` for a particular evaluation point. Does not copy the data.
@@ -37,7 +37,7 @@ pub struct EvaluationVarsBaseBatch<'a, F: Field> {
 pub struct EvaluationVarsBase<'a, F: Field> {
     pub local_constants: PackedStridedView<'a, F>,
     pub local_wires: PackedStridedView<'a, F>,
-    pub public_inputs_hash: &'a HashOut<F>,
+    pub public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
 }
 
 /// Like `EvaluationVarsBase`, but packed.
@@ -70,7 +70,7 @@ impl<'a, F: Field> EvaluationVarsBaseBatch<'a, F> {
         batch_size: usize,
         local_constants: &'a [F],
         local_wires: &'a [F],
-        public_inputs_hash: &'a HashOut<F>,
+        public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
     ) -> Self {
         assert_eq!(local_constants.len() % batch_size, 0);
         assert_eq!(local_wires.len() % batch_size, 0);

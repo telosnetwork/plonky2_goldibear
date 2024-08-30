@@ -21,7 +21,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D>
 where
     C::F: RichField + HasExtension<D>,
-    <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension: TwoAdicField,
+    <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
 {
     fn from_slice(slice: &[C::F], common_data: &CommonCircuitData<C::F, D>) -> Result<Self>
     where
@@ -111,7 +111,7 @@ where
     /// that the verification key matches.
     ///
     /// WARNING: Do not register any public input after calling this! TODO: relax this
-    pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         condition: BoolTarget,
         cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
@@ -120,7 +120,7 @@ where
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<()>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let verifier_data = self
@@ -175,7 +175,7 @@ where
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<()>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
@@ -195,15 +195,16 @@ where
 /// Checks that the purported verifier data in the public inputs match the real verifier data.
 pub fn check_cyclic_proof_verifier_data<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    proof: &ProofWithPublicInputs<F, C, D>,
+    proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     verifier_data: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
 where
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     let pis = VerifierOnlyCircuitData::<C, D>::from_slice(&proof.public_inputs, common_data)?;
@@ -236,23 +237,24 @@ mod tests {
     // Generates `CommonCircuitData` usable for recursion.
     fn common_data_for_recursion<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >() -> CommonCircuitData<F, D>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let config = CircuitConfig::standard_recursion_config();
         let builder = CircuitBuilder::<F, D>::new(config);
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let config = CircuitConfig::standard_recursion_config();
         let mut builder = CircuitBuilder::<F, D>::new(config);
         let proof = builder.add_virtual_proof_with_pis(&data.common);
         let verifier_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         builder.verify_proof::<C>(&proof, &verifier_data, &data.common);
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
 
         let config = CircuitConfig::standard_recursion_config();
         let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -263,7 +265,7 @@ mod tests {
         while builder.num_gates() < 1 << 12 {
             builder.add_gate(NoopGate, vec![]);
         }
-        builder.build::<C>().common
+        builder.build::<C, NUM_HASH_OUT_ELTS>().common
     }
 
     /// Uses cyclic recursion to build a hash chain.
@@ -276,7 +278,8 @@ mod tests {
     fn test_cyclic_recursion() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config();
         let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -324,7 +327,7 @@ mod tests {
             &common_data,
         )?;
 
-        let cyclic_circuit_data = builder.build::<C>();
+        let cyclic_circuit_data = builder.build::<C, NUM_HASH_OUT_ELTS>();
 
         let mut pw = PartialWitness::new();
         let initial_hash = [

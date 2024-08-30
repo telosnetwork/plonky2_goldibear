@@ -19,7 +19,7 @@ use crate::util::timing::TimingTree;
 
 const D: usize = 2;
 type C = PoseidonGoldilocksConfig;
-type F = <C as GenericConfig<D>>::F;
+type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
 const LUT_SIZE: usize = u16::MAX as usize + 1;
 
@@ -35,7 +35,7 @@ fn test_no_lookup() -> anyhow::Result<()> {
     builder.add_gate(NoopGate, vec![]);
     let pw = PartialWitness::new();
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove first", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
@@ -56,7 +56,7 @@ fn test_lookup_table_not_used() {
     let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
     builder.add_lookup_table_from_pairs(table);
 
-    builder.build::<C>();
+    builder.build::<C, NUM_HASH_OUT_ELTS>();
 }
 
 #[should_panic]
@@ -70,7 +70,7 @@ fn test_lookup_without_table() {
     let dummy = builder.add_virtual_target();
     builder.add_lookup_from_index(dummy, 0);
 
-    builder.build::<C>();
+    builder.build::<C, NUM_HASH_OUT_ELTS>();
 }
 
 // Tests two lookups in one lookup table.
@@ -106,7 +106,7 @@ fn test_one_lookup() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove one lookup", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
@@ -173,7 +173,7 @@ fn test_two_luts() -> anyhow::Result<()> {
     let mut pw = PartialWitness::new();
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove two_luts", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     data.verify(proof.clone())?;
@@ -244,7 +244,7 @@ fn test_different_inputs() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_u16(look_val_a));
     pw.set_target(initial_b, F::from_canonical_u16(look_val_b));
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove different lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     data.verify(proof.clone())?;
@@ -330,7 +330,7 @@ fn test_many_lookups() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove different lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
 
@@ -407,7 +407,7 @@ fn test_same_luts() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove two_luts", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     data.verify(proof)?;
@@ -439,7 +439,7 @@ fn test_big_lut() -> anyhow::Result<()> {
     builder.register_public_input(output_a);
     builder.register_public_input(output_b);
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
 
     let mut pw = PartialWitness::new();
 
@@ -490,7 +490,7 @@ fn test_many_lookups_on_big_lut() -> anyhow::Result<()> {
 
     builder.register_public_input(sum);
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
 
     let mut pw = PartialWitness::new();
 

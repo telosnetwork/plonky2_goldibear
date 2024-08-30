@@ -26,10 +26,11 @@ use crate::util::reverse_bits;
 
 fn get_challenges<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    public_inputs_hash: <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
+    public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     wires_cap: &MerkleCap<F, C::Hasher>,
     plonk_zs_partial_products_cap: &MerkleCap<F, C::Hasher>,
     quotient_polys_cap: &MerkleCap<F, C::Hasher>,
@@ -37,7 +38,7 @@ fn get_challenges<
     commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
     final_poly: &PolynomialCoeffs<F::Extension>,
     pow_witness: F,
-    circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+    circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
     common_data: &CommonCircuitData<F, D>,
 ) -> anyhow::Result<ProofChallenges<F, D>>
 where
@@ -99,15 +100,16 @@ where
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-    > ProofWithPublicInputs<F, C, D>
+        const NUM_HASH_OUT_ELTS: usize,
+    > ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     pub(crate) fn fri_query_indices(
         &self,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<Vec<usize>> {
         Ok(self
@@ -119,8 +121,8 @@ where
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub fn get_challenges(
         &self,
-        public_inputs_hash: <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+        public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<ProofChallenges<F, D>> {
         let Proof {
@@ -154,8 +156,9 @@ where
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     > CompressedProofWithPublicInputs<F, C, D>
 where
     F::Extension: TwoAdicField,
@@ -163,8 +166,8 @@ where
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub(crate) fn get_challenges(
         &self,
-        public_inputs_hash: <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+        public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<ProofChallenges<F, D>> {
         let CompressedProof {
@@ -275,21 +278,21 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
 where
     F::Extension: TwoAdicField,
 {
-    fn get_challenges<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    fn get_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        public_inputs_hash: HashOutTarget,
-        wires_cap: &MerkleCapTarget,
-        plonk_zs_partial_products_cap: &MerkleCapTarget,
-        quotient_polys_cap: &MerkleCapTarget,
+        public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        wires_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        plonk_zs_partial_products_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        quotient_polys_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         openings: &OpeningSetTarget<D>,
         commit_phase_merkle_caps: &[MerkleCapTarget],
         final_poly: &PolynomialCoeffsExtTarget<D>,
         pow_witness: Target,
-        inner_circuit_digest: HashOutTarget,
+        inner_circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
         inner_common_data: &CommonCircuitData<F, D>,
     ) -> ProofChallengesTarget<D>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let config = &inner_common_data.config;
         let num_challenges = config.num_challenges;
@@ -349,16 +352,16 @@ where
 impl<const D: usize> ProofWithPublicInputsTarget<D> {
     pub(crate) fn get_challenges<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     >(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-        public_inputs_hash: HashOutTarget,
-        inner_circuit_digest: HashOutTarget,
+        public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        inner_circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
         inner_common_data: &CommonCircuitData<F, D>,
     ) -> ProofChallengesTarget<D>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let ProofTarget {

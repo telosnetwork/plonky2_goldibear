@@ -304,8 +304,9 @@ mod tests {
     fn test_reduce_gadget_base(n: usize) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         let config = CircuitConfig::standard_recursion_config();
 
@@ -327,7 +328,7 @@ mod tests {
 
         builder.connect_extension(manual_reduce, circuit_reduce);
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)
@@ -336,8 +337,9 @@ mod tests {
     fn test_reduce_gadget(n: usize) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         let config = CircuitConfig::standard_recursion_config();
 
@@ -359,7 +361,7 @@ mod tests {
 
         builder.connect_extension(manual_reduce, circuit_reduce);
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

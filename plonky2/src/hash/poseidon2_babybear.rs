@@ -173,19 +173,19 @@ impl<F: RichField> Permuter31 for F {
 pub struct Poseidon2BabyBearHash;
 impl<F: RichField> Hasher<F> for Poseidon2BabyBearHash {
     const HASH_SIZE: usize = 4 * 8;
-    type Hash = HashOut<F>;
+    type Hash = HashOut<F, 8>;
     type Permutation = Poseidon31Permutation<F>;
 
     fn hash_no_pad(input: &[F]) -> Self::Hash {
-        hash_n_to_hash_no_pad::<F, Self::Permutation>(input)
+        hash_n_to_hash_no_pad::<F, Self::Permutation, 8>(input)
     }
 
     fn two_to_one(left: Self::Hash, right: Self::Hash) -> Self::Hash {
-        compress::<F, Self::Permutation>(left, right)
+        compress::<F, Self::Permutation, 8>(left, right)
     }
 }
 
-impl<F: RichField> AlgebraicHasher<F> for Poseidon2BabyBearHash {
+impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
     type AlgebraicPermutation = Poseidon31Permutation<Target>;
 
     // TODO: first define the Poseidon2_BabyBear Gates and then this method.

@@ -65,8 +65,9 @@ where
 
 pub fn verify_fri_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     instance: &FriInstanceInfo<F, D>,
     openings: &FriOpenings<F, D>,
@@ -78,7 +79,7 @@ pub fn verify_fri_proof<
 where
     F::Extension: TwoAdicField,
 {
-    validate_fri_proof_shape::<F, C, D>(proof, instance, params)?;
+    validate_fri_proof_shape::<F, C, D, NUM_HASH_OUT_ELTS>(proof, instance, params)?;
 
     // Size of the LDE domain.
     let n = params.lde_size();
@@ -99,7 +100,7 @@ where
         .iter()
         .zip(&proof.query_round_proofs)
     {
-        fri_verifier_query_round::<F, C, D>(
+        fri_verifier_query_round::<F, C, D, NUM_HASH_OUT_ELTS>(
             instance,
             challenges,
             &precomputed_reduced_evals,
@@ -129,8 +130,9 @@ fn fri_verify_initial_proof<F: RichField, H: Hasher<F>>(
 
 pub(crate) fn fri_combine_initial<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     instance: &FriInstanceInfo<F, D>,
     proof: &FriInitialTreeProof<F, C::Hasher>,
@@ -173,8 +175,9 @@ where
 
 fn fri_verifier_query_round<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     instance: &FriInstanceInfo<F, D>,
     challenges: &FriChallenges<F, D>,
@@ -201,7 +204,7 @@ where
 
     // old_eval is the last derived evaluation; it will be checked for consistency with its
     // committed "parent" value in the next iteration.
-    let mut old_eval = fri_combine_initial::<F, C, D>(
+    let mut old_eval = fri_combine_initial::<F, C, D, NUM_HASH_OUT_ELTS>(
         instance,
         &round_proof.initial_trees_proof,
         challenges.fri_alpha,

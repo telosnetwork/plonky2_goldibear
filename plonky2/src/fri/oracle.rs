@@ -29,8 +29,9 @@ pub const SALT_SIZE: usize = 4;
 #[derive(Eq, PartialEq, Debug)]
 pub struct PolynomialBatch<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -43,9 +44,10 @@ pub struct PolynomialBatch<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-    > Default for PolynomialBatch<F, C, D>
+        const NUM_HASH_OUT_ELTS: usize,
+    > Default for PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -62,9 +64,10 @@ where
 
 impl<
         F: RichField + TwoAdicField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-    > PolynomialBatch<F, C, D>
+        const NUM_HASH_OUT_ELTS: usize,
+    > PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -234,7 +237,7 @@ where
             lde_final_poly.coset_fft(F::generator().into())
         );
 
-        let fri_proof = fri_proof::<F, C, D>(
+        let fri_proof = fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
             &oracles
                 .par_iter()
                 .map(|c| &c.merkle_tree)

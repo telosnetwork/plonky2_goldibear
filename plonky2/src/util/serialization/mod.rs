@@ -732,7 +732,7 @@ pub trait Read {
         const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-    ) -> IoResult<PolynomialBatch<F, C, D>>
+    ) -> IoResult<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -1002,7 +1002,7 @@ pub trait Read {
     fn read_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<Proof<F, C, D>>
+    ) -> IoResult<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -1046,7 +1046,7 @@ pub trait Read {
     fn read_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<ProofWithPublicInputs<F, C, D>>
+    ) -> IoResult<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
@@ -1798,7 +1798,7 @@ pub trait Write {
         const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        poly_batch: &PolynomialBatch<F, C, D>,
+        poly_batch: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2051,7 +2051,7 @@ pub trait Write {
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &Proof<F, C, D>) -> IoResult<()>
+    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -2078,7 +2078,7 @@ pub trait Write {
     #[inline]
     fn write_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof_with_pis: &ProofWithPublicInputs<F, C, D>,
+        proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,

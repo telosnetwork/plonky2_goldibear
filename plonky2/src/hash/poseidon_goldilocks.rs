@@ -1269,19 +1269,19 @@ impl<F: RichField> Permuter64 for F {
 pub struct Poseidon64Hash;
 impl<F: RichField> Hasher<F> for Poseidon64Hash {
     const HASH_SIZE: usize = 4 * 8;
-    type Hash = HashOut<F>;
+    type Hash = HashOut<F, 4>;
     type Permutation = Poseidon64Permutation<F>;
 
     fn hash_no_pad(input: &[F]) -> Self::Hash {
-        hash_n_to_hash_no_pad::<F, Self::Permutation>(input)
+        hash_n_to_hash_no_pad::<F, Self::Permutation, 4>(input)
     }
 
     fn two_to_one(left: Self::Hash, right: Self::Hash) -> Self::Hash {
-        compress::<F, Self::Permutation>(left, right)
+        compress::<F, Self::Permutation, 4>(left, right)
     }
 }
 
-impl<F: RichField> AlgebraicHasher<F> for Poseidon64Hash {
+impl<F: RichField> AlgebraicHasher<F, 4> for Poseidon64Hash {
     type AlgebraicPermutation = Poseidon64Permutation<Target>;
 
     fn permute_swapped<const D: usize>(

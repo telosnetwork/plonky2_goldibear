@@ -14,7 +14,7 @@ use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 fn main() -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
+    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let config = CircuitConfig::standard_recursion_config();
     let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     pw.set_target(initial_a, F::zero());
     pw.set_target(initial_b, F::one());
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
 
     let common_circuit_data_serialized = serde_json::to_string(&data.common).unwrap();
     fs::write("common_circuit_data.json", common_circuit_data_serialized)

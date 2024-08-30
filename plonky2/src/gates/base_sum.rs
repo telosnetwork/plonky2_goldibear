@@ -251,7 +251,8 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        test_eval_fns::<F, C, _, D>(BaseSumGate::<6>::new(11))
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(BaseSumGate::<6>::new(11))
     }
 }

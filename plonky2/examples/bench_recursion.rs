@@ -37,7 +37,7 @@ use rand_chacha::ChaCha8Rng;
 use structopt::StructOpt;
 
 type ProofTuple<F, C, const D: usize> = (
-    ProofWithPublicInputs<F, C, D>,
+    ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     VerifierOnlyCircuitData<C, D>,
     CommonCircuitData<F, D>,
 );
@@ -78,8 +78,9 @@ struct Options {
 /// Creates a dummy proof which should have `2 ** log2_size` rows.
 fn dummy_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     config: &CircuitConfig,
     log2_size: usize,
@@ -101,7 +102,7 @@ where
     }
     builder.print_gate_counts(0);
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let inputs = PartialWitness::new();
 
     let mut timing = TimingTree::new("prove", Level::Debug);
@@ -114,8 +115,9 @@ where
 
 fn dummy_lookup_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     config: &CircuitConfig,
     log2_size: usize,
@@ -151,7 +153,7 @@ where
     }
     builder.print_gate_counts(0);
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut inputs = PartialWitness::<F>::new();
     inputs.set_target(initial_a, F::one());
     let mut timing = TimingTree::new("prove with one lookup", Level::Debug);
@@ -165,8 +167,9 @@ where
 /// Creates a dummy proof which has more than 256 lookups to one LUT
 fn dummy_many_rows_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     config: &CircuitConfig,
     log2_size: usize,
@@ -208,7 +211,7 @@ where
 
     let mut pw = PartialWitness::new();
     pw.set_target(initial_a, F::one());
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let mut timing = TimingTree::new("prove with many lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
@@ -219,16 +222,17 @@ where
 
 fn recursive_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
-    InnerC: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     inner: &ProofTuple<F, InnerC, D>,
     config: &CircuitConfig,
     min_degree_bits: Option<usize>,
 ) -> Result<ProofTuple<F, C, D>>
 where
-    InnerC::Hasher: AlgebraicHasher<F>,
+    InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     let (inner_proof, inner_vd, inner_cd) = inner;
@@ -251,7 +255,7 @@ where
         }
     }
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
 
     let mut pw = PartialWitness::new();
     pw.set_proof_with_pis_target(&pt, inner_proof);
@@ -269,10 +273,11 @@ where
 /// Test serialization and print some size info.
 fn test_serialization<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    proof: &ProofWithPublicInputs<F, C, D>,
+    proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     vd: &VerifierOnlyCircuitData<C, D>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
@@ -324,7 +329,7 @@ pub fn benchmark_function(
 ) -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
+    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let dummy_proof_function = match lookup_type {
         0 => dummy_proof::<F, C, D>,

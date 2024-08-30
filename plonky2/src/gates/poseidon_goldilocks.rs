@@ -581,7 +581,8 @@ mod tests {
     fn generated_output() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig {
             num_wires: 143,
@@ -591,7 +592,7 @@ mod tests {
         type Gate = PoseidonGate<F, D>;
         let gate = Gate::new();
         let row = builder.add_gate(gate, vec![]);
-        let circuit = builder.build_prover::<C>();
+        let circuit = builder.build_prover::<C, NUM_HASH_OUT_ELTS>();
 
         let permutation_inputs = (0..SPONGE_WIDTH)
             .map(F::from_canonical_usize)
@@ -639,8 +640,9 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = PoseidonGate::<F, 2>::new();
-        test_eval_fns::<F, C, _, D>(gate)
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

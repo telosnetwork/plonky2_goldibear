@@ -58,11 +58,11 @@ where
     }
 
     /// Like `random_access`, but with `HashOutTarget`s rather than simple `Target`s.
-    pub fn random_access_hash(
+    pub fn random_access_hash<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         access_index: Target,
-        v: Vec<HashOutTarget>,
-    ) -> HashOutTarget {
+        v: Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         let selected = core::array::from_fn(|i| {
             self.random_access(
                 access_index,
@@ -73,11 +73,11 @@ where
     }
 
     /// Like `random_access`, but with `MerkleCapTarget`s rather than simple `Target`s.
-    pub fn random_access_merkle_cap(
+    pub fn random_access_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         access_index: Target,
-        v: Vec<MerkleCapTarget>,
-    ) -> MerkleCapTarget {
+        v: Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
+    ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         let cap_size = v[0].0.len();
         assert!(v.iter().all(|cap| cap.0.len() == cap_size));
 
@@ -120,8 +120,9 @@ mod tests {
     fn test_random_access_given_len(len_log: usize) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
         let len = 1 << len_log;
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
@@ -136,7 +137,7 @@ mod tests {
             builder.connect_extension(elem, res);
         }
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

@@ -157,7 +157,7 @@ pub mod default {
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
         C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         impl_generator_serializer! {
             DefaultGeneratorSerializer,

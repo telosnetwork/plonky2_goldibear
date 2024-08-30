@@ -240,8 +240,9 @@ mod tests {
 
     fn verify_all_leaves<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         leaves: Vec<Vec<F>>,
         cap_height: usize,
@@ -262,26 +263,28 @@ mod tests {
     fn test_cap_height_too_big() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let log_n = 8;
         let cap_height = log_n + 1; // Should panic if `cap_height > len_n`.
 
         let leaves = random_data::<F>(1 << log_n, 7);
-        let _ = MerkleTree::<F, <C as GenericConfig<D>>::Hasher>::new(leaves, cap_height);
+        let _ = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(leaves, cap_height);
     }
 
     #[test]
     fn test_cap_height_eq_log2_len() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let log_n = 8;
         let n = 1 << log_n;
         let leaves = random_data::<F>(n, 7);
 
-        verify_all_leaves::<F, C, D>(leaves, log_n)?;
+        verify_all_leaves::<F, C, D, NUM_HASH_OUT_ELTS>(leaves, log_n)?;
 
         Ok(())
     }
@@ -290,13 +293,14 @@ mod tests {
     fn test_merkle_trees() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let log_n = 8;
         let n = 1 << log_n;
         let leaves = random_data::<F>(n, 7);
 
-        verify_all_leaves::<F, C, D>(leaves, 1)?;
+        verify_all_leaves::<F, C, D, NUM_HASH_OUT_ELTS>(leaves, 1)?;
 
         Ok(())
     }

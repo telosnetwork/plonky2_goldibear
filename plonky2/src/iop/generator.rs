@@ -25,11 +25,12 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 pub fn generate_partial_witness<
     'a,
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     inputs: PartialWitness<F>,
-    prover_data: &'a ProverOnlyCircuitData<F, C, D>,
+    prover_data: &'a ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &'a CommonCircuitData<F, D>,
 ) -> PartitionWitness<'a, F>
 where

@@ -628,8 +628,9 @@ mod tests {
     fn test_mul_many() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         let config = CircuitConfig::standard_recursion_config();
 
@@ -654,7 +655,7 @@ mod tests {
         builder.connect_extension(mul0, mul1);
         builder.connect_extension(mul1, mul2);
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)
@@ -664,8 +665,9 @@ mod tests {
     fn test_div_extension() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         let config = CircuitConfig::standard_recursion_zk_config();
 
@@ -681,7 +683,7 @@ mod tests {
         let comp_zt = builder.div_extension(xt, yt);
         builder.connect_extension(zt, comp_zt);
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)
@@ -691,7 +693,8 @@ mod tests {
     fn test_mul_algebra() -> Result<()> {
         const D: usize = 2;
         type C = KeccakGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
 
         let config = CircuitConfig::standard_recursion_config();
@@ -719,7 +722,7 @@ mod tests {
             pw.set_extension_target(zt.0[i], z.0[i]);
         }
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

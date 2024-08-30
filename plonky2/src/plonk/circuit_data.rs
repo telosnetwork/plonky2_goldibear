@@ -144,8 +144,9 @@ impl CircuitConfig {
 #[derive(Eq, PartialEq, Debug)]
 pub struct MockCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -155,8 +156,9 @@ pub struct MockCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     > MockCircuitData<F, C, D>
 where
     F::Extension: TwoAdicField,
@@ -170,8 +172,9 @@ where
 #[derive(Eq, PartialEq, Debug)]
 pub struct CircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -182,8 +185,9 @@ pub struct CircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     > CircuitData<F, C, D>
 where
     F::Extension: TwoAdicField,
@@ -207,7 +211,7 @@ where
         buffer.read_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D>> {
+    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         prove::<F, C, D>(
             &self.prover_only,
             &self.common,
@@ -216,7 +220,7 @@ where
         )
     }
 
-    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D>) -> Result<()> {
+    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
         verify::<F, C, D>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
@@ -229,7 +233,7 @@ where
 
     pub fn compress(
         &self,
-        proof: ProofWithPublicInputs<F, C, D>,
+        proof: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<CompressedProofWithPublicInputs<F, C, D>> {
         proof.compress(&self.verifier_only.circuit_digest, &self.common)
     }
@@ -237,7 +241,7 @@ where
     pub fn decompress(
         &self,
         proof: CompressedProofWithPublicInputs<F, C, D>,
-    ) -> Result<ProofWithPublicInputs<F, C, D>> {
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         proof.decompress(&self.verifier_only.circuit_digest, &self.common)
     }
 
@@ -276,8 +280,9 @@ where
 #[derive(Debug)]
 pub struct ProverCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -287,8 +292,9 @@ pub struct ProverCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     > ProverCircuitData<F, C, D>
 where
     F::Extension: TwoAdicField,
@@ -312,7 +318,7 @@ where
         buffer.read_prover_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D>>
+    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -329,8 +335,9 @@ where
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifierCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -340,8 +347,9 @@ pub struct VerifierCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     > VerifierCircuitData<F, C, D>
 where
     F::Extension: TwoAdicField,
@@ -360,7 +368,7 @@ where
         buffer.read_verifier_circuit_data(gate_serializer)
     }
 
-    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D>) -> Result<()> {
+    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
         verify::<F, C, D>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
@@ -376,8 +384,9 @@ where
 #[derive(Eq, PartialEq, Debug)]
 pub struct ProverOnlyCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -386,7 +395,7 @@ pub struct ProverOnlyCircuitData<
     /// they watch.
     pub generator_indices_by_watches: BTreeMap<usize, Vec<usize>>,
     /// Commitments to the constants polynomials and sigma polynomials.
-    pub constants_sigmas_commitment: PolynomialBatch<F, C, D>,
+    pub constants_sigmas_commitment: PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     /// The transpose of the list of sigma polynomials.
     pub sigmas: Vec<Vec<F>>,
     /// Subgroup of order `degree`.
@@ -400,7 +409,7 @@ pub struct ProverOnlyCircuitData<
     pub fft_root_table: Option<FftRootTable<F>>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<F>>::Hash,
+    pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<F>>::Hash,
     ///The concrete placement of the lookup gates for each lookup table index.
     pub lookup_rows: Vec<LookupWire>,
     /// A vector of (looking_in, looking_out) pairs for for each lookup table index.
@@ -409,8 +418,9 @@ pub struct ProverOnlyCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     > ProverOnlyCircuitData<F, C, D>
 where
     F::Extension: TwoAdicField,
@@ -442,16 +452,16 @@ pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
     pub constants_sigmas_cap: MerkleCap<C::F, C::Hasher>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+    pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
 }
 
 impl<
-        C: GenericConfig<D, FE = <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension>,
+        C: GenericConfig<D, FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension>,
         const D: usize,
     > VerifierOnlyCircuitData<C, D>
 where
     C::F: HasExtension<D>,
-    <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension: TwoAdicField,
+    <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
 {
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
@@ -734,5 +744,5 @@ pub struct VerifierCircuitTarget {
     pub constants_sigmas_cap: MerkleCapTarget,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: HashOutTarget,
+    pub circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
 }

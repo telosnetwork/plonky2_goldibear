@@ -24,7 +24,7 @@ use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -103,7 +103,7 @@ where
         );
     }
 
-    pub fn verify_fri_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>>(
+    pub fn verify_fri_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         openings: &FriOpeningsTarget<D>,
@@ -165,7 +165,7 @@ where
                 self,
                 level,
                 &format!("verify one (of {num_queries}) query rounds"),
-                self.fri_verifier_query_round::<C>(
+                self.fri_verifier_query_round::<C, NUM_HASH_OUT_ELTS>(
                     instance,
                     challenges,
                     &precomputed_reduced_evals,
@@ -180,7 +180,7 @@ where
         }
     }
 
-    fn fri_verify_initial_proof<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
+    fn fri_verify_initial_proof<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         x_index_bits: &[BoolTarget],
         proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
@@ -196,7 +196,7 @@ where
             with_context!(
                 self,
                 &format!("verify {i}'th initial Merkle proof"),
-                self.verify_merkle_proof_to_cap_with_cap_index::<H>(
+                self.verify_merkle_proof_to_cap_with_cap_index::<H, NUM_HASH_OUT_ELTS>(
                     evals.clone(),
                     x_index_bits,
                     cap_index,
@@ -207,7 +207,7 @@ where
         }
     }
 
-    fn fri_combine_initial(
+    fn fri_combine_initial<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
@@ -253,6 +253,7 @@ where
 
     fn fri_verifier_query_round<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
@@ -279,7 +280,7 @@ where
         with_context!(
             self,
             "check FRI initial proof",
-            self.fri_verify_initial_proof::<C::Hasher>(
+            self.fri_verify_initial_proof::<C::Hasher, NUM_HASH_OUT_ELTS>(
                 &x_index_bits,
                 &round_proof.initial_trees_proof,
                 initial_merkle_caps,
@@ -339,7 +340,7 @@ where
             with_context!(
                 self,
                 "verify FRI round Merkle proof.",
-                self.verify_merkle_proof_to_cap_with_cap_index::<C::Hasher>(
+                self.verify_merkle_proof_to_cap_with_cap_index::<C::Hasher, NUM_HASH_OUT_ELTS>(
                     flatten_target(evals),
                     &coset_index_bits,
                     cap_index,
@@ -387,7 +388,7 @@ where
                 "A non-negligible portion of field elements are in the range that permits non-canonical encodings. Need to do more analysis or enforce canonical encodings.");
     }
 
-    pub fn add_virtual_fri_proof(
+    pub fn add_virtual_fri_proof<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         num_leaves_per_oracle: &[usize],
         params: &FriParams,
@@ -410,7 +411,7 @@ where
         }
     }
 
-    fn add_virtual_fri_query(
+    fn add_virtual_fri_query<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         num_leaves_per_oracle: &[usize],
         params: &FriParams,
@@ -435,7 +436,7 @@ where
         }
     }
 
-    fn add_virtual_fri_initial_trees_proof(
+    fn add_virtual_fri_initial_trees_proof<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         num_leaves_per_oracle: &[usize],
         initial_merkle_proof_len: usize,
@@ -451,7 +452,7 @@ where
         FriInitialTreeProofTarget { evals_proofs }
     }
 
-    fn add_virtual_fri_query_step(
+    fn add_virtual_fri_query_step<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         arity_bits: usize,
         merkle_proof_len: usize,
@@ -470,11 +471,11 @@ struct PrecomputedReducedOpeningsTarget<const D: usize> {
     reduced_openings_at_point: Vec<ExtensionTarget<D>>,
 }
 
-impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> PrecomputedReducedOpeningsTarget<D> {
+impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
     fn from_os_and_alpha<F: RichField + HasExtension<D>>(
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
-        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        builder: &mut CircuitBuilder<F, D>,
     ) -> Self
     where
         F::Extension: TwoAdicField,

@@ -56,8 +56,9 @@ mod tests {
     fn test_select() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = 4;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
         let config = CircuitConfig::standard_recursion_config();
         let mut pw = PartialWitness::<F>::new();
         let mut builder = CircuitBuilder::<F, D>::new(config);
@@ -77,7 +78,7 @@ mod tests {
         builder.connect_extension(should_be_x, xt);
         builder.connect_extension(should_be_y, yt);
 
-        let data = builder.build::<C>();
+        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

@@ -8,12 +8,12 @@ use crate::plonk::config::GenericConfig;
 use crate::plonk::proof::{OpeningSet, Proof, ProofWithPublicInputs};
 
 pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize>(
-    proof_with_pis: &ProofWithPublicInputs<F, C, D>,
+    proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> anyhow::Result<()>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     F::Extension: TwoAdicField,
 {
     let ProofWithPublicInputs {
@@ -29,12 +29,12 @@ where
 }
 
 fn validate_proof_shape<F, C, const D: usize>(
-    proof: &Proof<F, C, D>,
+    proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> anyhow::Result<()>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     F::Extension: TwoAdicField,
 {
     let config = &common_data.config;

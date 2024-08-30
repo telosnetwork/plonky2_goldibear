@@ -96,9 +96,10 @@ fn random_low_degree_values<F: TwoAdicField + Sample>(rate_bits: usize) -> Vec<F
 
 pub fn test_eval_fns<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     G: Gate<F, D>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize
 >(
     gate: G,
 ) -> Result<()>
@@ -169,7 +170,7 @@ where
     let evals_t = gate.eval_unfiltered_circuit(&mut builder, vars_t);
     pw.set_extension_targets(&evals_t, &evals);
 
-    let data = builder.build::<C>();
+    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
     let proof = data.prove(pw)?;
-    verify::<F, C, D>(proof, &data.verifier_only, &data.common)
+    verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof, &data.verifier_only, &data.common)
 }

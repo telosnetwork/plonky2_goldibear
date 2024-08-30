@@ -793,7 +793,8 @@ mod tests {
     fn generated_output() {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 8;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig {
             num_wires: 246,
@@ -803,7 +804,7 @@ mod tests {
         type Gate = Poseidon2BabyBearGate<F, D>;
         let gate = Gate::new();
         let row = builder.add_gate(gate, vec![]);
-        let circuit = builder.build_prover::<C>();
+        let circuit = builder.build_prover::<C, NUM_HASH_OUT_ELTS>();
 
         let permutation_inputs = (0..SPONGE_WIDTH)
             .map(F::from_canonical_usize)
@@ -851,9 +852,10 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = 8;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = Poseidon2BabyBearGate::<F, D>::new();
-        test_eval_fns::<F, C, _, D>(gate)
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 
     #[test]
@@ -890,7 +892,7 @@ mod tests {
         permute_internal_mut::<EF>(&mut state);
         permute_internal_mut_circuit(&mut builder, &mut state_target);
         pw.set_extension_targets(&state_target, &state);
-        let data = builder.build::<Poseidon2BabyBearConfig>();
+        let data = builder.build::<Poseidon2BabyBearConfig, 8>();
         let proof = data.prove(pw);
         data.verify(proof.unwrap()).unwrap();
     }
@@ -914,7 +916,7 @@ mod tests {
         permute_external_mut_circuit(&mut builder, &mut state_target);
         // This should cause failure if permute_external_mut_circuit and permute_external_mut are not consistent.
         pw.set_extension_targets(&state_target, &state);
-        let data = builder.build::<Poseidon2BabyBearConfig>();
+        let data = builder.build::<Poseidon2BabyBearConfig, 8>();
         let proof = data.prove(pw);
         data.verify(proof.unwrap()).unwrap();
     }
