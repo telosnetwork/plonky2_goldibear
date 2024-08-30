@@ -17,19 +17,19 @@ use crate::plonk::circuit_data::{VerifierCircuitTarget, VerifierOnlyCircuitData}
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{Proof, ProofTarget, ProofWithPublicInputs, ProofWithPublicInputsTarget};
 
-pub trait WitnessWrite<F: Field> {
+pub trait WitnessWrite<F: Field, const NUM_HASH_OUT_ELTS: usize> {
     fn set_target(&mut self, target: Target, value: F);
 
-    fn set_hash_target(&mut self, ht: HashOutTarget, value: HashOut<F>) {
+    fn set_hash_target(&mut self, ht: HashOutTarget<NUM_HASH_OUT_ELTS>, value: HashOut<F, NUM_HASH_OUT_ELTS>) {
         ht.elements
             .iter()
             .zip(value.elements)
             .for_each(|(&t, x)| self.set_target(t, x));
     }
 
-    fn set_cap_target<H: AlgebraicHasher<F>>(
+    fn set_cap_target<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
-        ct: &MerkleCapTarget,
+        ct: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         value: &MerkleCap<F, H>,
     ) where
         F: RichField,
@@ -71,13 +71,13 @@ pub trait WitnessWrite<F: Field> {
 
     /// Set the targets in a `ProofWithPublicInputsTarget` to their corresponding values in a
     /// `ProofWithPublicInputs`.
-    fn set_proof_with_pis_target<C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+    fn set_proof_with_pis_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize>(
         &mut self,
         proof_with_pis_target: &ProofWithPublicInputsTarget<D>,
         proof_with_pis: &ProofWithPublicInputs<F, C, D>,
     ) where
         F: RichField + HasExtension<D>,
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let ProofWithPublicInputs {
@@ -98,13 +98,13 @@ pub trait WitnessWrite<F: Field> {
     }
 
     /// Set the targets in a `ProofTarget` to their corresponding values in a `Proof`.
-    fn set_proof_target<C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+    fn set_proof_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize>(
         &mut self,
         proof_target: &ProofTarget<D>,
-        proof: &Proof<F, C, D>,
+        proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     ) where
         F: RichField + HasExtension<D>,
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         self.set_cap_target(&proof_target.wires_cap, &proof.wires_cap);
@@ -139,13 +139,13 @@ pub trait WitnessWrite<F: Field> {
         }
     }
 
-    fn set_verifier_data_target<C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>(
+    fn set_verifier_data_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize>(
         &mut self,
         vdt: &VerifierCircuitTarget,
-        vd: &VerifierOnlyCircuitData<C, D>,
+        vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) where
         F: RichField + HasExtension<D>,
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         self.set_cap_target(&vdt.constants_sigmas_cap, &vd.constants_sigmas_cap);
@@ -183,7 +183,7 @@ pub trait WitnessWrite<F: Field> {
 }
 
 /// A witness holds information on the values of targets in a circuit.
-pub trait Witness<F: Field>: WitnessWrite<F> {
+pub trait Witness<F: Field, const NUM_HASH_OUT_ELTS: usize>: WitnessWrite<F, NUM_HASH_OUT_ELTS> {
     fn try_get_target(&self, target: Target) -> Option<F>;
 
     fn get_target(&self, target: Target) -> F {
@@ -223,16 +223,16 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         panic!("not a bool")
     }
 
-    fn get_hash_target(&self, ht: HashOutTarget) -> HashOut<F> {
+    fn get_hash_target(&self, ht: HashOutTarget<NUM_HASH_OUT_ELTS>) -> HashOut<F, NUM_HASH_OUT_ELTS> {
         HashOut {
             elements: self.get_targets(&ht.elements).try_into().unwrap(),
         }
     }
 
-    fn get_merkle_cap_target<H>(&self, cap_target: MerkleCapTarget) -> MerkleCap<F, H>
+    fn get_merkle_cap_target<H>(&self, cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS>) -> MerkleCap<F, H>
     where
         F: RichField,
-        H: AlgebraicHasher<F>,
+        H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let cap = cap_target
             .0
@@ -283,7 +283,7 @@ impl<F: Field> PartialWitness<F> {
     }
 }
 
-impl<F: Field> WitnessWrite<F> for PartialWitness<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> WitnessWrite<F, NUM_HASH_OUT_ELTS> for PartialWitness<F> {
     fn set_target(&mut self, target: Target, value: F) {
         let opt_old_value = self.target_values.insert(target, value);
         if let Some(old_value) = opt_old_value {
@@ -296,7 +296,7 @@ impl<F: Field> WitnessWrite<F> for PartialWitness<F> {
     }
 }
 
-impl<F: Field> Witness<F> for PartialWitness<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> Witness<F, NUM_HASH_OUT_ELTS> for PartialWitness<F> {
     fn try_get_target(&self, target: Target) -> Option<F> {
         self.target_values.get(&target).copied()
     }
@@ -359,13 +359,13 @@ impl<'a, F: Field> PartitionWitness<'a, F> {
     }
 }
 
-impl<'a, F: Field> WitnessWrite<F> for PartitionWitness<'a, F> {
+impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> WitnessWrite<F, NUM_HASH_OUT_ELTS> for PartitionWitness<'a, F> {
     fn set_target(&mut self, target: Target, value: F) {
         self.set_target_returning_rep(target, value);
     }
 }
 
-impl<'a, F: Field> Witness<F> for PartitionWitness<'a, F> {
+impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> Witness<F, NUM_HASH_OUT_ELTS> for PartitionWitness<'a, F> {
     fn try_get_target(&self, target: Target) -> Option<F> {
         let rep_index = self.representative_map[self.target_index(target)];
         self.values[rep_index]

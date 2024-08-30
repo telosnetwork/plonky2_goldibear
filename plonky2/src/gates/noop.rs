@@ -47,7 +47,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         _vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
         Vec::new()
@@ -91,7 +91,7 @@ mod tests {
     fn eval_fns() -> anyhow::Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         test_eval_fns::<F, C, _, D>(NoopGate)
     }
 }

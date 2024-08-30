@@ -83,7 +83,7 @@ where
 {
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given root. The index is given by its little-endian bits.
-    pub fn verify_merkle_proof<H: AlgebraicHasher<F>>(
+    pub fn verify_merkle_proof<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
@@ -96,7 +96,7 @@ where
 
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given cap. The index is given by its little-endian bits.
-    pub fn verify_merkle_proof_to_cap<H: AlgebraicHasher<F>>(
+    pub fn verify_merkle_proof_to_cap<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
@@ -115,7 +115,7 @@ where
 
     /// Same as `verify_merkle_proof_to_cap`, except with the final "cap index" as separate parameter,
     /// rather than being contained in `leaf_index_bits`.
-    pub(crate) fn verify_merkle_proof_to_cap_with_cap_index<H: AlgebraicHasher<F>>(
+    pub(crate) fn verify_merkle_proof_to_cap_with_cap_index<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
@@ -197,7 +197,7 @@ mod tests {
         const D: usize = 2;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config();
         let mut pw = PartialWitness::new();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS >::new(config);
@@ -206,7 +206,7 @@ mod tests {
         let n = 1 << log_n;
         let cap_height = 1;
         let leaves = random_data::<F>(n, 7);
-        let tree = MerkleTree::<F, <C as GenericConfig<D>>::Hasher>::new(leaves, cap_height);
+        let tree = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(leaves, cap_height);
         let i: usize = OsRng.gen_range(0..n);
         let proof = tree.prove(i);
 
@@ -228,7 +228,7 @@ mod tests {
             pw.set_target(data[j], tree.leaves[i][j]);
         }
 
-        builder.verify_merkle_proof_to_cap::<<C as GenericConfig<D>>::InnerHasher>(
+        builder.verify_merkle_proof_to_cap::<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>(
             data, &i_bits, &cap_t, &proof_t,
         );
 

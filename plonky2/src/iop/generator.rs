@@ -25,7 +25,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 pub fn generate_partial_witness<
     'a,
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     inputs: PartialWitness<F>,
@@ -180,7 +180,7 @@ impl<F: Field> From<Vec<(Target, F)>> for GeneratedValues<F> {
     }
 }
 
-impl<F: Field> WitnessWrite<F> for GeneratedValues<F> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> WitnessWrite<F, NUM_HASH_OUT_ELTS> for GeneratedValues<F> {
     fn set_target(&mut self, target: Target, value: F) {
         self.target_values.push((target, value));
     }

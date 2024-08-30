@@ -17,18 +17,18 @@ use crate::plonk::vars::EvaluationTargets;
 use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     /// Recursively verifies an inner proof.
-    pub fn verify_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
         proof_with_pis: &ProofWithPublicInputsTarget<D>,
         inner_verifier_data: &VerifierCircuitTarget,
         inner_common_data: &CommonCircuitData<F, D>,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         assert_eq!(
             proof_with_pis.public_inputs.len(),
@@ -53,15 +53,15 @@ where
     }
 
     /// Recursively verifies an inner proof.
-    fn verify_proof_with_challenges<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    fn verify_proof_with_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
         proof: &ProofTarget<D>,
-        public_inputs_hash: HashOutTarget,
+        public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
         challenges: ProofChallengesTarget<D>,
         inner_verifier_data: &VerifierCircuitTarget,
         inner_common_data: &CommonCircuitData<F, D>,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let one = self.one_extension();
 
@@ -229,8 +229,9 @@ mod tests {
     fn test_recursive_verifier() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_zk_config();
 
         let (proof, vd, common_data) = dummy_proof::<F, C, D>(&config, 4_000)?;
@@ -245,8 +246,9 @@ mod tests {
     fn test_recursive_verifier_one_lookup() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_zk_config();
 
         let (proof, vd, common_data) = dummy_lookup_proof::<F, C, D>(&config, 10)?;
@@ -261,8 +263,9 @@ mod tests {
     fn test_recursive_verifier_two_luts() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config();
 
         let (proof, vd, common_data) = dummy_two_luts_proof::<F, C, D>(&config)?;
@@ -277,8 +280,9 @@ mod tests {
     fn test_recursive_verifier_too_many_rows() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config();
 
         let (proof, vd, common_data) = dummy_too_many_rows_proof::<F, C, D>(&config)?;
@@ -293,8 +297,9 @@ mod tests {
     fn test_recursive_recursive_verifier() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config();
 
@@ -324,9 +329,10 @@ mod tests {
     fn test_size_optimized_recursion() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
         type KC = KeccakGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let standard_config = CircuitConfig::standard_recursion_config();
 
@@ -399,9 +405,10 @@ mod tests {
     fn test_recursive_verifier_multi_hash() -> Result<()> {
         init_logger();
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type PC = PoseidonGoldilocksConfig;
         type KC = KeccakGoldilocksConfig;
-        type F = <PC as GenericConfig<D>>::F;
+        type F = <PC as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config();
         let (proof, vd, common_data) = dummy_proof::<F, PC, D>(&config, 4_000)?;
@@ -417,25 +424,26 @@ mod tests {
         Ok(())
     }
 
-    type Proof<F, C, const D: usize> = (
+    type Proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> = (
         ProofWithPublicInputs<F, C, D>,
-        VerifierOnlyCircuitData<C, D>,
+        VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         CommonCircuitData<F, D>,
     );
 
     /// Creates a dummy proof which should have roughly `num_dummy_gates` gates.
     fn dummy_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         config: &CircuitConfig,
         num_dummy_gates: u64,
-    ) -> Result<Proof<F, C, D>>
+    ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         for _ in 0..num_dummy_gates {
             builder.add_gate(NoopGate, vec![]);
         }
@@ -451,16 +459,17 @@ mod tests {
     /// Creates a dummy lookup proof which does one lookup to one LUT.
     fn dummy_lookup_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         config: &CircuitConfig,
         num_dummy_gates: u64,
-    ) -> Result<Proof<F, C, D>>
+    ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
 
@@ -512,15 +521,16 @@ mod tests {
     /// Creates a dummy lookup proof which does one lookup to two different LUTs.
     fn dummy_two_luts_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize
     >(
         config: &CircuitConfig,
-    ) -> Result<Proof<F, C, D>>
+    ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
 
@@ -592,15 +602,15 @@ mod tests {
     /// Creates a dummy proof which has more than 256 lookups to one LUT.
     fn dummy_too_many_rows_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     >(
         config: &CircuitConfig,
-    ) -> Result<Proof<F, C, D>>
+    ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
 
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -650,8 +660,8 @@ mod tests {
 
     fn recursive_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
-        InnerC: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     >(
         inner_proof: ProofWithPublicInputs<F, InnerC, D>,
@@ -661,12 +671,12 @@ mod tests {
         min_degree_bits: Option<usize>,
         print_gate_counts: bool,
         print_timing: bool,
-    ) -> Result<Proof<F, C, D>>
+    ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        InnerC::Hasher: AlgebraicHasher<F>,
+        InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let mut pw = PartialWitness::new();
         let pt = builder.add_virtual_proof_with_pis(&inner_cd);
         pw.set_proof_with_pis_target(&pt, &inner_proof);
@@ -710,11 +720,11 @@ mod tests {
     /// Test serialization and print some size info.
     fn test_serialization<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     >(
         proof: &ProofWithPublicInputs<F, C, D>,
-        vd: &VerifierOnlyCircuitData<C, D>,
+        vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<()>
     where

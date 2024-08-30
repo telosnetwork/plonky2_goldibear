@@ -81,7 +81,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
         (0..self.num_consts)
@@ -157,7 +157,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let num_consts = CircuitConfig::standard_recursion_config().num_constants;
         let gate = ConstantGate { num_consts };
         test_eval_fns::<F, C, _, D>(gate)

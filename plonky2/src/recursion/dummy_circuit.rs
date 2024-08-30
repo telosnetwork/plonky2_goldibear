@@ -37,13 +37,13 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// set in this base proof.
 pub fn cyclic_base_proof<F, C, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     mut nonzero_public_inputs: HashMap<usize, F>,
 ) -> ProofWithPublicInputs<F, C, D>
 where
     F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     C::Hasher: AlgebraicHasher<C::F>,
 {
     let pis_len = common_data.num_public_inputs;
@@ -72,7 +72,7 @@ where
 /// The rest will default to zero.
 pub(crate) fn dummy_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     circuit: &CircuitData<F, C, D>,
@@ -92,7 +92,7 @@ where
 /// Generate a circuit matching a given `CommonCircuitData`.
 pub(crate) fn dummy_circuit<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     common_data: &CommonCircuitData<F, D>,
@@ -111,7 +111,7 @@ where
     let degree = common_data.degree();
     let num_noop_gate = degree - ceil_div_usize(common_data.num_public_inputs, 8) - 2;
 
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
     for _ in 0..num_noop_gate {
         builder.add_gate(NoopGate, vec![]);
     }
@@ -127,16 +127,16 @@ where
     circuit
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
+    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<(ProofWithPublicInputsTarget<D>, VerifierCircuitTarget)>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let dummy_circuit = dummy_circuit::<F, C, D>(common_data);
@@ -161,18 +161,18 @@ pub struct DummyProofGenerator<F, C, const D: usize>
 where
     F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
 {
     pub(crate) proof_with_pis_target: ProofWithPublicInputsTarget<D>,
     pub(crate) proof_with_pis: ProofWithPublicInputs<F, C, D>,
     pub(crate) verifier_data_target: VerifierCircuitTarget,
-    pub(crate) verifier_data: VerifierOnlyCircuitData<C, D>,
+    pub(crate) verifier_data: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<F, C, const D: usize> Default for DummyProofGenerator<F, C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     F::Extension: TwoAdicField,
 {
     fn default() -> Self {
@@ -217,8 +217,8 @@ where
 
         let verifier_data = VerifierOnlyCircuitData {
             constants_sigmas_cap: MerkleCap(vec![]),
-            circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash::from_bytes(
-                &vec![0; <<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::HASH_SIZE],
+            circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash::from_bytes(
+                &vec![0; <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::HASH_SIZE],
             ),
         };
 
@@ -234,8 +234,8 @@ where
 impl<F, C, const D: usize> SimpleGenerator<F, D> for DummyProofGenerator<F, C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
-    C::Hasher: AlgebraicHasher<F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     fn id(&self) -> String {

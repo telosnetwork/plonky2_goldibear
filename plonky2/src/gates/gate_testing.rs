@@ -96,9 +96,10 @@ fn random_low_degree_values<F: TwoAdicField + Sample>(rate_bits: usize) -> Vec<F
 
 pub fn test_eval_fns<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     G: Gate<F, D>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize
 >(
     gate: G,
 ) -> Result<()>
@@ -145,7 +146,7 @@ where
 
     let config = CircuitConfig::standard_recursion_config();
     let mut pw = PartialWitness::new();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let wires_t = builder.add_virtual_extension_targets(wires.len());
     let constants_t = builder.add_virtual_extension_targets(constants.len());

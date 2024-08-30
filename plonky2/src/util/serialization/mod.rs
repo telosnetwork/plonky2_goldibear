@@ -732,7 +732,7 @@ pub trait Read {
         const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-    ) -> IoResult<PolynomialBatch<F, C, D>>
+    ) -> IoResult<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -955,7 +955,7 @@ pub trait Read {
         const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
-    ) -> IoResult<VerifierOnlyCircuitData<C, D>>
+    ) -> IoResult<VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -1002,7 +1002,7 @@ pub trait Read {
     fn read_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<Proof<F, C, D>>
+    ) -> IoResult<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -1064,10 +1064,10 @@ pub trait Read {
 
     /// Reads a value of type [`ProofWithPublicInputsTarget`] from `self`.
     #[inline]
-    fn read_target_proof_with_public_inputs<const D: usize>(
+    fn read_target_proof_with_public_inputs<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
     ) -> IoResult<ProofWithPublicInputsTarget<D>> {
-        let proof = self.read_target_proof()?;
+        let proof = self.read_target_proof::<D,NUM_HASH_OUT_ELTS>()?;
         let public_inputs = self.read_target_vec()?;
         Ok(ProofWithPublicInputsTarget {
             proof,
@@ -1157,7 +1157,7 @@ pub trait Read {
     fn read_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<CompressedProof<F, C, D>>
+    ) -> IoResult<CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -1798,7 +1798,7 @@ pub trait Write {
         const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        poly_batch: &PolynomialBatch<F, C, D>,
+        poly_batch: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2000,7 +2000,7 @@ pub trait Write {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D>,
+        verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2051,7 +2051,7 @@ pub trait Write {
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &Proof<F, C, D>) -> IoResult<()>
+    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -2096,7 +2096,7 @@ pub trait Write {
 
     /// Writes a value `proof_with_pis` of type [`ProofWithPublicInputsTarget`] to `self.`
     #[inline]
-    fn write_target_proof_with_public_inputs<const D: usize>(
+    fn write_target_proof_with_public_inputs<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         proof_with_pis: &ProofWithPublicInputsTarget<D>,
     ) -> IoResult<()> {
@@ -2104,7 +2104,7 @@ pub trait Write {
             proof,
             public_inputs,
         } = proof_with_pis;
-        self.write_target_proof(proof)?;
+        self.write_target_proof::<D, NUM_HASH_OUT_ELTS>(proof)?;
         self.write_target_vec(public_inputs)
     }
 
@@ -2160,7 +2160,7 @@ pub trait Write {
     #[inline]
     fn write_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof: &CompressedProof<F, C, D>,
+        proof: &CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,

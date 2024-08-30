@@ -34,7 +34,7 @@ use crate::util::serialization::{Buffer, Read, Write};
 #[serde(bound = "")]
 pub struct Proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
@@ -57,19 +57,19 @@ pub struct ProofTarget<const D: usize> {
     pub plonk_zs_partial_products_cap: MerkleCapTarget,
     pub quotient_polys_cap: MerkleCapTarget,
     pub openings: OpeningSetTarget<D>,
-    pub opening_proof: FriProofTarget<D>,
+    pub opening_proof: FriProofTarget<D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-    > Proof<F, C, D>
+    > Proof<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     /// Compress the proof.
-    pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D> {
+    pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D, NUM_HASH_OUT_ELTS> {
         let Proof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -92,18 +92,18 @@ where
 #[serde(bound = "")]
 pub struct ProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
 {
-    pub proof: Proof<F, C, D>,
+    pub proof: Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > ProofWithPublicInputs<F, C, D>
 where
@@ -111,7 +111,7 @@ where
 {
     pub fn compress(
         self,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<CompressedProofWithPublicInputs<F, C, D>> {
         let indices = self.fri_query_indices(circuit_digest, common_data)?;
@@ -124,7 +124,7 @@ where
 
     pub fn get_public_inputs_hash(
         &self,
-    ) -> <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash {
+    ) -> <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash {
         C::InnerHasher::hash_no_pad(&self.public_inputs)
     }
 
@@ -152,7 +152,7 @@ where
 #[serde(bound = "")]
 pub struct CompressedProof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
@@ -171,9 +171,9 @@ pub struct CompressedProof<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-    > CompressedProof<F, C, D>
+    > CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -183,7 +183,7 @@ where
         challenges: &ProofChallenges<F, D>,
         fri_inferred_elements: FriInferredElements<F, D>,
         params: &FriParams,
-    ) -> Proof<F, C, D> {
+    ) -> Proof<F, C, D, NUM_HASH_OUT_ELTS> {
         let CompressedProof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -206,18 +206,18 @@ where
 #[serde(bound = "")]
 pub struct CompressedProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
 {
-    pub proof: CompressedProof<F, C, D>,
+    pub proof: CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > CompressedProofWithPublicInputs<F, C, D>
 where
@@ -225,7 +225,7 @@ where
 {
     pub fn decompress(
         self,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<ProofWithPublicInputs<F, C, D>> {
         let challenges =
@@ -242,7 +242,7 @@ where
 
     pub(crate) fn verify(
         self,
-        verifier_data: &VerifierOnlyCircuitData<C, D>,
+        verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<()> {
         ensure!(
@@ -270,7 +270,7 @@ where
 
     pub(crate) fn get_public_inputs_hash(
         &self,
-    ) -> <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash {
+    ) -> <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash {
         C::InnerHasher::hash_no_pad(&self.public_inputs)
     }
 
@@ -358,7 +358,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn new<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn new<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         zeta: F::Extension,
         g: F::Extension,
         constants_sigmas_commitment: &PolynomialBatch<F, C, D>,
@@ -523,14 +523,14 @@ mod tests {
     fn test_proof_compression() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let mut config = CircuitConfig::standard_recursion_config();
         config.fri_config.reduction_strategy = FriReductionStrategy::Fixed(vec![1, 1]);
         config.fri_config.num_query_rounds = 50;
 
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         // Build dummy circuit to get a valid proof.
         let x = F::rand();
@@ -562,7 +562,7 @@ mod tests {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
 
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let mut config = CircuitConfig::standard_recursion_config();
         config.fri_config.reduction_strategy = FriReductionStrategy::Fixed(vec![1, 1]);
@@ -587,7 +587,7 @@ mod tests {
         ];
         let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let lut_index = builder.add_lookup_table_from_pairs(table);
 
         // Build dummy circuit with a lookup to get a valid proof.

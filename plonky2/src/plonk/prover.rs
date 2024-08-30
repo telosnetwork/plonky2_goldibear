@@ -41,7 +41,7 @@ use crate::util::{ceil_div_usize, log2_ceil, transpose};
 /// the last gate to appear is the first LUT gate.
 pub fn set_lookup_wires<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
@@ -114,7 +114,7 @@ pub fn set_lookup_wires<
 
 pub fn prove<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
@@ -138,7 +138,7 @@ where
 
 pub fn prove_with_partition_witness<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D>,
@@ -369,7 +369,7 @@ where
 /// Compute the partial products used in the `Z` polynomials.
 fn all_wires_permutation_partial_products<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -399,7 +399,7 @@ where
 /// where `f, g` are the products in the definition of `Z`: `Z(g^i) = f / g`.
 fn wires_permutation_partial_products_and_zs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -468,7 +468,7 @@ where
 /// of the last partial polynomial is Sum(end) - LDC(end). If the lookup argument is valid, then it must be equal to 0.
 fn compute_lookup_polys<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -590,7 +590,7 @@ where
 /// Computes lookup polynomials for all challenges.
 fn compute_all_lookup_polys<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     witness: &MatrixWitness<F>,
@@ -626,12 +626,12 @@ const BATCH_SIZE: usize = 32;
 fn compute_quotient_polys<
     'a,
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     common_data: &CommonCircuitData<F, D>,
     prover_data: &'a ProverOnlyCircuitData<F, C, D>,
-    public_inputs_hash: &<<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
+    public_inputs_hash: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     wires_commitment: &'a PolynomialBatch<F, C, D>,
     zs_partial_products_and_lookup_commitment: &'a PolynomialBatch<F, C, D>,
     betas: &[F],

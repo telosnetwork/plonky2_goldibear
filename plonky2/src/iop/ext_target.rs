@@ -31,7 +31,7 @@ impl<const D: usize> ExtensionTarget<D> {
 
     pub fn frobenius<F: RichField + HasExtension<D>>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
         F::Extension: TwoAdicField,
@@ -42,7 +42,7 @@ impl<const D: usize> ExtensionTarget<D> {
     pub fn repeated_frobenius<F: RichField + HasExtension<D>>(
         &self,
         count: usize,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
         F::Extension: TwoAdicField,
@@ -94,7 +94,7 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {

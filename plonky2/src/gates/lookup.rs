@@ -126,7 +126,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         _vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
         // No main trace constraints for lookups.

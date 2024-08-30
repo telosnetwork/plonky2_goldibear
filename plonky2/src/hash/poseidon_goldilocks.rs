@@ -601,7 +601,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `mds_row_shf`.
     fn mds_row_shf_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         r: usize,
         v: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> ExtensionTarget<D>
@@ -656,7 +656,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `mds_layer`.
     pub(crate) fn mds_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where F: RichField + HasExtension<D>,
@@ -722,7 +722,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `partial_first_constant_layer`.
     pub(crate) fn partial_first_constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where 
     F: RichField + HasExtension<D>,
@@ -805,7 +805,7 @@ impl PoseidonGoldilocks {
     }
     /// Recursive version of `mds_partial_layer_init`.
     pub(crate) fn mds_partial_layer_init_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where 
@@ -924,7 +924,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `mds_partial_layer_fast`.
     pub(crate) fn mds_partial_layer_fast_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
         r: usize,
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
@@ -994,7 +994,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `constant_layer`.
     pub(crate) fn constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
         round_ctr: usize,
     ) 
@@ -1019,7 +1019,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `sbox_monomial`.
     pub(crate) fn sbox_monomial_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         x: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where 
@@ -1048,7 +1048,7 @@ impl PoseidonGoldilocks {
 
     /// Recursive version of `sbox_layer`.
     pub(crate) fn sbox_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) 
     where F: RichField + HasExtension<D>,
@@ -1269,7 +1269,7 @@ impl<F: RichField> Permuter64 for F {
 pub struct Poseidon64Hash;
 impl<F: RichField> Hasher<F> for Poseidon64Hash {
     const HASH_SIZE: usize = 4 * 8;
-    type Hash = HashOut<F>;
+    type Hash = HashOut<F, NUM_HASH_OUT_ELTS>;
     type Permutation = Poseidon64Permutation<F>;
 
     fn hash_no_pad(input: &[F]) -> Self::Hash {
@@ -1281,13 +1281,13 @@ impl<F: RichField> Hasher<F> for Poseidon64Hash {
     }
 }
 
-impl<F: RichField> AlgebraicHasher<F> for Poseidon64Hash {
+impl<F: RichField> AlgebraicHasher<F, NUM_HASH_OUT_ELTS> for Poseidon64Hash {
     type AlgebraicPermutation = Poseidon64Permutation<Target>;
 
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,
         swap: BoolTarget,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,

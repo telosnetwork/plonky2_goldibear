@@ -75,7 +75,7 @@ where
 
     /// Same as `mds_row_shf_recursive` for an extension algebra of `F`.
     fn mds_row_shf_algebra_circuit(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         r: usize,
         v: &[ExtensionAlgebraTarget<D>; SPONGE_WIDTH],
     ) -> ExtensionAlgebraTarget<D> {
@@ -115,7 +115,7 @@ where
 
     /// Same as `mds_layer_recursive` for an extension algebra of `F`.
     fn mds_layer_algebra_circuit(
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionAlgebraTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionAlgebraTarget<D>; SPONGE_WIDTH] {
         let mut result = [builder.zero_ext_algebra(); SPONGE_WIDTH];
@@ -195,7 +195,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
@@ -303,7 +303,7 @@ mod tests {
     fn low_degree() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = PoseidonMdsGate::<F, D>::new();
         test_low_degree(gate)
     }
@@ -312,7 +312,7 @@ mod tests {
     fn eval_fns() -> anyhow::Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = PoseidonMdsGate::new();
         test_eval_fns::<F, C, _, D>(gate)
     }

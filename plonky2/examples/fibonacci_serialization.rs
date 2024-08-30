@@ -14,10 +14,10 @@ use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 fn main() -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
+    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     // The arithmetic circuit.
     let initial_a = builder.add_virtual_target();

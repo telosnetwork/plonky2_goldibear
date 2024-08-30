@@ -320,7 +320,7 @@ where
     }
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
@@ -571,7 +571,7 @@ where
 }
 
 fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     input: ExtensionTarget<D>,
 ) -> ExtensionTarget<D>
 where
@@ -584,7 +584,7 @@ where
 }
 
 fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     round_idx: usize,
 ) where
@@ -605,7 +605,7 @@ fn add_rc<F: AbstractField>(state: &mut [F; SPONGE_WIDTH], round_idx: usize) {
 }
 
 fn permute_internal_mut_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
 ) where
     F::Extension: TwoAdicField,
@@ -687,7 +687,7 @@ fn permute_external_mut_circuit<
     const D: usize,
     const WIDTH: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; WIDTH],
 ) where
     F::Extension: TwoAdicField,
@@ -719,7 +719,7 @@ fn permute_external_mut_circuit<
 }
 
 fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     x: &mut [ExtensionTarget<D>; 4],
 ) where
     F::Extension: TwoAdicField,
@@ -793,7 +793,7 @@ mod tests {
     fn generated_output() {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig {
             num_wires: 246,
@@ -851,7 +851,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = Poseidon2BabyBearGate::<F, D>::new();
         test_eval_fns::<F, C, _, D>(gate)
     }
@@ -880,7 +880,7 @@ mod tests {
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
             .add_virtual_extension_targets(SPONGE_WIDTH)
@@ -903,7 +903,7 @@ mod tests {
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
             .add_virtual_extension_targets(SPONGE_WIDTH)

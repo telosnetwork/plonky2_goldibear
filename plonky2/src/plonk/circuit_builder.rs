@@ -103,7 +103,7 @@ pub struct LookupWire {
 /// const D: usize = 2;
 /// const NUM_HASH_OUT_ELTS: usize = 4;
 /// type C = PoseidonGoldilocksConfig;
-/// type F = <C as GenericConfig<D>>::F;
+/// type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 ///
 /// let config = CircuitConfig::standard_recursion_config();
 /// let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
@@ -648,12 +648,12 @@ where
         MerkleCapTarget(cap.0.iter().map(|h| self.constant_hash(*h)).collect())
     }
 
-    pub fn constant_verifier_data<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn constant_verifier_data<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
-        verifier_data: &VerifierOnlyCircuitData<C, D>,
+        verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> VerifierCircuitTarget
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         VerifierCircuitTarget {
             constants_sigmas_cap: self.constant_merkle_cap(&verifier_data.constants_sigmas_cap),
@@ -1038,7 +1038,7 @@ where
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build_with_options<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
         commit_to_sigma: bool,
     ) -> CircuitData<F, C, D>
@@ -1052,7 +1052,7 @@ where
         circuit_data
     }
 
-    pub fn try_build_with_options<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn try_build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         mut self,
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D>, bool)
@@ -1307,14 +1307,14 @@ where
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build<C: GenericConfig<D, F = F, FE = F::Extension>>(self) -> CircuitData<F, C, D>
+    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(self) -> CircuitData<F, C, D>
     where
         F::Extension: TwoAdicField,
     {
         self.build_with_options(true)
     }
 
-    pub fn mock_build<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn mock_build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> MockCircuitData<F, C, D>
     where
@@ -1327,7 +1327,7 @@ where
         }
     }
     /// Builds a "prover circuit", with data needed to generate proofs but not verify them.
-    pub fn build_prover<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn build_prover<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> ProverCircuitData<F, C, D>
     where
@@ -1339,7 +1339,7 @@ where
     }
 
     /// Builds a "verifier circuit", with data needed to verify proofs but not generate them.
-    pub fn build_verifier<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn build_verifier<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> VerifierCircuitData<F, C, D>
     where

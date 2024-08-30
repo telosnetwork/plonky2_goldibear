@@ -173,7 +173,7 @@ impl<F: RichField> Permuter31 for F {
 pub struct Poseidon2BabyBearHash;
 impl<F: RichField> Hasher<F> for Poseidon2BabyBearHash {
     const HASH_SIZE: usize = 4 * 8;
-    type Hash = HashOut<F>;
+    type Hash = HashOut<F, NUM_HASH_OUT_ELTS>;
     type Permutation = Poseidon31Permutation<F>;
 
     fn hash_no_pad(input: &[F]) -> Self::Hash {
@@ -185,7 +185,7 @@ impl<F: RichField> Hasher<F> for Poseidon2BabyBearHash {
     }
 }
 
-impl<F: RichField> AlgebraicHasher<F> for Poseidon2BabyBearHash {
+impl<F: RichField> AlgebraicHasher<F, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearHash {
     type AlgebraicPermutation = Poseidon31Permutation<Target>;
 
     // TODO: first define the Poseidon2_BabyBear Gates and then this method.
@@ -193,7 +193,7 @@ impl<F: RichField> AlgebraicHasher<F> for Poseidon2BabyBearHash {
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,
         swap: BoolTarget,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,

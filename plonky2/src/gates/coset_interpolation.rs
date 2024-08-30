@@ -333,7 +333,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
@@ -646,7 +646,7 @@ fn partial_interpolate_ext_algebra<F: HasExtension<D>, const D: usize>(
 }
 
 fn partial_interpolate_ext_algebra_target<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     domain: &[F],
     values: &[ExtensionAlgebraTarget<D>],
     barycentric_weights: &[F],
@@ -841,7 +841,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         for degree in 2..=4 {
             test_eval_fns::<F, C, _, D>(CosetInterpolationGate::with_max_degree(2, degree))?;
         }
@@ -852,7 +852,7 @@ mod tests {
     fn test_gate_constraint() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
 
         /// Returns the local wires for an interpolation gate for given coeffs, points and eval point.

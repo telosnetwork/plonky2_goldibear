@@ -213,7 +213,7 @@ where
         proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
         alpha: ExtensionTarget<D>,
         subgroup_x: Target,
-        precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D>,
+        precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D, NUM_HASH_OUT_ELTS>,
         params: &FriParams,
     ) -> ExtensionTarget<D> {
         assert!(D > 1, "Not implemented for D=1.");
@@ -257,7 +257,7 @@ where
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         challenges: &FriChallengesTarget<D>,
-        precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D>,
+        precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D, NUM_HASH_OUT_ELTS>,
         initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
         proof: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
         x_index: Target,
@@ -466,11 +466,11 @@ where
 /// For each opening point, holds the reduced (by `alpha`) evaluations of each polynomial that's
 /// opened at that point.
 #[derive(Clone)]
-struct PrecomputedReducedOpeningsTarget<const D: usize> {
+struct PrecomputedReducedOpeningsTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     reduced_openings_at_point: Vec<ExtensionTarget<D>>,
 }
 
-impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> PrecomputedReducedOpeningsTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> PrecomputedReducedOpeningsTarget<D, NUM_HASH_OUT_ELTS> {
     fn from_os_and_alpha<F: RichField + HasExtension<D>>(
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,

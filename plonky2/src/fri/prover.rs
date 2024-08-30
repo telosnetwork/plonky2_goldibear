@@ -22,8 +22,9 @@ use crate::util::timing::TimingTree;
 /// Builds a FRI proof.
 pub fn fri_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     // Coefficients of the polynomial on which the LDT is performed. Only the first `1/rate` coefficients are non-zero.
@@ -44,7 +45,7 @@ where
     let (trees, final_coeffs) = timed!(
         timing,
         "fold codewords in the commitment phase",
-        fri_committed_trees::<F, C, D>(
+        fri_committed_trees::<F, C, D, NUM_HASH_OUT_ELTS>(
             lde_polynomial_coeffs,
             lde_polynomial_values,
             challenger,
@@ -56,12 +57,12 @@ where
     let pow_witness = timed!(
         timing,
         "find proof-of-work witness",
-        fri_proof_of_work::<F, C, D>(challenger, &fri_params.config)
+        fri_proof_of_work::<F, C, D, NUM_HASH_OUT_ELTS>(challenger, &fri_params.config)
     );
 
     // Query phase
     let query_round_proofs =
-        fri_prover_query_rounds::<F, C, D>(initial_merkle_trees, &trees, challenger, n, fri_params);
+        fri_prover_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(initial_merkle_trees, &trees, challenger, n, fri_params);
 
     FriProof {
         commit_phase_merkle_caps: trees.iter().map(|t| t.cap.clone()).collect(),
@@ -71,21 +72,22 @@ where
     }
 }
 
-type FriCommitedTrees<F, C, const D: usize> = (
-    Vec<MerkleTree<F, <C as GenericConfig<D>>::Hasher>>,
+type FriCommitedTrees<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> = (
+    Vec<MerkleTree<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>>,
     PolynomialCoeffs<<F as HasExtension<D>>::Extension>,
 );
 
 fn fri_committed_trees<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     mut coeffs: PolynomialCoeffs<F::Extension>,
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
-) -> FriCommitedTrees<F, C, D>
+) -> FriCommitedTrees<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -131,8 +133,9 @@ where
 /// Performs the proof-of-work (a.k.a. grinding) step of the FRI protocol. Returns the PoW witness.
 fn fri_proof_of_work<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize
 >(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
@@ -185,8 +188,9 @@ where
 
 fn fri_prover_query_rounds<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     trees: &[MerkleTree<F, C::Hasher>],
@@ -202,15 +206,16 @@ where
         .into_par_iter()
         .map(|rand| {
             let x_index = rand.as_canonical_u64() as usize % n;
-            fri_prover_query_round::<F, C, D>(initial_merkle_trees, trees, x_index, fri_params)
+            fri_prover_query_round::<F, C, D, NUM_HASH_OUT_ELTS>(initial_merkle_trees, trees, x_index, fri_params)
         })
         .collect()
 }
 
 fn fri_prover_query_round<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     trees: &[MerkleTree<F, C::Hasher>],

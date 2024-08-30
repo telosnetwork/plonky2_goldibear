@@ -21,7 +21,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -531,7 +531,7 @@ where
         let num = witness.get_extension_target(self.numerator);
         let dem = witness.get_extension_target(self.denominator);
         let quotient = num / dem;
-        out_buffer.set_extension_target(self.quotient, quotient)
+        <GeneratedValues<F> as WitnessWrite<F,_>>::set_extension_target(out_buffer, self.quotient, quotient)
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
@@ -554,15 +554,15 @@ where
 
 /// An iterator over the powers of a certain base element `b`: `b^0, b^1, b^2, ...`.
 #[derive(Clone, Debug)]
-pub struct PowersTarget<const D: usize> {
+pub struct PowersTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     base: ExtensionTarget<D>,
     current: ExtensionTarget<D>,
 }
 
-impl<const D: usize> PowersTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> PowersTarget<D, NUM_HASH_OUT_ELTS> {
     pub fn next<F: RichField + HasExtension<D>>(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
         F::Extension: TwoAdicField,
@@ -575,7 +575,7 @@ impl<const D: usize> PowersTarget<D> {
     pub fn repeated_frobenius<F: RichField + HasExtension<D>>(
         self,
         k: usize,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
         F::Extension: TwoAdicField,
@@ -588,11 +588,11 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
+    pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D, NUM_HASH_OUT_ELTS> {
         PowersTarget {
             base,
             current: self.one_extension(),
@@ -627,14 +627,15 @@ mod tests {
     #[test]
     fn test_mul_many() -> Result<()> {
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         let config = CircuitConfig::standard_recursion_config();
 
         let mut pw = PartialWitness::<F>::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let vs = FF::rand_vec(3);
         let ts = builder.add_virtual_extension_targets(3);
@@ -663,14 +664,15 @@ mod tests {
     #[test]
     fn test_div_extension() -> Result<()> {
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         let config = CircuitConfig::standard_recursion_zk_config();
 
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let x = FF::rand();
         let y = FF::rand();
@@ -690,14 +692,15 @@ mod tests {
     #[test]
     fn test_mul_algebra() -> Result<()> {
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS: usize = 4;
         type C = KeccakGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
 
         let config = CircuitConfig::standard_recursion_config();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let xt =
             ExtensionAlgebraTarget(builder.add_virtual_extension_targets(D).try_into().unwrap());

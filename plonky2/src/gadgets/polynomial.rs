@@ -24,7 +24,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
 
     pub fn eval_scalar<F: RichField + HasExtension<D>>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: Target,
     ) -> ExtensionTarget<D>
     where
@@ -37,7 +37,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
 
     pub fn eval<F: RichField + HasExtension<D>>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where
@@ -54,7 +54,7 @@ pub struct PolynomialCoeffsExtAlgebraTarget<const D: usize>(pub Vec<ExtensionAlg
 impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     pub fn eval_scalar<F>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
     ) -> ExtensionAlgebraTarget<D>
     where
@@ -70,7 +70,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
 
     pub fn eval<F>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionAlgebraTarget<D>,
     ) -> ExtensionAlgebraTarget<D>
     where
@@ -87,7 +87,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
     pub fn eval_with_powers<F>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         powers: &[ExtensionAlgebraTarget<D>],
     ) -> ExtensionAlgebraTarget<D>
     where

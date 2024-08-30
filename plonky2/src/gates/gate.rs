@@ -132,7 +132,7 @@ where
     /// prover won't be able to generate proofs.
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D>,
     ) -> Vec<ExtensionTarget<D>>;
 
@@ -192,7 +192,7 @@ where
     /// Adds this gate's filtered constraints into the `combined_gate_constraints` buffer.
     fn eval_filtered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         mut vars: EvaluationTargets<D>,
         row: usize,
         selector_index: usize,
@@ -368,7 +368,7 @@ fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_se
 }
 
 fn compute_filter_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     row: usize,
     group_range: Range<usize>,
     s: ExtensionTarget<D>,

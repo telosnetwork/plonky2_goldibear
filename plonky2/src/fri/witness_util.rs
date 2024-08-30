@@ -8,14 +8,14 @@ use crate::iop::witness::WitnessWrite;
 use crate::plonk::config::AlgebraicHasher;
 
 /// Set the targets in a `FriProofTarget` to their corresponding values in a `FriProof`.
-pub fn set_fri_proof_target<F, W, H, const D: usize>(
+pub fn set_fri_proof_target<F, W, H, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     witness: &mut W,
-    fri_proof_target: &FriProofTarget<D>,
+    fri_proof_target: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
     fri_proof: &FriProof<F, H, D>,
 ) where
     F: RichField + HasExtension<D>,
-    W: WitnessWrite<F> + ?Sized,
-    H: AlgebraicHasher<F>,
+    W: WitnessWrite<F, NUM_HASH_OUT_ELTS> + ?Sized,
+    H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     witness.set_target(fri_proof_target.pow_witness, fri_proof.pow_witness);

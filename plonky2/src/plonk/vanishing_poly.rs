@@ -752,7 +752,7 @@ where
 }
 
 pub fn evaluate_gate_constraints_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationTargets<D>,
 ) -> Vec<ExtensionTarget<D>>
@@ -781,7 +781,7 @@ where
 }
 
 pub(crate) fn get_lut_poly_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     lut_index: usize,
     deltas: &[Target],
@@ -820,7 +820,7 @@ where
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound. This is fine if `x` is a random
 /// variable drawn from a sufficiently large domain.
 pub(crate) fn eval_vanishing_poly_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     x: ExtensionTarget<D>,
     x_pow_deg: ExtensionTarget<D>,
@@ -958,7 +958,7 @@ where
 
 /// Same as `check_lookup_constraints`, but for the recursive case.
 pub fn check_lookup_constraints_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     vars: EvaluationTargets<D>,
     local_lookup_zs: &[ExtensionTarget<D>],

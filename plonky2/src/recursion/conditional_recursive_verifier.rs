@@ -19,13 +19,13 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{OpeningSetTarget, ProofTarget, ProofWithPublicInputsTarget};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
-    pub fn conditionally_verify_proof<C: GenericConfig<D, F = F, FE = F::Extension>>(
+    pub fn conditionally_verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
         condition: BoolTarget,
         proof_with_pis0: &ProofWithPublicInputsTarget<D>,
@@ -34,7 +34,7 @@ where
         inner_verifier_data1: &VerifierCircuitTarget,
         inner_common_data: &CommonCircuitData<F, D>,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let selected_proof =
@@ -57,7 +57,7 @@ where
 
     /// Conditionally verify a proof with a new generated dummy proof.
     pub fn conditionally_verify_proof_or_dummy<
-        C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     >(
         &mut self,
         condition: BoolTarget,
@@ -66,7 +66,7 @@ where
         inner_common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<()>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
@@ -149,8 +149,8 @@ where
     pub(crate) fn select_hash(
         &mut self,
         b: BoolTarget,
-        h0: HashOutTarget,
-        h1: HashOutTarget,
+        h0: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        h1: HashOutTarget<NUM_HASH_OUT_ELTS>,
     ) -> HashOutTarget {
         HashOutTarget {
             elements: core::array::from_fn(|i| self.select(b, h0.elements[i], h1.elements[i])),
@@ -161,8 +161,8 @@ where
     fn select_cap(
         &mut self,
         b: BoolTarget,
-        cap0: &MerkleCapTarget,
-        cap1: &MerkleCapTarget,
+        cap0: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        cap1: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
     ) -> MerkleCapTarget {
         assert_eq!(cap0.0.len(), cap1.0.len());
         MerkleCapTarget(
@@ -178,8 +178,8 @@ where
     fn select_vec_cap(
         &mut self,
         b: BoolTarget,
-        v0: &[MerkleCapTarget],
-        v1: &[MerkleCapTarget],
+        v0: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        v1: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
     ) -> Vec<MerkleCapTarget> {
         v0.iter()
             .zip_eq(v1)
@@ -224,9 +224,9 @@ where
     fn select_opening_proof(
         &mut self,
         b: BoolTarget,
-        proof0: &FriProofTarget<D>,
-        proof1: &FriProofTarget<D>,
-    ) -> FriProofTarget<D> {
+        proof0: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
+        proof1: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> FriProofTarget<D, NUM_HASH_OUT_ELTS> {
         FriProofTarget {
             commit_phase_merkle_caps: self.select_vec_cap(
                 b,
@@ -365,11 +365,11 @@ mod tests {
         init_logger();
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config();
 
         // Generate proof.
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let mut pw = PartialWitness::new();
         let t = builder.add_virtual_target();
         pw.set_target(t, F::rand());
@@ -387,7 +387,7 @@ mod tests {
         let dummy_proof = dummy_proof(&dummy_data, HashMap::new())?;
 
         // Conditionally verify the two proofs.
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::new();
         let pt = builder.add_virtual_proof_with_pis(&data.common);
         pw.set_proof_with_pis_target(&pt, &proof);

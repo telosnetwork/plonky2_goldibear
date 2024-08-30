@@ -12,45 +12,45 @@ use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::util::strided_view::PackedStridedView;
 
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVars<'a, F: RichField + HasExtension<D>, const D: usize>
+pub struct EvaluationVars<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
     pub local_constants: &'a [F::Extension],
     pub local_wires: &'a [F::Extension],
-    pub public_inputs_hash: &'a HashOut<F>,
+    pub public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
 }
 
 /// A batch of evaluation vars, in the base field.
 /// Wires and constants are stored in an evaluation point-major order (that is, wire 0 for all
 /// evaluation points, then wire 1 for all points, and so on).
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVarsBaseBatch<'a, F: Field> {
+pub struct EvaluationVarsBaseBatch<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> {
     batch_size: usize,
     pub local_constants: &'a [F],
     pub local_wires: &'a [F],
-    pub public_inputs_hash: &'a HashOut<F>,
+    pub public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
 }
 
 /// A view into `EvaluationVarsBaseBatch` for a particular evaluation point. Does not copy the data.
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVarsBase<'a, F: Field> {
+pub struct EvaluationVarsBase<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> {
     pub local_constants: PackedStridedView<'a, F>,
     pub local_wires: PackedStridedView<'a, F>,
-    pub public_inputs_hash: &'a HashOut<F>,
+    pub public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
 }
 
 /// Like `EvaluationVarsBase`, but packed.
 // It's a separate struct because `EvaluationVarsBase` implements `get_local_ext` and we do not yet
 // have packed extension fields.
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVarsBasePacked<'a, P: PackedField> {
+pub struct EvaluationVarsBasePacked<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> {
     pub local_constants: PackedStridedView<'a, P>,
     pub local_wires: PackedStridedView<'a, P>,
-    pub public_inputs_hash: &'a HashOut<P::Scalar>,
+    pub public_inputs_hash: &'a HashOut<P::Scalar, NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, F: RichField + HasExtension<D>, const D: usize> EvaluationVars<'a, F, D>
+impl<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> EvaluationVars<'a, F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -70,7 +70,7 @@ impl<'a, F: Field> EvaluationVarsBaseBatch<'a, F> {
         batch_size: usize,
         local_constants: &'a [F],
         local_wires: &'a [F],
-        public_inputs_hash: &'a HashOut<F>,
+        public_inputs_hash: &'a HashOut<F, NUM_HASH_OUT_ELTS>,
     ) -> Self {
         assert_eq!(local_constants.len() % batch_size, 0);
         assert_eq!(local_wires.len() % batch_size, 0);
@@ -231,7 +231,7 @@ impl<'a, const D: usize> EvaluationTargets<'a, D> {
 pub struct EvaluationTargets<'a, const D: usize> {
     pub local_constants: &'a [ExtensionTarget<D>],
     pub local_wires: &'a [ExtensionTarget<D>],
-    pub public_inputs_hash: &'a HashOutTarget,
+    pub public_inputs_hash: &'a HashOutTarget<NUM_HASH_OUT_ELTS>,
 }
 
 impl<'a, const D: usize> EvaluationTargets<'a, D> {

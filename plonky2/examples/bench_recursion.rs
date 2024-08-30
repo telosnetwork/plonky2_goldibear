@@ -38,7 +38,7 @@ use structopt::StructOpt;
 
 type ProofTuple<F, C, const D: usize> = (
     ProofWithPublicInputs<F, C, D>,
-    VerifierOnlyCircuitData<C, D>,
+    VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     CommonCircuitData<F, D>,
 );
 
@@ -78,7 +78,7 @@ struct Options {
 /// Creates a dummy proof which should have `2 ** log2_size` rows.
 fn dummy_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     config: &CircuitConfig,
@@ -95,7 +95,7 @@ where
         n => (1 << (n - 1)) + 1,
     };
     info!("Constructing inner proof with {} gates", num_dummy_gates);
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     for _ in 0..num_dummy_gates {
         builder.add_gate(NoopGate, vec![]);
     }
@@ -114,7 +114,7 @@ where
 
 fn dummy_lookup_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     config: &CircuitConfig,
@@ -123,7 +123,7 @@ fn dummy_lookup_proof<
 where
     F::Extension: TwoAdicField,
 {
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
     let inps = 0..256;
     let table = Arc::new(inps.zip_eq(tip5_table).collect());
@@ -165,7 +165,7 @@ where
 /// Creates a dummy proof which has more than 256 lookups to one LUT
 fn dummy_many_rows_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     config: &CircuitConfig,
@@ -174,7 +174,7 @@ fn dummy_many_rows_proof<
 where
     F::Extension: TwoAdicField,
 {
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
     let inps: Vec<u16> = (0..256).collect();
     let tip5_idx = builder.add_lookup_table_from_table(&inps, &tip5_table);
@@ -219,8 +219,8 @@ where
 
 fn recursive_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
-    InnerC: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     inner: &ProofTuple<F, InnerC, D>,
@@ -228,11 +228,11 @@ fn recursive_proof<
     min_degree_bits: Option<usize>,
 ) -> Result<ProofTuple<F, C, D>>
 where
-    InnerC::Hasher: AlgebraicHasher<F>,
+    InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     let (inner_proof, inner_vd, inner_cd) = inner;
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let pt = builder.add_virtual_proof_with_pis(inner_cd);
 
     let inner_data = builder.add_virtual_verifier_data(inner_cd.config.fri_config.cap_height);
@@ -269,11 +269,11 @@ where
 /// Test serialization and print some size info.
 fn test_serialization<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 >(
     proof: &ProofWithPublicInputs<F, C, D>,
-    vd: &VerifierOnlyCircuitData<C, D>,
+    vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
 where
@@ -324,7 +324,7 @@ pub fn benchmark_function(
 ) -> Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
+    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let dummy_proof_function = match lookup_type {
         0 => dummy_proof::<F, C, D>,

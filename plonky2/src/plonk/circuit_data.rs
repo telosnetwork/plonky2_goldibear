@@ -144,7 +144,7 @@ impl CircuitConfig {
 #[derive(Eq, PartialEq, Debug)]
 pub struct MockCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
@@ -155,7 +155,7 @@ pub struct MockCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > MockCircuitData<F, C, D>
 where
@@ -170,19 +170,19 @@ where
 #[derive(Eq, PartialEq, Debug)]
 pub struct CircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D>,
-    pub verifier_only: VerifierOnlyCircuitData<C, D>,
+    pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D>,
 }
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > CircuitData<F, C, D>
 where
@@ -276,7 +276,7 @@ where
 #[derive(Debug)]
 pub struct ProverCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
@@ -287,7 +287,7 @@ pub struct ProverCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > ProverCircuitData<F, C, D>
 where
@@ -329,18 +329,18 @@ where
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifierCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
 {
-    pub verifier_only: VerifierOnlyCircuitData<C, D>,
+    pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D>,
 }
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > VerifierCircuitData<F, C, D>
 where
@@ -376,7 +376,7 @@ where
 #[derive(Eq, PartialEq, Debug)]
 pub struct ProverOnlyCircuitData<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
 > where
     F::Extension: TwoAdicField,
@@ -400,7 +400,7 @@ pub struct ProverOnlyCircuitData<
     pub fft_root_table: Option<FftRootTable<F>>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<F>>::Hash,
+    pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<F>>::Hash,
     ///The concrete placement of the lookup gates for each lookup table index.
     pub lookup_rows: Vec<LookupWire>,
     /// A vector of (looking_in, looking_out) pairs for for each lookup table index.
@@ -409,7 +409,7 @@ pub struct ProverOnlyCircuitData<
 
 impl<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F, FE = F::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
     > ProverOnlyCircuitData<F, C, D>
 where
@@ -437,21 +437,22 @@ where
 
 /// Circuit data required by the verifier, but not the prover.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
+pub struct VerifierOnlyCircuitData<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// A commitment to each constant polynomial and each permutation polynomial.
     pub constants_sigmas_cap: MerkleCap<C::F, C::Hasher>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+    pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
 }
 
 impl<
-        C: GenericConfig<D, FE = <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension>,
         const D: usize,
-    > VerifierOnlyCircuitData<C, D>
+        const NUM_HASH_OUT_ELTS: usize,
+    > VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
 where
     C::F: HasExtension<D>,
-    <<C as GenericConfig<D>>::F as HasExtension<D>>::Extension: TwoAdicField,
+    <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
 {
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
@@ -467,7 +468,7 @@ where
 
 /// Circuit data required by both the prover and the verifier.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize>
+pub struct  CommonCircuitData<F: RichField + HasExtension<D>, const D: usize>
 where
     F::Extension: TwoAdicField,
 {
@@ -611,7 +612,7 @@ where
 
     pub(crate) fn get_fri_instance_target(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         zeta: ExtensionTarget<D>,
     ) -> FriInstanceInfoTarget<D> {
         // All polynomials are opened at zeta.
@@ -734,5 +735,5 @@ pub struct VerifierCircuitTarget {
     pub constants_sigmas_cap: MerkleCapTarget,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: HashOutTarget,
+    pub circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
 }

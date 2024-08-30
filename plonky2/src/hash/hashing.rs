@@ -15,7 +15,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 where
     F::Extension: TwoAdicField,
 {
-    pub fn hash_or_noop<H: AlgebraicHasher<F>>(&mut self, inputs: Vec<Target>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn hash_or_noop<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(&mut self, inputs: Vec<Target>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         let zero = self.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {
             HashOutTarget::from_partial(&inputs, zero)
@@ -24,14 +24,14 @@ where
         }
     }
 
-    pub fn hash_n_to_hash_no_pad<H: AlgebraicHasher<F>>(
+    pub fn hash_n_to_hash_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         inputs: Vec<Target>,
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget::from_vec(self.hash_n_to_m_no_pad::<H>(inputs, NUM_HASH_OUT_ELTS))
     }
 
-    pub fn hash_n_to_m_no_pad<H: AlgebraicHasher<F>>(
+    pub fn hash_n_to_m_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         inputs: Vec<Target>,
         num_outputs: usize,

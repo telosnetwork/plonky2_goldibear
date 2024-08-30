@@ -15,7 +15,7 @@ use crate::util::serialization::{Buffer, IoResult};
 
 // For macros below
 
-pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize>
+pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
@@ -40,7 +40,7 @@ macro_rules! read_gate_impl {
         let mut i = 0..;
         $(if tag == i.next().unwrap() {
             let gate = <$gate_types as $crate::gates::gate::Gate<F, D>>::deserialize(buf, $common)?;
-            Ok($crate::gates::gate::GateRef::<F, D>::new(gate))
+            Ok($crate::gates::gate::GateRef::<F, D, NUM_HASH_OUT_ELTS>::new(gate))
         } else)*
         {
             Err($crate::util::serialization::IoError)
@@ -133,7 +133,7 @@ pub mod default {
     /// the `GateSerializer` trait. This can be easily done through the `impl_gate_serializer` macro.
     #[derive(Debug)]
     pub struct DefaultGateSerializer;
-    impl<F: RichField + HasExtension<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer
+    impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> GateSerializer<F, D, NUM_HASH_OUT_ELTS> for DefaultGateSerializer
     where
         F::Extension: TwoAdicField,
     {
