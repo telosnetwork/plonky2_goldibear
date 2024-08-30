@@ -189,7 +189,8 @@ where
     F::Extension: TwoAdicField,
 {
     fn id(&self) -> String {
-        format!("{self:?}<D={D}>")
+        let arr = self.barycentric_weights.iter().map(|el| {el.as_canonical_u64()}).collect::<Vec<_>>();
+        format!("{},{},{:?}<D={D}>", self.subgroup_bits, self.degree, arr)
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
@@ -689,16 +690,22 @@ where
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_field::AbstractField;
+    use log::info;
+    use p3_field::{AbstractField, PrimeField64};
     use p3_goldilocks::Goldilocks;
     use plonky2_field::polynomial::PolynomialValues;
     use plonky2_util::log2_strict;
 
     use super::*;
     use crate::field::types::Sample;
+    use crate::fri::{FriConfig, FriParams};
+    use crate::fri::reduction_strategies::FriReductionStrategy;
+    use crate::gates::gate::GateRef;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::gates::selectors::SelectorsInfo;
     use crate::hash::hash_types::HashOut;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use crate::util::serialization::{DefaultGateSerializer, GateSerializer};
 
     #[test]
     fn test_degree_and_wires_minimized() {
@@ -835,6 +842,13 @@ mod tests {
     #[test]
     fn low_degree() {
         test_low_degree::<Goldilocks, _, 2>(CosetInterpolationGate::new(2));
+    }
+
+
+    #[test]
+    fn test_id() {
+        let gate: CosetInterpolationGate<Goldilocks, 2> = CosetInterpolationGate::with_max_degree(4, 8);
+        println!("{}",gate.id());
     }
 
     #[test]
