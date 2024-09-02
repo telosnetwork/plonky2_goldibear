@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 use core::usize;
 
-use p3_babybear::BabyBear;
+use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
@@ -755,7 +755,7 @@ where
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_babybear::BabyBear;
+    use p3_baby_bear::BabyBear;
     use plonky2_field::types::Sample;
 
     use super::*;
@@ -858,8 +858,8 @@ mod tests {
 
     #[test]
     fn test_permute_internal() {
-        use p3_babybear::{BabyBearDiffusionMatrixParameters, BabyBearParameters};
-        use p3_monty31::DiffusionMatrixParameters;
+        use p3_baby_bear::{BabyBearDiffusionMatrixParameters, BabyBearParameters};
+        use p3_monty_31::DiffusionMatrixParameters;
         type F = BabyBear;
 
         let mut state: [F; SPONGE_WIDTH] = F::rand_array();

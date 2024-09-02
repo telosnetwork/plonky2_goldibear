@@ -1,6 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use p3_baby_bear::BabyBear;
 use p3_field::extension::BinomialExtensionField;
 use p3_field::{batch_multiplicative_inverse, TwoAdicField};
 use p3_goldilocks::Goldilocks;
@@ -188,6 +189,8 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
 fn criterion_benchmark(c: &mut Criterion) {
     bench_field::<Goldilocks>(c);
     bench_field::<BinomialExtensionField<Goldilocks, 2>>(c);
+    bench_field::<BabyBear>(c);
+    bench_field::<BinomialExtensionField<BabyBear, 4>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);
