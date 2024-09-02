@@ -124,7 +124,7 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -146,7 +146,7 @@ where
         Ok(Self::new(num_copies, bits, num_extra_constants))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         for copy in 0..self.num_copies {
@@ -197,20 +197,20 @@ where
 
     fn eval_unfiltered_base_one(
         &self,
-        _vars: EvaluationVarsBase<F>,
+        _vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         _yield_constr: StridedConstraintConsumer<F>,
     ) {
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let zero = builder.zero_extension();
         let two = builder.two_extension();
@@ -303,14 +303,14 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PackedEvaluableBase<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize,  const NUM_HASH_OUT_ELTS: usize> PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS>
     for RandomAccessGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
-        vars: EvaluationVarsBasePacked<P>,
+        vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<P>,
     ) {
         for copy in 0..self.num_copies {

@@ -23,11 +23,11 @@ where
         &self,
         buf: &mut Buffer,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<GateRef<F, D>>;
+    ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>;
     fn write_gate(
         &self,
         buf: &mut Vec<u8>,
-        gate: &GateRef<F, D>,
+        gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<()>;
 }
@@ -39,7 +39,7 @@ macro_rules! read_gate_impl {
         let buf = $buf;
         let mut i = 0..;
         $(if tag == i.next().unwrap() {
-            let gate = <$gate_types as $crate::gates::gate::Gate<F, D>>::deserialize(buf, $common)?;
+            let gate = <$gate_types as $crate::gates::gate::Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(buf, $common)?;
             Ok($crate::gates::gate::GateRef::<F, D>::new(gate))
         } else)*
         {
@@ -78,7 +78,7 @@ macro_rules! impl_gate_serializer {
             &self,
             buf: &mut $crate::util::serialization::Buffer,
             common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
-        ) -> $crate::util::serialization::IoResult<$crate::gates::gate::GateRef<F, D>> {
+        ) -> $crate::util::serialization::IoResult<$crate::gates::gate::GateRef<F, D, NUM_HASH_OUT_ELTS>> {
             let tag = $crate::util::serialization::Read::read_u32(buf)?;
             read_gate_impl!(buf, tag, common, $($gate_types),+)
         }
@@ -86,7 +86,7 @@ macro_rules! impl_gate_serializer {
         fn write_gate(
             &self,
             buf: &mut $crate::util::serialization::gate_serialization::Vec<u8>,
-            gate: &$crate::gates::gate::GateRef<F, D>,
+            gate: &$crate::gates::gate::GateRef<F, D, NUM_HASH_OUT_ELTS>,
             common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
         ) -> $crate::util::serialization::IoResult<()> {
             let tag = get_gate_tag_impl!(gate, $($gate_types),+)?;

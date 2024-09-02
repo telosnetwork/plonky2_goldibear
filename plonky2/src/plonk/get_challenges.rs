@@ -88,7 +88,7 @@ where
         plonk_alphas,
         plonk_deltas,
         plonk_zeta,
-        fri_challenges: challenger.fri_challenges::<C, D>(
+        fri_challenges: challenger.fri_challenges::<C, D, NUM_HASH_OUT_ELTS>(
             commit_phase_merkle_caps,
             final_poly,
             pow_witness,
@@ -139,7 +139,7 @@ where
                 },
         } = &self.proof;
 
-        get_challenges::<F, C, D>(
+        get_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
             public_inputs_hash,
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -159,7 +159,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > CompressedProofWithPublicInputs<F, C, D>
+    > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -184,7 +184,7 @@ where
                 },
         } = &self.proof;
 
-        get_challenges::<F, C, D>(
+        get_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
             public_inputs_hash,
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -229,7 +229,7 @@ where
         for &(mut x_index) in fri_query_indices {
             let mut subgroup_x = F::generator()
                 * F::two_adic_generator(log_n).exp_u64(reverse_bits(x_index, log_n) as u64);
-            let mut old_eval = fri_combine_initial::<F, C, D>(
+            let mut old_eval = fri_combine_initial::<F, C, D, NUM_HASH_OUT_ELTS>(
                 &common_data.get_fri_instance(*plonk_zeta),
                 &self
                     .proof
@@ -285,7 +285,7 @@ where
         plonk_zs_partial_products_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         quotient_polys_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         openings: &OpeningSetTarget<D>,
-        commit_phase_merkle_caps: &[MerkleCapTarget],
+        commit_phase_merkle_caps: &[MerkleCapTarget< NUM_HASH_OUT_ELTS>],
         final_poly: &PolynomialCoeffsExtTarget<D>,
         pow_witness: Target,
         inner_circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
@@ -297,7 +297,7 @@ where
         let config = &inner_common_data.config;
         let num_challenges = config.num_challenges;
 
-        let mut challenger = RecursiveChallenger::<F, C::Hasher, D>::new(self);
+        let mut challenger = RecursiveChallenger::<F, C::Hasher, D, NUM_HASH_OUT_ELTS>::new(self);
         let has_lookup = inner_common_data.num_lookup_polys != 0;
 
         // Observe the instance.
@@ -349,7 +349,7 @@ where
     }
 }
 
-impl<const D: usize> ProofWithPublicInputsTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
     pub(crate) fn get_challenges<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
@@ -378,7 +378,7 @@ impl<const D: usize> ProofWithPublicInputsTarget<D> {
                 },
         } = &self.proof;
 
-        builder.get_challenges::<C>(
+        builder.get_challenges::<C, NUM_HASH_OUT_ELTS>(
             public_inputs_hash,
             wires_cap,
             plonk_zs_partial_products_cap,

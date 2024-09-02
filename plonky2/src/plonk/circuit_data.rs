@@ -150,7 +150,7 @@ pub struct MockCircuitData<
 > where
     F::Extension: TwoAdicField,
 {
-    pub prover_only: ProverOnlyCircuitData<F, C, D>,
+    pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D>,
 }
 
@@ -159,12 +159,12 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > MockCircuitData<F, C, D>
+    > MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
-        generate_partial_witness::<F, C, D>(inputs, &self.prover_only, &self.common)
+        generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(inputs, &self.prover_only, &self.common)
     }
 }
 
@@ -178,8 +178,8 @@ pub struct CircuitData<
 > where
     F::Extension: TwoAdicField,
 {
-    pub prover_only: ProverOnlyCircuitData<F, C, D>,
-    pub verifier_only: VerifierOnlyCircuitData<C, D>,
+    pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+    pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D>,
 }
 
@@ -188,7 +188,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > CircuitData<F, C, D>
+    > CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -212,7 +212,7 @@ where
     }
 
     pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
-        prove::<F, C, D>(
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
             inputs,
@@ -221,12 +221,12 @@ where
     }
 
     pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
-        verify::<F, C, D>(proof_with_pis, &self.verifier_only, &self.common)
+        verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
     pub fn verify_compressed(
         &self,
-        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D>,
+        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()> {
         compressed_proof_with_pis.verify(&self.verifier_only, &self.common)
     }
@@ -234,18 +234,18 @@ where
     pub fn compress(
         &self,
         proof: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-    ) -> Result<CompressedProofWithPublicInputs<F, C, D>> {
+    ) -> Result<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         proof.compress(&self.verifier_only.circuit_digest, &self.common)
     }
 
     pub fn decompress(
         &self,
-        proof: CompressedProofWithPublicInputs<F, C, D>,
+        proof: CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         proof.decompress(&self.verifier_only.circuit_digest, &self.common)
     }
 
-    pub fn verifier_data(&self) -> VerifierCircuitData<F, C, D> {
+    pub fn verifier_data(&self) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS> {
         let CircuitData {
             verifier_only,
             common,
@@ -257,7 +257,7 @@ where
         }
     }
 
-    pub fn prover_data(self) -> ProverCircuitData<F, C, D> {
+    pub fn prover_data(self) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS> {
         let CircuitData {
             prover_only,
             common,
@@ -286,7 +286,7 @@ pub struct ProverCircuitData<
 > where
     F::Extension: TwoAdicField,
 {
-    pub prover_only: ProverOnlyCircuitData<F, C, D>,
+    pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D>,
 }
 
@@ -295,7 +295,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > ProverCircuitData<F, C, D>
+    > ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -322,7 +322,7 @@ where
     where
         F::Extension: TwoAdicField,
     {
-        prove::<F, C, D>(
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
             inputs,
@@ -341,7 +341,7 @@ pub struct VerifierCircuitData<
 > where
     F::Extension: TwoAdicField,
 {
-    pub verifier_only: VerifierOnlyCircuitData<C, D>,
+    pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D>,
 }
 
@@ -350,7 +350,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > VerifierCircuitData<F, C, D>
+    > VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -369,12 +369,12 @@ where
     }
 
     pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
-        verify::<F, C, D>(proof_with_pis, &self.verifier_only, &self.common)
+        verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
     pub fn verify_compressed(
         &self,
-        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D>,
+        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()> {
         compressed_proof_with_pis.verify(&self.verifier_only, &self.common)
     }
@@ -421,7 +421,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > ProverOnlyCircuitData<F, C, D>
+    > ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -447,7 +447,7 @@ where
 
 /// Circuit data required by the verifier, but not the prover.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
+pub struct VerifierOnlyCircuitData<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// A commitment to each constant polynomial and each permutation polynomial.
     pub constants_sigmas_cap: MerkleCap<C::F, C::Hasher>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
@@ -456,16 +456,17 @@ pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
 }
 
 impl<
-        C: GenericConfig<D, FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension>,
         const D: usize,
-    > VerifierOnlyCircuitData<C, D>
+        const NUM_HASH_OUT_ELTS: usize
+    > VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
 where
     C::F: HasExtension<D>,
     <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
 {
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
-        buffer.write_verifier_only_circuit_data::<C::F, C, D>(self)?;
+        buffer.write_verifier_only_circuit_data::<C::F, C, D, NUM_HASH_OUT_ELTS>(self)?;
         Ok(buffer)
     }
 
@@ -486,7 +487,7 @@ where
     pub fri_params: FriParams,
 
     /// The types of gates used in this circuit, along with their prefixes.
-    pub gates: Vec<GateRef<F, D>>,
+    pub gates: Vec<GateRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// Information on the circuit's selector polynomials.
     pub selectors_info: SelectorsInfo,
@@ -739,9 +740,9 @@ where
 /// limited form of dynamic inner circuits. We can't practically make things like the wire count
 /// dynamic, at least not without setting a maximum wire count and paying for the worst case.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct VerifierCircuitTarget {
+pub struct VerifierCircuitTarget<const NUM_HASH_OUT_ELTS: usize> {
     /// A commitment to each constant polynomial and each permutation polynomial.
-    pub constants_sigmas_cap: MerkleCapTarget,
+    pub constants_sigmas_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
     pub circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,

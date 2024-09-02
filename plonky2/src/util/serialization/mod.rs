@@ -698,7 +698,7 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<GateRef<F, D>>
+    ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField;
 
@@ -826,7 +826,7 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-    ) -> IoResult<CircuitData<F, C, D>>
+    ) -> IoResult<CircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -849,7 +849,7 @@ pub trait Read {
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<ProverOnlyCircuitData<F, C, D>>
+    ) -> IoResult<ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -936,7 +936,7 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-    ) -> IoResult<ProverCircuitData<F, C, D>>
+    ) -> IoResult<ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -955,7 +955,7 @@ pub trait Read {
         const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
-    ) -> IoResult<VerifierOnlyCircuitData<C, D>>
+    ) -> IoResult<VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -976,7 +976,7 @@ pub trait Read {
     >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
-    ) -> IoResult<VerifierCircuitData<F, C, D>>
+    ) -> IoResult<VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -988,7 +988,7 @@ pub trait Read {
         })
     }
 
-    fn read_target_verifier_circuit(&mut self) -> IoResult<VerifierCircuitTarget> {
+    fn read_target_verifier_circuit<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>> {
         let constants_sigmas_cap = self.read_target_merkle_cap()?;
         let circuit_digest = self.read_target_hash()?;
         Ok(VerifierCircuitTarget {
@@ -1026,7 +1026,7 @@ pub trait Read {
 
     /// Reads a value of type [`ProofTarget`] from `self`.
     #[inline]
-    fn read_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<ProofTarget<D>> {
+    fn read_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<ProofTarget<D, NUM_HASH_OUT_ELTS>> {
         let wires_cap = self.read_target_merkle_cap()?;
         let plonk_zs_partial_products_cap = self.read_target_merkle_cap()?;
         let quotient_polys_cap = self.read_target_merkle_cap()?;
@@ -1064,10 +1064,10 @@ pub trait Read {
 
     /// Reads a value of type [`ProofWithPublicInputsTarget`] from `self`.
     #[inline]
-    fn read_target_proof_with_public_inputs<const D: usize>(
+    fn read_target_proof_with_public_inputs<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-    ) -> IoResult<ProofWithPublicInputsTarget<D>> {
-        let proof = self.read_target_proof()?;
+    ) -> IoResult<ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>> {
+        let proof = self.read_target_proof::<D, NUM_HASH_OUT_ELTS>()?;
         let public_inputs = self.read_target_vec()?;
         Ok(ProofWithPublicInputsTarget {
             proof,
@@ -1157,7 +1157,7 @@ pub trait Read {
     fn read_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<CompressedProof<F, C, D>>
+    ) -> IoResult<CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -1183,7 +1183,7 @@ pub trait Read {
     fn read_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<CompressedProofWithPublicInputs<F, C, D>>
+    ) -> IoResult<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
@@ -1761,7 +1761,7 @@ pub trait Write {
 
     fn write_gate<F: RichField + HasExtension<D>, const D: usize>(
         &mut self,
-        gate: &GateRef<F, D>,
+        gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<()>
@@ -1876,7 +1876,7 @@ pub trait Write {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        circuit_data: &CircuitData<F, C, D>,
+        circuit_data: &CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
     ) -> IoResult<()>
@@ -1899,7 +1899,7 @@ pub trait Write {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        prover_only_circuit_data: &ProverOnlyCircuitData<F, C, D>,
+        prover_only_circuit_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<()>
@@ -1978,7 +1978,7 @@ pub trait Write {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        prover_circuit_data: &ProverCircuitData<F, C, D>,
+        prover_circuit_data: &ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
     ) -> IoResult<()>
@@ -2000,7 +2000,7 @@ pub trait Write {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D>,
+        verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2024,7 +2024,7 @@ pub trait Write {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        verifier_circuit_data: &VerifierCircuitData<F, C, D>,
+        verifier_circuit_data: &VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D>,
     ) -> IoResult<()>
     where
@@ -2034,9 +2034,9 @@ pub trait Write {
         self.write_common_circuit_data(&verifier_circuit_data.common, gate_serializer)
     }
 
-    fn write_target_verifier_circuit(
+    fn write_target_verifier_circuit<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        verifier_circuit: &VerifierCircuitTarget,
+        verifier_circuit: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         let VerifierCircuitTarget {
             constants_sigmas_cap,
@@ -2066,7 +2066,7 @@ pub trait Write {
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &ProofTarget<D>) -> IoResult<()> {
+    fn write_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &ProofTarget<D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         self.write_target_merkle_cap(&proof.wires_cap)?;
         self.write_target_merkle_cap(&proof.plonk_zs_partial_products_cap)?;
         self.write_target_merkle_cap(&proof.quotient_polys_cap)?;
@@ -2096,15 +2096,15 @@ pub trait Write {
 
     /// Writes a value `proof_with_pis` of type [`ProofWithPublicInputsTarget`] to `self.`
     #[inline]
-    fn write_target_proof_with_public_inputs<const D: usize>(
+    fn write_target_proof_with_public_inputs<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof_with_pis: &ProofWithPublicInputsTarget<D>,
+        proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         let ProofWithPublicInputsTarget {
             proof,
             public_inputs,
         } = proof_with_pis;
-        self.write_target_proof(proof)?;
+        self.write_target_proof::<D, NUM_HASH_OUT_ELTS>(proof)?;
         self.write_target_vec(public_inputs)
     }
 
@@ -2160,7 +2160,7 @@ pub trait Write {
     #[inline]
     fn write_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof: &CompressedProof<F, C, D>,
+        proof: &CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
@@ -2178,7 +2178,7 @@ pub trait Write {
     #[inline]
     fn write_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof_with_pis: &CompressedProofWithPublicInputs<F, C, D>,
+        proof_with_pis: &CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
@@ -2229,7 +2229,7 @@ impl Write for Vec<u8> {
 
     fn write_gate<F: RichField + HasExtension<D>, const D: usize>(
         &mut self,
-        gate: &GateRef<F, D>,
+        gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<()>
@@ -2308,7 +2308,7 @@ impl<'a> Read for Buffer<'a> {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D>,
         common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<GateRef<F, D>>
+    ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {

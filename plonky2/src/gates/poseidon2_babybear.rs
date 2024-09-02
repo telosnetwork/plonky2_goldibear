@@ -113,7 +113,7 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for Poseidon2BabyBearGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -135,7 +135,7 @@ where
 
     fn eval_unfiltered(
         &self,
-        vars: EvaluationVars<F, D>,
+        vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
         // Assert that `swap` is binary.
@@ -229,7 +229,7 @@ where
 
     fn eval_unfiltered_base_one(
         &self,
-        vars: EvaluationVarsBase<F>,
+        vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         // Assert that `swap` is binary.
@@ -321,7 +321,7 @@ where
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
         // Assert that `swap` is binary.

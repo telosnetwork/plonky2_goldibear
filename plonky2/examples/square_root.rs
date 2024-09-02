@@ -72,14 +72,14 @@ where
 }
 
 #[derive(Default)]
-pub struct CustomGeneratorSerializer<C: GenericConfig<D>, const D: usize> {
+pub struct CustomGeneratorSerializer<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     pub _phantom: PhantomData<C>,
 }
 
 impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for CustomGeneratorSerializer<C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {

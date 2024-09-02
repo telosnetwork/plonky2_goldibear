@@ -63,7 +63,7 @@ impl<const D: usize> ReducingGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for ReducingGate<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingGate<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -84,7 +84,7 @@ where
         Ok(Self::new(num_coeffs))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let alpha = vars.get_local_ext_algebra(Self::wires_alpha());
         let old_acc = vars.get_local_ext_algebra(Self::wires_old_acc());
         let coeffs = self
@@ -95,7 +95,7 @@ where
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self));
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             constraints.push(acc * alpha + ExtensionAlgebra::from_base(coeffs[i]) - accs[i]);
@@ -110,7 +110,7 @@ where
 
     fn eval_unfiltered_base_one(
         &self,
-        vars: EvaluationVarsBase<F>,
+        vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         let alpha = vars.get_local_ext(Self::wires_alpha());
@@ -139,7 +139,7 @@ where
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let alpha = vars.get_local_ext_algebra(Self::wires_alpha());
         let old_acc = vars.get_local_ext_algebra(Self::wires_old_acc());
@@ -151,7 +151,7 @@ where
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self));
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             let coeff = builder.convert_to_ext_algebra(coeffs[i]);
@@ -247,12 +247,12 @@ where
 
     fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
         dst.write_usize(self.row)?;
-        <ReducingGate<D> as Gate<F, D>>::serialize(&self.gate, dst, _common_data)
+        <ReducingGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::serialize(&self.gate, dst, _common_data)
     }
 
     fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
         let row = src.read_usize()?;
-        let gate = <ReducingGate<D> as Gate<F, D>>::deserialize(src, _common_data)?;
+        let gate = <ReducingGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(src, _common_data)?;
         Ok(Self { row, gate })
     }
 }

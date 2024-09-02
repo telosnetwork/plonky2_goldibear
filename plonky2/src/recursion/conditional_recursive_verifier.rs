@@ -28,9 +28,9 @@ where
     pub fn conditionally_verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         condition: BoolTarget,
-        proof_with_pis0: &ProofWithPublicInputsTarget<D>,
+        proof_with_pis0: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         inner_verifier_data0: &VerifierCircuitTarget,
-        proof_with_pis1: &ProofWithPublicInputsTarget<D>,
+        proof_with_pis1: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         inner_verifier_data1: &VerifierCircuitTarget,
         inner_common_data: &CommonCircuitData<F, D>,
     ) where
@@ -57,11 +57,11 @@ where
 
     /// Conditionally verify a proof with a new generated dummy proof.
     pub fn conditionally_verify_proof_or_dummy<
-        C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     >(
         &mut self,
         condition: BoolTarget,
-        proof_with_pis: &ProofWithPublicInputsTarget<D>,
+        proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         inner_verifier_data: &VerifierCircuitTarget,
         inner_common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<()>
@@ -86,9 +86,9 @@ where
     fn select_proof_with_pis(
         &mut self,
         b: BoolTarget,
-        proof_with_pis0: &ProofWithPublicInputsTarget<D>,
-        proof_with_pis1: &ProofWithPublicInputsTarget<D>,
-    ) -> ProofWithPublicInputsTarget<D> {
+        proof_with_pis0: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        proof_with_pis1: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
         let ProofWithPublicInputsTarget {
             proof:
                 ProofTarget {
@@ -178,8 +178,8 @@ where
     fn select_vec_cap(
         &mut self,
         b: BoolTarget,
-        v0: &[MerkleCapTarget],
-        v1: &[MerkleCapTarget],
+        v0: &[MerkleCapTarget< NUM_HASH_OUT_ELTS>],
+        v1: &[MerkleCapTarget< NUM_HASH_OUT_ELTS>],
     ) -> Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)

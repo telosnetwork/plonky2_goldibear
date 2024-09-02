@@ -73,7 +73,7 @@ pub trait WitnessWrite<F: Field> {
     /// `ProofWithPublicInputs`.
     fn set_proof_with_pis_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof_with_pis_target: &ProofWithPublicInputsTarget<D>,
+        proof_with_pis_target: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) where
         F: RichField + HasExtension<D>,
@@ -100,7 +100,7 @@ pub trait WitnessWrite<F: Field> {
     /// Set the targets in a `ProofTarget` to their corresponding values in a `Proof`.
     fn set_proof_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof_target: &ProofTarget<D>,
+        proof_target: &ProofTarget<D, NUM_HASH_OUT_ELTS>,
         proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     ) where
         F: RichField + HasExtension<D>,
@@ -142,7 +142,7 @@ pub trait WitnessWrite<F: Field> {
     fn set_verifier_data_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         vdt: &VerifierCircuitTarget,
-        vd: &VerifierOnlyCircuitData<C, D>,
+        vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) where
         F: RichField + HasExtension<D>,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
@@ -229,7 +229,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         }
     }
 
-    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(&self, cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS>) -> MerkleCap<F, H>
+    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(&self, cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS><NUM_HASH_OUT_ELTS>) -> MerkleCap<F, H>
     where
         F: RichField,
         H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,

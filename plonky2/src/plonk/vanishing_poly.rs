@@ -51,10 +51,10 @@ where
 /// Evaluate the vanishing polynomial at `x`. In this context, the vanishing polynomial is a random
 /// linear combination of gate constraints, plus some other terms relating to the permutation
 /// argument. All such terms should vanish on `H`.
-pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize>(
+pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     common_data: &CommonCircuitData<F, D>,
     x: F::Extension,
-    vars: EvaluationVars<F, D>,
+    vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     local_zs: &[F::Extension],
     next_zs: &[F::Extension],
     local_lookup_zs: &[F::Extension],
@@ -73,7 +73,7 @@ where
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
 
-    let constraint_terms = evaluate_gate_constraints::<F, D>(common_data, vars);
+    let constraint_terms = evaluate_gate_constraints::<F, D, NUM_HASH_OUT_ELTS>(common_data, vars);
 
     let lookup_selectors = &vars.local_constants[common_data.selectors_info.num_selectors()
         ..common_data.selectors_info.num_selectors() + common_data.num_lookup_selectors];
@@ -168,11 +168,11 @@ where
 }
 
 /// Like `eval_vanishing_poly`, but specialized for base field points. Batched.
-pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + HasExtension<D>, const D: usize>(
+pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     common_data: &CommonCircuitData<F, D>,
     indices_batch: &[usize],
     xs_batch: &[F],
-    vars_batch: EvaluationVarsBaseBatch<F>,
+    vars_batch: EvaluationVarsBaseBatch<F,NUM_HASH_OUT_ELTS>,
     local_zs_batch: &[&[F]],
     next_zs_batch: &[&[F]],
     local_lookup_zs_batch: &[&[F]],
@@ -212,7 +212,7 @@ where
     let num_gate_constraints = common_data.num_gate_constraints;
 
     let constraint_terms_batch =
-        evaluate_gate_constraints_base_batch::<F, D>(common_data, vars_batch);
+        evaluate_gate_constraints_base_batch::<F, D, NUM_HASH_OUT_ELTS>(common_data, vars_batch);
     debug_assert!(constraint_terms_batch.len() == n * num_gate_constraints);
 
     let num_challenges = common_data.config.num_challenges;
@@ -346,9 +346,9 @@ where
 /// Sum and LDC are broken down in partial polynomials to lower the constraint degree, similarly to the permutation argument.
 /// They also share the same partial SLDC polynomials, so that the last SLDC value is Sum(end) - LDC(end). The final constraint
 /// Sum(end) = LDC(end) becomes simply SLDC(end) = 0, and we can remove the LDC initial constraint.
-pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize>(
+pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationVars<F, D>,
+    vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[F::Extension],
     next_lookup_zs: &[F::Extension],
     lookup_selectors: &[F::Extension],
@@ -525,9 +525,9 @@ where
 }
 
 /// Same as `check_lookup_constraints`, but for the base field case.
-pub fn check_lookup_constraints_batch<F: RichField + HasExtension<D>, const D: usize>(
+pub fn check_lookup_constraints_batch<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationVarsBase<F>,
+    vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[F],
     next_lookup_zs: &[F],
     lookup_selectors: &[F],
@@ -684,9 +684,9 @@ where
 /// `num_gate_constraints` is the largest number of constraints imposed by any gate. It is not
 /// strictly necessary, but it helps performance by ensuring that we allocate a vector with exactly
 /// the capacity that we need.
-pub fn evaluate_gate_constraints<F: RichField + HasExtension<D>, const D: usize>(
+pub fn evaluate_gate_constraints<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationVars<F, D>,
+    vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<F::Extension>
 where
     F::Extension: TwoAdicField,
@@ -719,9 +719,9 @@ where
 /// Returns a vector of `num_gate_constraints * vars_batch.len()` field elements. The constraints
 /// corresponding to `vars_batch[i]` are found in `result[i], result[vars_batch.len() + i],
 /// result[2 * vars_batch.len() + i], ...`.
-pub fn evaluate_gate_constraints_base_batch<F: RichField + HasExtension<D>, const D: usize>(
+pub fn evaluate_gate_constraints_base_batch<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     common_data: &CommonCircuitData<F, D>,
-    vars_batch: EvaluationVarsBaseBatch<F>,
+    vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
 ) -> Vec<F>
 where
     F::Extension: TwoAdicField,
@@ -751,10 +751,10 @@ where
     constraints_batch
 }
 
-pub fn evaluate_gate_constraints_circuit<F: RichField + HasExtension<D>, const D: usize>(
+pub fn evaluate_gate_constraints_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationTargets<D>,
+    vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<ExtensionTarget<D>>
 where
     F::Extension: TwoAdicField,
@@ -819,12 +819,12 @@ where
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound. This is fine if `x` is a random
 /// variable drawn from a sufficiently large domain.
-pub(crate) fn eval_vanishing_poly_circuit<F: RichField + HasExtension<D>, const D: usize>(
+pub(crate) fn eval_vanishing_poly_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
     x: ExtensionTarget<D>,
     x_pow_deg: ExtensionTarget<D>,
-    vars: EvaluationTargets<D>,
+    vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     local_zs: &[ExtensionTarget<D>],
     next_zs: &[ExtensionTarget<D>],
     local_lookup_zs: &[ExtensionTarget<D>],
@@ -846,7 +846,7 @@ where
     let constraint_terms = with_context!(
         builder,
         "evaluate gate constraints",
-        evaluate_gate_constraints_circuit::<F, D>(builder, common_data, vars,)
+        evaluate_gate_constraints_circuit::<F, D, NUM_HASH_OUT_ELTS>(builder, common_data, vars,)
     );
 
     let lookup_selectors = &vars.local_constants[common_data.selectors_info.num_selectors()
@@ -957,10 +957,10 @@ where
 }
 
 /// Same as `check_lookup_constraints`, but for the recursive case.
-pub fn check_lookup_constraints_circuit<F: RichField + HasExtension<D>, const D: usize>(
+pub fn check_lookup_constraints_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D>,
     common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationTargets<D>,
+    vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[ExtensionTarget<D>],
     next_lookup_zs: &[ExtensionTarget<D>],
     lookup_selectors: &[ExtensionTarget<D>],

@@ -152,7 +152,7 @@ where
     domain_separator: Option<Vec<F>>,
 
     /// The types of gates used in this circuit.
-    gates: HashSet<GateRef<F, D>>,
+    gates: HashSet<GateRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// The concrete placement of each gate.
     pub(crate) gate_instances: Vec<GateInstance<F, D>>,
@@ -181,7 +181,7 @@ where
     pub(crate) arithmetic_results: HashMap<ExtensionArithmeticOperation<F, D>, ExtensionTarget<D>>,
 
     /// Map between gate type and the current gate of this type with available slots.
-    current_slots: HashMap<GateRef<F, D>, CurrentSlot<F, D>>,
+    current_slots: HashMap<GateRef<F, D, NUM_HASH_OUT_ELTS>, CurrentSlot<F, D>>,
 
     /// List of constant generators used to fill the constant wires.
     constant_generators: Vec<ConstantGenerator<F>>,
@@ -203,7 +203,7 @@ where
 
     /// Optional verifier data that is registered as public inputs.
     /// This is used in cyclic recursion to hold the circuit's own verifier key.
-    pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget>,
+    pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget<{2 * D}>>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
@@ -451,7 +451,7 @@ where
     }
 
     /// Adds a gate to the circuit, and returns its index.
-    pub fn add_gate<G: Gate<F, D>>(&mut self, gate_type: G, mut constants: Vec<F>) -> usize {
+    pub fn add_gate<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(&mut self, gate_type: G, mut constants: Vec<F>) -> usize {
         self.check_gate_compatibility(&gate_type);
 
         assert!(
@@ -488,7 +488,7 @@ where
         row
     }
 
-    fn check_gate_compatibility<G: Gate<F, D>>(&self, gate: &G) {
+    fn check_gate_compatibility<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(&self, gate: &G) {
         assert!(
             gate.num_wires() <= self.config.num_wires,
             "{:?} requires {} wires, but our CircuitConfig has only {}",
@@ -507,7 +507,7 @@ where
 
     /// Adds a gate type to the set of gates to be used in this circuit. This can be useful
     /// in conditional recursion to uniformize the set of gates of the different circuits.
-    pub fn add_gate_to_gate_set(&mut self, gate: GateRef<F, D>) {
+    pub fn add_gate_to_gate_set(&mut self, gate: GateRef<F, D, NUM_HASH_OUT_ELTS>) {
         self.gates.insert(gate);
     }
 
@@ -650,7 +650,7 @@ where
 
     pub fn constant_verifier_data<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        verifier_data: &VerifierOnlyCircuitData<C, D>,
+        verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> VerifierCircuitTarget
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
@@ -790,7 +790,7 @@ where
     /// Find an available slot, of the form `(row, op)` for gate `G` using parameters `params`
     /// and constants `constants`. Parameters are any data used to differentiate which gate should be
     /// used for the given operation.
-    pub fn find_slot<G: Gate<F, D> + Clone>(
+    pub fn find_slot<G: Gate<F, D, NUM_HASH_OUT_ELTS> + Clone>(
         &mut self,
         gate: G,
         params: &[F],
@@ -1041,7 +1041,7 @@ where
     pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         self,
         commit_to_sigma: bool,
-    ) -> CircuitData<F, C, D>
+    ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
@@ -1055,7 +1055,7 @@ where
     pub fn try_build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         mut self,
         commit_to_sigma: bool,
-    ) -> (CircuitData<F, C, D>, bool)
+    ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
     where
         F::Extension: TwoAdicField,
     {
@@ -1072,7 +1072,7 @@ where
         // those hash wires match the claimed public inputs.
         let num_public_inputs = self.public_inputs.len();
         let public_inputs_hash =
-            self.hash_n_to_hash_no_pad::<C::InnerHasher>(self.public_inputs.clone());
+            self.hash_n_to_hash_no_pad::<C::InnerHasher, NUM_HASH_OUT_ELTS>(self.public_inputs.clone());
         let pi_gate = self.add_gate(PublicInputGate, vec![]);
         for (&hash_part, wire) in public_inputs_hash
             .elements
@@ -1167,7 +1167,7 @@ where
 
         let constants_sigmas_commitment = if commit_to_sigma {
             let constants_sigmas_vecs = [constant_vecs, sigma_vecs.clone()].concat();
-            PolynomialBatch::<F, C, D>::from_values(
+            PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::from_values(
                 constants_sigmas_vecs,
                 rate_bits,
                 PlonkOracle::CONSTANTS_SIGMAS.blinding,
@@ -1176,7 +1176,7 @@ where
                 Some(&fft_root_table),
             )
         } else {
-            PolynomialBatch::<F, C, D>::default()
+            PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::default()
         };
 
         // Map between gates where not all generators are used and the gate's number of used generators.
@@ -1274,7 +1274,7 @@ where
             }
         }
 
-        let prover_only = ProverOnlyCircuitData::<F, C, D> {
+        let prover_only = ProverOnlyCircuitData::<F, C, D, NUM_HASH_OUT_ELTS> {
             generators: self.generators,
             generator_indices_by_watches,
             constants_sigmas_commitment,
@@ -1288,7 +1288,7 @@ where
             lut_to_lookups: self.lut_to_lookups.clone(),
         };
 
-        let verifier_only = VerifierOnlyCircuitData::<C, D> {
+        let verifier_only = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS> {
             constants_sigmas_cap,
             circuit_digest,
         };
@@ -1307,7 +1307,7 @@ where
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(self) -> CircuitData<F, C, D>
+    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(self) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
@@ -1316,7 +1316,7 @@ where
 
     pub fn mock_build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         self,
-    ) -> MockCircuitData<F, C, D>
+    ) -> MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
@@ -1329,7 +1329,7 @@ where
     /// Builds a "prover circuit", with data needed to generate proofs but not verify them.
     pub fn build_prover<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         self,
-    ) -> ProverCircuitData<F, C, D>
+    ) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
@@ -1341,7 +1341,7 @@ where
     /// Builds a "verifier circuit", with data needed to verify proofs but not generate them.
     pub fn build_verifier<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         self,
-    ) -> VerifierCircuitData<F, C, D>
+    ) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {

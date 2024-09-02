@@ -88,11 +88,11 @@ where
     }
 
     /// Like `random_access`, but with `VerifierCircuitTarget`s rather than simple `Target`s.
-    pub fn random_access_verifier_data(
+    pub fn random_access_verifier_data<const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         access_index: Target,
-        v: Vec<VerifierCircuitTarget>,
-    ) -> VerifierCircuitTarget {
+        v: Vec<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
+    ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         let constants_sigmas_caps = v.iter().map(|vk| vk.constants_sigmas_cap.clone()).collect();
         let circuit_digests = v.iter().map(|vk| vk.circuit_digest).collect();
         let constants_sigmas_cap =

@@ -148,15 +148,15 @@ pub mod default {
     /// the `WitnessGeneratorSerializer` trait. This can be easily done through the
     /// `impl_generator_serializer` macro.
     #[derive(Debug, Default)]
-    pub struct DefaultGeneratorSerializer<C: GenericConfig<D>, const D: usize> {
+    pub struct DefaultGeneratorSerializer<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
         pub _phantom: PhantomData<C>,
     }
 
-    impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for DefaultGeneratorSerializer<C, D>
+    impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> WitnessGeneratorSerializer<F, D> for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
-        C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         impl_generator_serializer! {

@@ -37,7 +37,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// set in this base proof.
 pub fn cyclic_base_proof<F, C, const D: usize>(
     common_data: &CommonCircuitData<F, D>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     mut nonzero_public_inputs: HashMap<usize, F>,
 ) -> ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
@@ -76,7 +76,7 @@ pub(crate) fn dummy_proof<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
-    circuit: &CircuitData<F, C, D>,
+    circuit: &CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     nonzero_public_inputs: HashMap<usize, F>,
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
@@ -98,7 +98,7 @@ pub(crate) fn dummy_circuit<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     common_data: &CommonCircuitData<F, D>,
-) -> CircuitData<F, C, D>
+) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -133,10 +133,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
 where
     F::Extension: TwoAdicField,
 {
-    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, F = F, FE = F::Extension> + 'static>(
+    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static>(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> anyhow::Result<(ProofWithPublicInputsTarget<D>, VerifierCircuitTarget)>
+    ) -> anyhow::Result<(ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>, VerifierCircuitTarget)>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
@@ -165,10 +165,10 @@ where
     F::Extension: TwoAdicField,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
 {
-    pub(crate) proof_with_pis_target: ProofWithPublicInputsTarget<D>,
+    pub(crate) proof_with_pis_target: ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
     pub(crate) proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     pub(crate) verifier_data_target: VerifierCircuitTarget,
-    pub(crate) verifier_data: VerifierOnlyCircuitData<C, D>,
+    pub(crate) verifier_data: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<F, C, const D: usize> Default for DummyProofGenerator<F, C, D>
@@ -180,9 +180,9 @@ where
     fn default() -> Self {
         let proof_with_pis_target = ProofWithPublicInputsTarget {
             proof: ProofTarget {
-                wires_cap: MerkleCapTarget(vec![]),
-                plonk_zs_partial_products_cap: MerkleCapTarget(vec![]),
-                quotient_polys_cap: MerkleCapTarget(vec![]),
+                wires_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>(vec![]),
+                plonk_zs_partial_products_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>(vec![]),
+                quotient_polys_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>(vec![]),
                 openings: OpeningSetTarget::default(),
                 opening_proof: FriProofTarget {
                     commit_phase_merkle_caps: vec![],
@@ -211,7 +211,7 @@ where
         };
 
         let verifier_data_target = VerifierCircuitTarget {
-            constants_sigmas_cap: MerkleCapTarget(vec![]),
+            constants_sigmas_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>(vec![]),
             circuit_digest: HashOutTarget {
                 elements: [Target::default(); 4],
             },
@@ -236,7 +236,7 @@ where
 impl<F, C, const D: usize> SimpleGenerator<F, D> for DummyProofGenerator<F, C, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {

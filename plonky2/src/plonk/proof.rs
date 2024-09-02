@@ -53,10 +53,10 @@ pub struct Proof<
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProofTarget<const D: usize> {
-    pub wires_cap: MerkleCapTarget,
-    pub plonk_zs_partial_products_cap: MerkleCapTarget,
-    pub quotient_polys_cap: MerkleCapTarget,
+pub struct ProofTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub wires_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    pub plonk_zs_partial_products_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    pub quotient_polys_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
     pub openings: OpeningSetTarget<D>,
     pub opening_proof: FriProofTarget<D, NUM_HASH_OUT_ELTS>,
 }
@@ -71,7 +71,7 @@ where
     F::Extension: TwoAdicField,
 {
     /// Compress the proof.
-    pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D> {
+    pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D, NUM_HASH_OUT_ELTS> {
         let Proof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -117,7 +117,7 @@ where
         self,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D>,
-    ) -> anyhow::Result<CompressedProofWithPublicInputs<F, C, D>> {
+    ) -> anyhow::Result<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         let indices = self.fri_query_indices(circuit_digest, common_data)?;
         let compressed_proof = self.proof.compress(&indices, &common_data.fri_params);
         Ok(CompressedProofWithPublicInputs {
@@ -179,7 +179,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > CompressedProof<F, C, D>
+    > CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -218,7 +218,7 @@ pub struct CompressedProofWithPublicInputs<
 > where
     F::Extension: TwoAdicField,
 {
-    pub proof: CompressedProof<F, C, D>,
+    pub proof: CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
 
@@ -227,7 +227,7 @@ impl<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
-    > CompressedProofWithPublicInputs<F, C, D>
+    > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -250,7 +250,7 @@ where
 
     pub(crate) fn verify(
         self,
-        verifier_data: &VerifierOnlyCircuitData<C, D>,
+        verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D>,
     ) -> anyhow::Result<()> {
         ensure!(
@@ -267,7 +267,7 @@ where
         let decompressed_proof =
             self.proof
                 .decompress(&challenges, fri_inferred_elements, &common_data.fri_params);
-        verify_with_challenges::<F, C, D>(
+        verify_with_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
             decompressed_proof,
             public_inputs_hash,
             challenges,
@@ -340,8 +340,8 @@ pub(crate) struct FriInferredElements<F: RichField + HasExtension<D>, const D: u
 );
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProofWithPublicInputsTarget<const D: usize> {
-    pub proof: ProofTarget<D>,
+pub struct ProofWithPublicInputsTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub proof: ProofTarget<D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<Target>,
 }
 

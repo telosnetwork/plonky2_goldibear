@@ -18,7 +18,7 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D>
+impl<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
 where
     C::F: RichField + HasExtension<D>,
     <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
@@ -114,8 +114,8 @@ where
     pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         condition: BoolTarget,
-        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
-        other_proof_with_pis: &ProofWithPublicInputsTarget<D>,
+        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        other_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         other_verifier_data: &VerifierCircuitTarget,
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<()>
@@ -167,11 +167,11 @@ where
     }
 
     pub fn conditionally_verify_cyclic_proof_or_dummy<
-        C: GenericConfig<D, F = F, FE = F::Extension> + 'static,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     >(
         &mut self,
         condition: BoolTarget,
-        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
+        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<()>
     where
@@ -200,14 +200,14 @@ pub fn check_cyclic_proof_verifier_data<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
-    let pis = VerifierOnlyCircuitData::<C, D>::from_slice(&proof.public_inputs, common_data)?;
+    let pis = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS>::from_slice(&proof.public_inputs, common_data)?;
     ensure!(verifier_data.constants_sigmas_cap == pis.constants_sigmas_cap);
     ensure!(verifier_data.circuit_digest == pis.circuit_digest);
 

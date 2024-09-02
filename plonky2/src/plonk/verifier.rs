@@ -21,7 +21,7 @@ pub(crate) fn verify<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
 where
@@ -36,7 +36,7 @@ where
         common_data,
     )?;
 
-    verify_with_challenges::<F, C, D>(
+    verify_with_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
         proof_with_pis.proof,
         public_inputs_hash,
         challenges,
@@ -54,7 +54,7 @@ pub(crate) fn verify_with_challenges<
     proof: Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     challenges: ProofChallenges<F, D>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
 where
@@ -75,7 +75,7 @@ where
     let partial_products = &proof.openings.partial_products;
 
     // Evaluate the vanishing polynomial at our challenge point, zeta.
-    let vanishing_polys_zeta = eval_vanishing_poly::<F, D>(
+    let vanishing_polys_zeta = eval_vanishing_poly::<F, D, NUM_HASH_OUT_ELTS>(
         common_data,
         challenges.plonk_zeta,
         vars,
@@ -117,7 +117,7 @@ where
         proof.quotient_polys_cap,
     ];
 
-    verify_fri_proof::<F, C, D>(
+    verify_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
         &common_data.get_fri_instance(challenges.plonk_zeta),
         &proof.openings.to_fri_openings(),
         &challenges.fri_challenges,

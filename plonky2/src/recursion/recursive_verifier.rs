@@ -24,7 +24,7 @@ where
     /// Recursively verifies an inner proof.
     pub fn verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof_with_pis: &ProofWithPublicInputsTarget<D>,
+        proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         inner_verifier_data: &VerifierCircuitTarget,
         inner_common_data: &CommonCircuitData<F, D>,
     ) where
@@ -35,7 +35,7 @@ where
             inner_common_data.num_public_inputs
         );
         let public_inputs_hash =
-            self.hash_n_to_hash_no_pad::<C::InnerHasher>(proof_with_pis.public_inputs.clone());
+            self.hash_n_to_hash_no_pad::<C::InnerHasher, NUM_HASH_OUT_ELTS>(proof_with_pis.public_inputs.clone());
         let challenges = proof_with_pis.get_challenges::<F, C>(
             self,
             public_inputs_hash,
@@ -55,7 +55,7 @@ where
     /// Recursively verifies an inner proof.
     fn verify_proof_with_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        proof: &ProofTarget<D>,
+        proof: &ProofTarget<D, NUM_HASH_OUT_ELTS>,
         public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
         challenges: ProofChallengesTarget<D>,
         inner_verifier_data: &VerifierCircuitTarget,
@@ -142,7 +142,7 @@ where
     pub fn add_virtual_proof_with_pis(
         &mut self,
         common_data: &CommonCircuitData<F, D>,
-    ) -> ProofWithPublicInputsTarget<D> {
+    ) -> ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
         let proof = self.add_virtual_proof(common_data);
         let public_inputs = self.add_virtual_targets(common_data.num_public_inputs);
         ProofWithPublicInputsTarget {
@@ -151,7 +151,7 @@ where
         }
     }
 
-    fn add_virtual_proof(&mut self, common_data: &CommonCircuitData<F, D>) -> ProofTarget<D> {
+    fn add_virtual_proof(&mut self, common_data: &CommonCircuitData<F, D>) -> ProofTarget<D, NUM_HASH_OUT_ELTS> {
         let config = &common_data.config;
         let fri_params = &common_data.fri_params;
         let cap_height = fri_params.config.cap_height;
@@ -407,7 +407,7 @@ mod tests {
         const D: usize = 2;
         type PC = PoseidonGoldilocksConfig;
         type KC = KeccakGoldilocksConfig;
-        type F = <PC as GenericConfig<D>>::F;
+        type F = <PC as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config();
         let (proof, vd, common_data) = dummy_proof::<F, PC, D>(&config, 4_000)?;
@@ -425,7 +425,7 @@ mod tests {
 
     type Proof<F, C, const D: usize> = (
         ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-        VerifierOnlyCircuitData<C, D>,
+        VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         CommonCircuitData<F, D>,
     );
 
@@ -726,7 +726,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize,
     >(
         proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-        vd: &VerifierOnlyCircuitData<C, D>,
+        vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D>,
     ) -> Result<()>
     where

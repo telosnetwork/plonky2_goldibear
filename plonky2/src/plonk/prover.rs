@@ -45,7 +45,7 @@ pub fn set_lookup_wires<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     pw: &mut PartitionWitness<F>,
 ) where
@@ -119,7 +119,7 @@ pub fn prove<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     inputs: PartialWitness<F>,
     timing: &mut TimingTree,
@@ -144,7 +144,7 @@ pub fn prove_with_partition_witness<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     mut partition_witness: PartitionWitness<F>,
     timing: &mut TimingTree,
@@ -184,7 +184,7 @@ where
     let wires_commitment = timed!(
         timing,
         "compute wires commitment",
-        PolynomialBatch::<F, C, D>::from_values(
+        PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::from_values(
             wires_values,
             config.fri_config.rate_bits,
             config.zero_knowledge && PlonkOracle::WIRES.blinding,
@@ -268,7 +268,7 @@ where
     let quotient_polys = timed!(
         timing,
         "compute quotient polys",
-        compute_quotient_polys::<F, C, D>(
+        compute_quotient_polys::<F, C, D, NUM_HASH_OUT_ELTS>(
             common_data,
             prover_data,
             &public_inputs_hash,
@@ -299,7 +299,7 @@ where
     let quotient_polys_commitment = timed!(
         timing,
         "commit to quotient polys",
-        PolynomialBatch::<F, C, D>::from_coeffs(
+        PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::from_coeffs(
             all_quotient_poly_chunks,
             config.fri_config.rate_bits,
             config.zero_knowledge && PlonkOracle::QUOTIENT.blinding,
@@ -342,7 +342,7 @@ where
     let opening_proof = timed!(
         timing,
         "compute opening proofs",
-        PolynomialBatch::<F, C, D>::prove_openings(
+        PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::prove_openings(
             &instance,
             &[
                 &prover_data.constants_sigmas_commitment,
@@ -356,14 +356,14 @@ where
         )
     );
 
-    let proof = Proof::<F, C, D> {
+    let proof = Proof::<F, C, D, NUM_HASH_OUT_ELTS> {
         wires_cap: wires_commitment.merkle_tree.cap,
         plonk_zs_partial_products_cap: partial_products_zs_and_lookup_commitment.merkle_tree.cap,
         quotient_polys_cap: quotient_polys_commitment.merkle_tree.cap,
         openings,
         opening_proof,
     };
-    Ok(ProofWithPublicInputs::<F, C, D> {
+    Ok(ProofWithPublicInputs::<F, C, D, NUM_HASH_OUT_ELTS> {
         proof,
         public_inputs,
     })
@@ -379,7 +379,7 @@ fn all_wires_permutation_partial_products<
     witness: &MatrixWitness<F>,
     betas: &[F],
     gammas: &[F],
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Vec<Vec<PolynomialValues<F>>>
 where
@@ -410,7 +410,7 @@ fn wires_permutation_partial_products_and_zs<
     witness: &MatrixWitness<F>,
     beta: F,
     gamma: F,
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Vec<PolynomialValues<F>>
 where
@@ -479,7 +479,7 @@ fn compute_lookup_polys<
 >(
     witness: &MatrixWitness<F>,
     deltas: &[F; 4],
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Vec<PolynomialValues<F>>
 where
@@ -602,7 +602,7 @@ fn compute_all_lookup_polys<
 >(
     witness: &MatrixWitness<F>,
     deltas: &[F],
-    prover_data: &ProverOnlyCircuitData<F, C, D>,
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
     lookup: bool,
 ) -> Vec<PolynomialValues<F>>
@@ -638,7 +638,7 @@ fn compute_quotient_polys<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     common_data: &CommonCircuitData<F, D>,
-    prover_data: &'a ProverOnlyCircuitData<F, C, D>,
+    prover_data: &'a ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     public_inputs_hash: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     wires_commitment: &'a PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     zs_partial_products_and_lookup_commitment: &'a PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -805,7 +805,7 @@ where
                 public_inputs_hash,
             );
 
-            let mut quotient_values_batch = eval_vanishing_poly_base_batch::<F, D>(
+            let mut quotient_values_batch = eval_vanishing_poly_base_batch::<F, D, NUM_HASH_OUT_ELTS>(
                 common_data,
                 &indices_batch,
                 &shifted_xs_batch,

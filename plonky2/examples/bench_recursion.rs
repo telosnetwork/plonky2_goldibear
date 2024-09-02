@@ -38,7 +38,7 @@ use structopt::StructOpt;
 
 type ProofTuple<F, C, const D: usize> = (
     ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-    VerifierOnlyCircuitData<C, D>,
+    VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     CommonCircuitData<F, D>,
 );
 
@@ -106,7 +106,7 @@ where
     let inputs = PartialWitness::new();
 
     let mut timing = TimingTree::new("prove", Level::Debug);
-    let proof = prove::<F, C, D>(&data.prover_only, &data.common, inputs, &mut timing)?;
+    let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
     data.verify(proof.clone())?;
 
@@ -262,7 +262,7 @@ where
     pw.set_verifier_data_target(&inner_data, inner_vd);
 
     let mut timing = TimingTree::new("prove", Level::Debug);
-    let proof = prove::<F, C, D>(&data.prover_only, &data.common, pw, &mut timing)?;
+    let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
 
     data.verify(proof.clone())?;
@@ -278,7 +278,7 @@ fn test_serialization<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-    vd: &VerifierOnlyCircuitData<C, D>,
+    vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D>,
 ) -> Result<()>
 where

@@ -128,7 +128,7 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for PoseidonMdsGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGate<F, D>
 where
     F: HasExtension<D>,
     F::Extension: TwoAdicField,
@@ -151,7 +151,7 @@ where
 
     fn eval_unfiltered(
         &self,
-        vars: EvaluationVars<F, D>,
+        vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
             .map(|i| vars.get_local_ext_algebra(Self::wires_input(i)))
@@ -170,7 +170,7 @@ where
 
     fn eval_unfiltered_base_one(
         &self,
-        vars: EvaluationVarsBase<F>,
+        vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
@@ -196,7 +196,7 @@ where
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
             .map(|i| vars.get_local_ext_algebra(Self::wires_input(i)))

@@ -22,7 +22,7 @@ const WITNESS_DEGREE: usize = WITNESS_SIZE - 1;
 
 /// Tests that the constraints imposed by the given gate are low-degree by applying them to random
 /// low-degree witness polynomials.
-pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D>, const D: usize>(gate: G)
+pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D, NUM_HASH_OUT_ELTS>, const D: usize>(gate: G)
 where
     F::Extension: TwoAdicField + Sample,
     F::Extension: TwoAdicField,
@@ -97,7 +97,7 @@ fn random_low_degree_values<F: TwoAdicField + Sample>(rate_bits: usize) -> Vec<F
 pub fn test_eval_fns<
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-    G: Gate<F, D>,
+    G: Gate<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize
 >(

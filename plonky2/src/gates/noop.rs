@@ -17,7 +17,7 @@ use crate::util::serialization::{Buffer, IoResult};
 #[derive(Debug)]
 pub struct NoopGate;
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for NoopGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for NoopGate
 where
     F::Extension: TwoAdicField,
 {
@@ -37,18 +37,18 @@ where
         Ok(Self)
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         Vec::new()
     }
 
-    fn eval_unfiltered_base_batch(&self, _vars: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(&self, _vars: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
         Vec::new()
     }
 
     fn eval_unfiltered_circuit(
         &self,
         _builder: &mut CircuitBuilder<F, D>,
-        _vars: EvaluationTargets<D>,
+        _vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         Vec::new()
     }

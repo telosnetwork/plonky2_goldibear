@@ -184,7 +184,7 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> Gate<F, D> for CosetInterpolationGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for CosetInterpolationGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -212,7 +212,7 @@ where
         })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 
         let shift = vars.local_wires[self.wire_shift()];
@@ -264,7 +264,7 @@ where
 
     fn eval_unfiltered_base_one(
         &self,
-        vars: EvaluationVarsBase<F>,
+        vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         let shift = vars.local_wires[self.wire_shift()];
@@ -334,7 +334,7 @@ where
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints = Vec::with_capacity(self.num_constraints());
 

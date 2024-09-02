@@ -48,7 +48,7 @@ pub enum LookupSelectors {
 /// - {last_lu_row} where we check that the last value of LDC is 0.
 /// Conceptually they're part of the selector ends lookups, but since we can have one polynomial for *all* LUTs it's here.
 pub(crate) fn selectors_lookup<F: RichField + HasExtension<D>, const D: usize>(
-    _gates: &[GateRef<F, D>],
+    _gates: &[GateRef<F, D, NUM_HASH_OUT_ELTS>],
     instances: &[GateInstance<F, D>],
     lookup_rows: &[LookupWire],
 ) -> Vec<PolynomialValues<F>>
@@ -116,7 +116,7 @@ where
 ///     else
 ///         UNUSED_SELECTOR
 pub(crate) fn selector_polynomials<F: RichField + HasExtension<D>, const D: usize>(
-    gates: &[GateRef<F, D>],
+    gates: &[GateRef<F, D, NUM_HASH_OUT_ELTS>],
     instances: &[GateInstance<F, D>],
     max_degree: usize,
 ) -> (Vec<PolynomialValues<F>>, SelectorsInfo)
