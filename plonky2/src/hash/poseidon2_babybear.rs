@@ -10,6 +10,7 @@ use plonky2_field::types::HasExtension;
 
 use super::hash_types::{HashOut, RichField};
 use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
+use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
@@ -199,6 +200,24 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
         F: RichField + HasExtension<D>,
         <F as HasExtension<D>>::Extension: TwoAdicField,
     {
-        todo!()
+        let gate_type: Poseidon2BabyBearGate<F, D> = Poseidon2BabyBearGate::<F, D>::new();
+        let gate = builder.add_gate(gate_type, vec![]);
+
+        let swap_wire = Poseidon2BabyBearGate::<F, D>::WIRE_SWAP;
+        let swap_wire = Target::wire(gate, swap_wire);
+        builder.connect(swap.target, swap_wire);
+
+        // Route input wires.
+        let inputs = inputs.as_ref();
+        for i in 0..SPONGE_WIDTH {
+            let in_wire = Poseidon2BabyBearGate::<F, D>::wire_input(i);
+            let in_wire = Target::wire(gate, in_wire);
+            builder.connect(inputs[i], in_wire);
+        }
+
+        // Collect output wires.
+        Self::AlgebraicPermutation::new(
+            (0..SPONGE_WIDTH).map(|i| Target::wire(gate, Poseidon2BabyBearGate::<F, D>::wire_output(i))),
+        )
     }
 }

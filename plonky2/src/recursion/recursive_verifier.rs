@@ -220,13 +220,13 @@ mod tests {
     use crate::gates::noop::NoopGate;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::{CircuitConfig, VerifierOnlyCircuitData};
-    use crate::plonk::config::{KeccakGoldilocksConfig, PoseidonGoldilocksConfig};
+    use crate::plonk::config::{KeccakGoldilocksConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig};
     use crate::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
     use crate::plonk::prover::prove;
     use crate::util::timing::TimingTree;
 
     #[test]
-    fn test_recursive_verifier() -> Result<()> {
+    fn test_recursive_verifier_gl() -> Result<()> {
         init_logger();
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
@@ -241,6 +241,24 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_recursive_verifier_bb() -> Result<()> {
+        init_logger();
+        const D: usize = 4;
+        type C = Poseidon2BabyBearConfig;
+        const NUM_HASH_OUT_ELTS: usize = 8;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let config = CircuitConfig { num_wires: 246, ..CircuitConfig::standard_recursion_zk_config()};
+
+        let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
+        let (proof, vd, common_data) =
+            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        test_serialization(&proof, &vd, &common_data)?;
+
+        Ok(())
+    }
+
 
     #[test]
     fn test_recursive_verifier_one_lookup() -> Result<()> {
