@@ -38,12 +38,13 @@ web-time = { version = "1.0.0", optional = true }
 plonky2_field = { version = "0.2.1", path = "../field", default-features = false }
 plonky2_maybe_rayon = { version = "0.2.0", path = "../maybe_rayon", default-features = false }
 plonky2_util = { version = "0.2.0", path = "../util", default-features = false }
-p3_field = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-field", branch = "main"}
-p3_poseidon2 = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-poseidon2", branch = "main"}
-p3_goldilocks = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-goldilocks", branch = "main"}
-p3_babybear = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-baby-bear", branch = "main"}
-p3_symmetric = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-symmetric", branch = "main"}
-p3_monty31 = { git="https://github.com/Plonky3/Plonky3.git", package = "p3-monty-31", branch = "main"}
+p3-field = { workspace = true }
+p3-poseidon2 =  { workspace = true }
+p3-goldilocks =  { workspace = true }
+p3-baby-bear =  { workspace = true }
+p3-symmetric =  { workspace = true }
+p3-monty-31 =  { workspace = true }
+
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }

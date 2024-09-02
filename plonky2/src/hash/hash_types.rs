@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 
 use anyhow::ensure;
-use p3_babybear::BabyBear;
+use p3_baby_bear::BabyBear;
 use p3_field::{Field, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

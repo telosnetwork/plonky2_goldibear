@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 
 use lazy_static::lazy_static;
-use p3_babybear::{BabyBear, DiffusionMatrixBabyBear};
+use p3_baby_bear::{BabyBear, DiffusionMatrixBabyBear};
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use p3_poseidon2;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};

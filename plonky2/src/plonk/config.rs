@@ -10,7 +10,7 @@
 use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
-use p3_babybear::BabyBear;
+use p3_baby_bear::BabyBear;
 use p3_field::extension::BinomialExtensionField;
 use p3_field::{ExtensionField, Field, TwoAdicField};
 use p3_goldilocks::Goldilocks;
