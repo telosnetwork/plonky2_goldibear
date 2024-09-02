@@ -141,8 +141,9 @@ pub mod default {
     /// use plonky2::plonk::config::PoseidonGoldilocksConfig;
     ///
     /// const D: usize = 2;
+    /// const NUM_HASH_OUT_ELTS: usize = 4;
     /// type C = PoseidonGoldilocksConfig;
-    /// let generator_serializer = DefaultGeneratorSerializer::<C, D>::default();
+    /// let generator_serializer = DefaultGeneratorSerializer::<C, D, NUM_HASH_OUT_ELTS>::default();
     /// ```
     /// Applications using custom generators should define their own serializer implementing
     /// the `WitnessGeneratorSerializer` trait. This can be easily done through the
