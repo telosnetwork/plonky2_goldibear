@@ -136,7 +136,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer
     /// Add one constraint valid on all rows except the last.
     pub fn constraint_transition(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         constraint: ExtensionTarget<D>,
     ) {
         let filtered_constraint = builder.mul_extension(constraint, self.z_last);
@@ -146,7 +146,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer
     /// Add one constraint valid on all rows.
     pub fn constraint(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         constraint: ExtensionTarget<D>,
     ) {
         for (&alpha, acc) in self.alphas.iter().zip(&mut self.constraint_accs) {
@@ -158,7 +158,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer
     /// first row of the trace.
     pub fn constraint_first_row(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         constraint: ExtensionTarget<D>,
     ) {
         let filtered_constraint = builder.mul_extension(constraint, self.lagrange_basis_first);
@@ -169,7 +169,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer
     /// last row of the trace.
     pub fn constraint_last_row(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         constraint: ExtensionTarget<D>,
     ) {
         let filtered_constraint = builder.mul_extension(constraint, self.lagrange_basis_last);

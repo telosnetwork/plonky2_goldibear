@@ -21,7 +21,7 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -512,7 +512,7 @@ pub struct QuotientGeneratorExtension<const D: usize> {
     quotient: ExtensionTarget<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for QuotientGeneratorExtension<D>
 where
     F::Extension: TwoAdicField,
@@ -534,13 +534,13 @@ where
         out_buffer.set_extension_target(self.quotient, quotient)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_target_ext(self.numerator)?;
         dst.write_target_ext(self.denominator)?;
         dst.write_target_ext(self.quotient)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let numerator = src.read_target_ext()?;
         let denominator = src.read_target_ext()?;
         let quotient = src.read_target_ext()?;
@@ -560,9 +560,9 @@ pub struct PowersTarget<const D: usize> {
 }
 
 impl<const D: usize> PowersTarget<D> {
-    pub fn next<F: RichField + HasExtension<D>>(
+    pub fn next<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
         F::Extension: TwoAdicField,
@@ -572,10 +572,10 @@ impl<const D: usize> PowersTarget<D> {
         result
     }
 
-    pub fn repeated_frobenius<F: RichField + HasExtension<D>>(
+    pub fn repeated_frobenius<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         self,
         k: usize,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
         F::Extension: TwoAdicField,
@@ -588,7 +588,7 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -635,7 +635,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
 
         let mut pw = PartialWitness::<F>::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let vs = FF::rand_vec(3);
         let ts = builder.add_virtual_extension_targets(3);
@@ -655,7 +655,7 @@ mod tests {
         builder.connect_extension(mul0, mul1);
         builder.connect_extension(mul1, mul2);
 
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)
@@ -672,7 +672,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_zk_config();
 
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let x = FF::rand();
         let y = FF::rand();
@@ -683,7 +683,7 @@ mod tests {
         let comp_zt = builder.div_extension(xt, yt);
         builder.connect_extension(zt, comp_zt);
 
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)
@@ -700,7 +700,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let xt =
             ExtensionAlgebraTarget(builder.add_virtual_extension_targets(D).try_into().unwrap());
@@ -722,7 +722,7 @@ mod tests {
             pw.set_extension_target(zt.0[i], z.0[i]);
         }
 
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

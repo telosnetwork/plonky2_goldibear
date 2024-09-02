@@ -33,7 +33,7 @@ where
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for SquareRootGenerator<F, D>
 where
     F::Extension: TwoAdicField,
@@ -55,12 +55,12 @@ where
         out_buffer.set_target(self.x, x);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_target(self.x)?;
         dst.write_target(self.x_squared)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let x = src.read_target()?;
         let x_squared = src.read_target()?;
         Ok(Self {
@@ -76,7 +76,7 @@ pub struct CustomGeneratorSerializer<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, con
     pub _phantom: PhantomData<C>,
 }
 
-impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for CustomGeneratorSerializer<C, D>
+impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS> for CustomGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
@@ -85,7 +85,7 @@ where
 {
     impl_generator_serializer! {
         CustomGeneratorSerializer,
-        DummyProofGenerator<F, C, D>,
+        DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>,
         ArithmeticBaseGenerator<F, D>,
         ConstantGenerator<F>,
         PoseidonGenerator<F, D>,
@@ -99,12 +99,13 @@ where
 /// "I know the square root of this field element."
 fn main() -> Result<()> {
     const D: usize = 2;
+    const NUM_HASH_OUT_ELTS: usize = 4;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let config = CircuitConfig::standard_recursion_config();
 
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let x = builder.add_virtual_target();
     let x_squared = builder.square(x);
@@ -129,7 +130,7 @@ fn main() -> Result<()> {
     let mut pw = PartialWitness::new();
     pw.set_target(x_squared, x_squared_value);
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let proof = data.prove(pw.clone())?;
 
     let x_squared_actual = proof.public_inputs[0];
@@ -138,13 +139,13 @@ fn main() -> Result<()> {
     // Test serialization
     {
         let gate_serializer = DefaultGateSerializer;
-        let generator_serializer = CustomGeneratorSerializer::<C, D>::default();
+        let generator_serializer = CustomGeneratorSerializer::<C, D, NUM_HASH_OUT_ELTS>::default();
 
         let data_bytes = data
             .to_bytes(&gate_serializer, &generator_serializer)
             .map_err(|_| anyhow::Error::msg("CircuitData serialization failed."))?;
 
-        let data_from_bytes = CircuitData::<F, C, D>::from_bytes(
+        let data_from_bytes = CircuitData::<F, C, D, NUM_HASH_OUT_ELTS>::from_bytes(
             &data_bytes,
             &gate_serializer,
             &generator_serializer,

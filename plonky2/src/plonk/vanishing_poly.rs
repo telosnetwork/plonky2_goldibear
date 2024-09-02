@@ -28,8 +28,8 @@ use crate::util::strided_view::PackedStridedView;
 use crate::with_context;
 
 /// Get the polynomial associated to a lookup table with current challenges.
-pub(crate) fn get_lut_poly<F: RichField + HasExtension<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn get_lut_poly<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     lut_index: usize,
     deltas: &[F],
     degree: usize,
@@ -52,7 +52,7 @@ where
 /// linear combination of gate constraints, plus some other terms relating to the permutation
 /// argument. All such terms should vanish on `H`.
 pub(crate) fn eval_vanishing_poly<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     x: F::Extension,
     vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     local_zs: &[F::Extension],
@@ -169,7 +169,7 @@ where
 
 /// Like `eval_vanishing_poly`, but specialized for base field points. Batched.
 pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     indices_batch: &[usize],
     xs_batch: &[F],
     vars_batch: EvaluationVarsBaseBatch<F,NUM_HASH_OUT_ELTS>,
@@ -347,7 +347,7 @@ where
 /// They also share the same partial SLDC polynomials, so that the last SLDC value is Sum(end) - LDC(end). The final constraint
 /// Sum(end) = LDC(end) becomes simply SLDC(end) = 0, and we can remove the LDC initial constraint.
 pub fn check_lookup_constraints<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[F::Extension],
     next_lookup_zs: &[F::Extension],
@@ -526,7 +526,7 @@ where
 
 /// Same as `check_lookup_constraints`, but for the base field case.
 pub fn check_lookup_constraints_batch<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[F],
     next_lookup_zs: &[F],
@@ -685,7 +685,7 @@ where
 /// strictly necessary, but it helps performance by ensuring that we allocate a vector with exactly
 /// the capacity that we need.
 pub fn evaluate_gate_constraints<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<F::Extension>
 where
@@ -720,7 +720,7 @@ where
 /// corresponding to `vars_batch[i]` are found in `result[i], result[vars_batch.len() + i],
 /// result[2 * vars_batch.len() + i], ...`.
 pub fn evaluate_gate_constraints_base_batch<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
 ) -> Vec<F>
 where
@@ -752,8 +752,8 @@ where
 }
 
 pub fn evaluate_gate_constraints_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<ExtensionTarget<D>>
 where
@@ -780,9 +780,9 @@ where
     all_gate_constraints
 }
 
-pub(crate) fn get_lut_poly_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn get_lut_poly_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     lut_index: usize,
     deltas: &[Target],
     degree: usize,
@@ -820,8 +820,8 @@ where
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound. This is fine if `x` is a random
 /// variable drawn from a sufficiently large domain.
 pub(crate) fn eval_vanishing_poly_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     x: ExtensionTarget<D>,
     x_pow_deg: ExtensionTarget<D>,
     vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
@@ -958,8 +958,8 @@ where
 
 /// Same as `check_lookup_constraints`, but for the recursive case.
 pub fn check_lookup_constraints_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[ExtensionTarget<D>],
     next_lookup_zs: &[ExtensionTarget<D>],

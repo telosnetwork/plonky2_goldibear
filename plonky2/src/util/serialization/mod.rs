@@ -341,7 +341,7 @@ pub trait Read {
     #[inline]
     fn read_opening_set<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<OpeningSet<F, D>>
     where
         F: RichField + HasExtension<D>,
@@ -430,7 +430,7 @@ pub trait Read {
     #[inline]
     fn read_fri_initial_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<FriInitialTreeProof<F, C::Hasher>>
     where
         F: RichField + HasExtension<D>,
@@ -516,7 +516,7 @@ pub trait Read {
     #[allow(clippy::type_complexity)]
     fn read_fri_query_rounds<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<FriQueryRound<F, C::Hasher, D>>>
     where
         F: RichField + HasExtension<D>,
@@ -566,7 +566,7 @@ pub trait Read {
     #[inline]
     fn read_fri_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<FriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
@@ -694,19 +694,19 @@ pub trait Read {
         })
     }
 
-    fn read_gate<F: RichField + HasExtension<D>, const D: usize>(
+    fn read_gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField;
 
-    fn read_generator<F: RichField + HasExtension<D>, const D: usize>(
+    fn read_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<WitnessGeneratorRef<F, D>>
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField;
 
@@ -757,10 +757,10 @@ pub trait Read {
         })
     }
 
-    fn read_common_circuit_data<F: RichField + HasExtension<D>, const D: usize>(
+    fn read_common_circuit_data<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-    ) -> IoResult<CommonCircuitData<F, D>>
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -809,7 +809,7 @@ pub trait Read {
         };
 
         for _ in 0..gates_len {
-            let gate = self.read_gate::<F, D>(gate_serializer, &common_data)?;
+            let gate = self.read_gate::<F, D, NUM_HASH_OUT_ELTS>(gate_serializer, &common_data)?;
             gates.push(gate);
         }
 
@@ -824,8 +824,8 @@ pub trait Read {
         const D: usize, const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
@@ -847,8 +847,8 @@ pub trait Read {
         const NUM_HASH_OUT_ELTS: usize
     >(
         &mut self,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
@@ -934,8 +934,8 @@ pub trait Read {
         const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
@@ -975,7 +975,7 @@ pub trait Read {
         const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
@@ -1001,7 +1001,7 @@ pub trait Read {
     #[inline]
     fn read_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
@@ -1045,7 +1045,7 @@ pub trait Read {
     #[inline]
     fn read_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         Self: Remaining,
@@ -1079,7 +1079,7 @@ pub trait Read {
     #[inline]
     fn read_compressed_fri_query_rounds<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CompressedFriQueryRounds<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
@@ -1128,7 +1128,7 @@ pub trait Read {
     #[inline]
     fn read_compressed_fri_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CompressedFriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
@@ -1156,7 +1156,7 @@ pub trait Read {
     #[inline]
     fn read_compressed_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
@@ -1182,7 +1182,7 @@ pub trait Read {
     #[inline]
     fn read_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         Self: Remaining,
@@ -1759,20 +1759,20 @@ pub trait Write {
         Ok(())
     }
 
-    fn write_gate<F: RichField + HasExtension<D>, const D: usize>(
+    fn write_gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField;
 
-    fn write_generator<F: RichField + HasExtension<D>, const D: usize>(
+    fn write_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        generator: &WitnessGeneratorRef<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator: &WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField;
@@ -1816,10 +1816,10 @@ pub trait Write {
         Ok(())
     }
 
-    fn write_common_circuit_data<F: RichField + HasExtension<D>, const D: usize>(
+    fn write_common_circuit_data<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        common_data: &CommonCircuitData<F, D>,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -1863,7 +1863,7 @@ pub trait Write {
 
         self.write_usize(gates.len())?;
         for gate in gates.iter() {
-            self.write_gate::<F, D>(gate, gate_serializer, common_data)?;
+            self.write_gate::<F, D, NUM_HASH_OUT_ELTS>(gate, gate_serializer, common_data)?;
         }
 
         Ok(())
@@ -1877,8 +1877,8 @@ pub trait Write {
     >(
         &mut self,
         circuit_data: &CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -1900,8 +1900,8 @@ pub trait Write {
     >(
         &mut self,
         prover_only_circuit_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -1922,7 +1922,7 @@ pub trait Write {
 
         self.write_usize(generators.len())?;
         for generator in generators.iter() {
-            self.write_generator::<F, D>(generator, generator_serializer, common_data)?;
+            self.write_generator::<F, D, NUM_HASH_OUT_ELTS>(generator, generator_serializer, common_data)?;
         }
 
         self.write_usize(generator_indices_by_watches.len())?;
@@ -1979,8 +1979,8 @@ pub trait Write {
     >(
         &mut self,
         prover_circuit_data: &ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2025,7 +2025,7 @@ pub trait Write {
     >(
         &mut self,
         verifier_circuit_data: &VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2227,11 +2227,11 @@ impl Write for Vec<u8> {
         Ok(())
     }
 
-    fn write_gate<F: RichField + HasExtension<D>, const D: usize>(
+    fn write_gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2239,11 +2239,11 @@ impl Write for Vec<u8> {
         gate_serializer.write_gate(self, gate, common_data)
     }
 
-    fn write_generator<F: RichField + HasExtension<D>, const D: usize>(
+    fn write_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        generator: &WitnessGeneratorRef<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator: &WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
         F::Extension: TwoAdicField,
@@ -2304,10 +2304,10 @@ impl<'a> Read for Buffer<'a> {
         }
     }
 
-    fn read_gate<F: RichField + HasExtension<D>, const D: usize>(
+    fn read_gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
@@ -2315,11 +2315,11 @@ impl<'a> Read for Buffer<'a> {
         gate_serializer.read_gate(self, common_data)
     }
 
-    fn read_generator<F: RichField + HasExtension<D>, const D: usize>(
+    fn read_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<WitnessGeneratorRef<F, D>>
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {

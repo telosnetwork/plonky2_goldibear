@@ -56,7 +56,7 @@ pub(crate) fn eval_vanishing_poly<F, FE, P, S, const D: usize, const D2: usize>(
 /// Evaluates all constraint, permutation and cross-table lookup polynomials
 /// of the current STARK at the local and next values.
 pub(crate) fn eval_vanishing_poly_circuit<F, S, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     vars: &S::EvaluationFrameTarget,
     lookup_vars: Option<LookupCheckVarsTarget<D>>,

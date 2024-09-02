@@ -32,7 +32,7 @@ use crate::fri::structure::{
     FriPolynomialInfo,
 };
 use crate::fri::{FriConfig, FriParams};
-use crate::gates::gate::GateRef;
+use crate::gates::gate::{Gate, GateRef};
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
 use crate::gates::selectors::SelectorsInfo;
@@ -151,7 +151,7 @@ pub struct MockCircuitData<
     F::Extension: TwoAdicField,
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    pub common: CommonCircuitData<F, D>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<
@@ -180,7 +180,7 @@ pub struct CircuitData<
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
-    pub common: CommonCircuitData<F, D>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<
@@ -194,8 +194,8 @@ where
 {
     pub fn to_bytes(
         &self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_circuit_data(self, gate_serializer, generator_serializer)?;
@@ -204,8 +204,8 @@ where
 
     pub fn from_bytes(
         bytes: &[u8],
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(bytes);
         buffer.read_circuit_data(gate_serializer, generator_serializer)
@@ -287,7 +287,7 @@ pub struct ProverCircuitData<
     F::Extension: TwoAdicField,
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    pub common: CommonCircuitData<F, D>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<
@@ -301,8 +301,8 @@ where
 {
     pub fn to_bytes(
         &self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_prover_circuit_data(self, gate_serializer, generator_serializer)?;
@@ -311,8 +311,8 @@ where
 
     pub fn from_bytes(
         bytes: &[u8],
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(bytes);
         buffer.read_prover_circuit_data(gate_serializer, generator_serializer)
@@ -342,7 +342,7 @@ pub struct VerifierCircuitData<
     F::Extension: TwoAdicField,
 {
     pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
-    pub common: CommonCircuitData<F, D>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
 impl<
@@ -354,7 +354,7 @@ impl<
 where
     F::Extension: TwoAdicField,
 {
-    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
+    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_verifier_circuit_data(self, gate_serializer)?;
         Ok(buffer)
@@ -362,7 +362,7 @@ where
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(&bytes);
         buffer.read_verifier_circuit_data(gate_serializer)
@@ -390,7 +390,7 @@ pub struct ProverOnlyCircuitData<
 > where
     F::Extension: TwoAdicField,
 {
-    pub generators: Vec<WitnessGeneratorRef<F, D>>,
+    pub generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
     /// Generator indices (within the `Vec` above), indexed by the representative of each target
     /// they watch.
     pub generator_indices_by_watches: BTreeMap<usize, Vec<usize>>,
@@ -427,8 +427,8 @@ where
 {
     pub fn to_bytes(
         &self,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_prover_only_circuit_data(self, generator_serializer, common_data)?;
@@ -437,8 +437,8 @@ where
 
     pub fn from_bytes(
         bytes: &[u8],
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(bytes);
         buffer.read_prover_only_circuit_data(generator_serializer, common_data)
@@ -478,7 +478,7 @@ where
 
 /// Circuit data required by both the prover and the verifier.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize>
+pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
@@ -519,11 +519,11 @@ where
     pub luts: Vec<LookupTable>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CommonCircuitData<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
+    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_common_circuit_data(self, gate_serializer)?;
         Ok(buffer)
@@ -531,7 +531,7 @@ where
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(&bytes);
         buffer.read_common_circuit_data(gate_serializer)
@@ -622,7 +622,7 @@ where
 
     pub(crate) fn get_fri_instance_target(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         zeta: ExtensionTarget<D>,
     ) -> FriInstanceInfoTarget<D> {
         // All polynomials are opened at zeta.

@@ -22,9 +22,9 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         self.len() == 0
     }
 
-    pub fn eval_scalar<F: RichField + HasExtension<D>>(
+    pub fn eval_scalar<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: Target,
     ) -> ExtensionTarget<D>
     where
@@ -35,9 +35,9 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         point.reduce(&self.0, builder)
     }
 
-    pub fn eval<F: RichField + HasExtension<D>>(
+    pub fn eval<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where
@@ -52,9 +52,9 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
 pub struct PolynomialCoeffsExtAlgebraTarget<const D: usize>(pub Vec<ExtensionAlgebraTarget<D>>);
 
 impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
-    pub fn eval_scalar<F>(
+    pub fn eval_scalar<F, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
     ) -> ExtensionAlgebraTarget<D>
     where
@@ -68,9 +68,9 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
         acc
     }
 
-    pub fn eval<F>(
+    pub fn eval<F, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionAlgebraTarget<D>,
     ) -> ExtensionAlgebraTarget<D>
     where
@@ -85,9 +85,9 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
-    pub fn eval_with_powers<F>(
+    pub fn eval_with_powers<F, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         powers: &[ExtensionAlgebraTarget<D>],
     ) -> ExtensionAlgebraTarget<D>
     where

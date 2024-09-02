@@ -12,7 +12,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::VerifierCircuitTarget;
 use crate::util::log2_strict;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -58,7 +58,7 @@ where
     }
 
     /// Like `random_access`, but with `HashOutTarget`s rather than simple `Target`s.
-    pub fn random_access_hash<const NUM_HASH_OUT_ELTS: usize>(
+    pub fn random_access_hash(
         &mut self,
         access_index: Target,
         v: Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>,
@@ -73,7 +73,7 @@ where
     }
 
     /// Like `random_access`, but with `MerkleCapTarget`s rather than simple `Target`s.
-    pub fn random_access_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(
+    pub fn random_access_merkle_cap(
         &mut self,
         access_index: Target,
         v: Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
@@ -88,7 +88,7 @@ where
     }
 
     /// Like `random_access`, but with `VerifierCircuitTarget`s rather than simple `Target`s.
-    pub fn random_access_verifier_data<const NUM_HASH_OUT_ELTS: usize>(
+    pub fn random_access_verifier_data(
         &mut self,
         access_index: Target,
         v: Vec<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
@@ -126,7 +126,7 @@ mod tests {
         let len = 1 << len_log;
         let config = CircuitConfig::standard_recursion_config();
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let vec = FF::rand_vec(len);
         let v: Vec<_> = vec.iter().map(|x| builder.constant_extension(*x)).collect();
 
@@ -137,7 +137,7 @@ mod tests {
             builder.connect_extension(elem, res);
         }
 
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

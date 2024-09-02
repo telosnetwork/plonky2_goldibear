@@ -141,7 +141,7 @@ pub trait WitnessWrite<F: Field> {
 
     fn set_verifier_data_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        vdt: &VerifierCircuitTarget,
+        vdt: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
         vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) where
         F: RichField + HasExtension<D>,
@@ -229,7 +229,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         }
     }
 
-    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(&self, cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS><NUM_HASH_OUT_ELTS>) -> MerkleCap<F, H>
+    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(&self, cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS>) -> MerkleCap<F, H>
     where
         F: RichField,
         H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,

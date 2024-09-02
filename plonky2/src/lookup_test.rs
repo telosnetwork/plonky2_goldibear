@@ -31,11 +31,11 @@ fn test_no_lookup() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
     builder.add_gate(NoopGate, vec![]);
     let pw = PartialWitness::new();
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove first", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
@@ -50,13 +50,13 @@ fn test_lookup_table_not_used() {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let tip5_table = TIP5_TABLE.to_vec();
     let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
     builder.add_lookup_table_from_pairs(table);
 
-    builder.build::<C, NUM_HASH_OUT_ELTS>();
+    builder.build::<C>();
 }
 
 #[should_panic]
@@ -65,12 +65,12 @@ fn test_lookup_without_table() {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let dummy = builder.add_virtual_target();
     builder.add_lookup_from_index(dummy, 0);
 
-    builder.build::<C, NUM_HASH_OUT_ELTS>();
+    builder.build::<C>();
 }
 
 // Tests two lookups in one lookup table.
@@ -81,7 +81,7 @@ fn test_one_lookup() -> anyhow::Result<()> {
     let tip5_table = TIP5_TABLE.to_vec();
     let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -106,7 +106,7 @@ fn test_one_lookup() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove one lookup", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
@@ -132,7 +132,7 @@ fn test_two_luts() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -173,7 +173,7 @@ fn test_two_luts() -> anyhow::Result<()> {
     let mut pw = PartialWitness::new();
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove two_luts", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     data.verify(proof.clone())?;
@@ -207,7 +207,7 @@ fn test_different_inputs() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -244,7 +244,7 @@ fn test_different_inputs() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_u16(look_val_a));
     pw.set_target(initial_b, F::from_canonical_u16(look_val_b));
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove different lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     data.verify(proof.clone())?;
@@ -284,7 +284,7 @@ fn test_many_lookups() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -330,7 +330,7 @@ fn test_many_lookups() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove different lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
 
@@ -366,7 +366,7 @@ fn test_same_luts() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -407,7 +407,7 @@ fn test_same_luts() -> anyhow::Result<()> {
     pw.set_target(initial_a, F::from_canonical_usize(look_val_a));
     pw.set_target(initial_b, F::from_canonical_usize(look_val_b));
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove two_luts", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     data.verify(proof)?;
@@ -421,7 +421,7 @@ fn test_big_lut() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let inputs: [u16; LUT_SIZE] = core::array::from_fn(|i| i as u16);
     let lut_fn = |inp: u16| inp / 10;
@@ -439,7 +439,7 @@ fn test_big_lut() -> anyhow::Result<()> {
     builder.register_public_input(output_a);
     builder.register_public_input(output_b);
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
 
     let mut pw = PartialWitness::new();
 
@@ -464,7 +464,7 @@ fn test_many_lookups_on_big_lut() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let inputs: [u16; LUT_SIZE] = core::array::from_fn(|i| i as u16);
     let lut_fn = |inp: u16| inp / 10;
@@ -490,7 +490,7 @@ fn test_many_lookups_on_big_lut() -> anyhow::Result<()> {
 
     builder.register_public_input(sum);
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
 
     let mut pw = PartialWitness::new();
 

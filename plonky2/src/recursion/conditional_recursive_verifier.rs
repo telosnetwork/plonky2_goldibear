@@ -19,20 +19,20 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{OpeningSetTarget, ProofTarget, ProofWithPublicInputsTarget};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
-    pub fn conditionally_verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn conditionally_verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
         condition: BoolTarget,
         proof_with_pis0: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
-        inner_verifier_data0: &VerifierCircuitTarget,
+        inner_verifier_data0: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
         proof_with_pis1: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
-        inner_verifier_data1: &VerifierCircuitTarget,
-        inner_common_data: &CommonCircuitData<F, D>,
+        inner_verifier_data1: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
@@ -62,8 +62,8 @@ where
         &mut self,
         condition: BoolTarget,
         proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
-        inner_verifier_data: &VerifierCircuitTarget,
-        inner_common_data: &CommonCircuitData<F, D>,
+        inner_verifier_data: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<()>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
@@ -163,7 +163,7 @@ where
         b: BoolTarget,
         cap0: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         cap1: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
-    ) -> MerkleCapTarget {
+    ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         assert_eq!(cap0.0.len(), cap1.0.len());
         MerkleCapTarget(
             cap0.0
@@ -251,9 +251,9 @@ where
     fn select_query_round(
         &mut self,
         b: BoolTarget,
-        qr0: &FriQueryRoundTarget<D>,
-        qr1: &FriQueryRoundTarget<D>,
-    ) -> FriQueryRoundTarget<D> {
+        qr0: &FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>,
+        qr1: &FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS> {
         FriQueryRoundTarget {
             initial_trees_proof: self.select_initial_tree_proof(
                 b,
@@ -268,9 +268,9 @@ where
     fn select_vec_query_round(
         &mut self,
         b: BoolTarget,
-        v0: &[FriQueryRoundTarget<D>],
-        v1: &[FriQueryRoundTarget<D>],
-    ) -> Vec<FriQueryRoundTarget<D>> {
+        v0: &[FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>],
+        v1: &[FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>],
+    ) -> Vec<FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)
             .map(|(qr0, qr1)| self.select_query_round(b, qr0, qr1))
@@ -281,9 +281,9 @@ where
     fn select_initial_tree_proof(
         &mut self,
         b: BoolTarget,
-        proof0: &FriInitialTreeProofTarget,
-        proof1: &FriInitialTreeProofTarget,
-    ) -> FriInitialTreeProofTarget {
+        proof0: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+        proof1: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+    ) -> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS> {
         FriInitialTreeProofTarget {
             evals_proofs: proof0
                 .evals_proofs
@@ -303,9 +303,9 @@ where
     fn select_merkle_proof(
         &mut self,
         b: BoolTarget,
-        proof0: &MerkleProofTarget,
-        proof1: &MerkleProofTarget,
-    ) -> MerkleProofTarget {
+        proof0: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
+        proof1: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
+    ) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
         MerkleProofTarget {
             siblings: proof0
                 .siblings
@@ -320,9 +320,9 @@ where
     fn select_query_step(
         &mut self,
         b: BoolTarget,
-        qs0: &FriQueryStepTarget<D>,
-        qs1: &FriQueryStepTarget<D>,
-    ) -> FriQueryStepTarget<D> {
+        qs0: &FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>,
+        qs1: &FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> FriQueryStepTarget<D, NUM_HASH_OUT_ELTS> {
         FriQueryStepTarget {
             evals: self.select_vec_ext(b, &qs0.evals, &qs1.evals),
             merkle_proof: self.select_merkle_proof(b, &qs0.merkle_proof, &qs1.merkle_proof),
@@ -333,9 +333,9 @@ where
     fn select_vec_query_step(
         &mut self,
         b: BoolTarget,
-        v0: &[FriQueryStepTarget<D>],
-        v1: &[FriQueryStepTarget<D>],
-    ) -> Vec<FriQueryStepTarget<D>> {
+        v0: &[FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>],
+        v1: &[FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>],
+    ) -> Vec<FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)
             .map(|(qs0, qs1)| self.select_query_step(b, qs0, qs1))
@@ -370,7 +370,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
 
         // Generate proof.
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let mut pw = PartialWitness::new();
         let t = builder.add_virtual_target();
         pw.set_target(t, F::rand());
@@ -379,7 +379,7 @@ mod tests {
         for _ in 0..64 {
             builder.add_gate(NoopGate, vec![]);
         }
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
         data.verify(proof.clone())?;
 
@@ -388,12 +388,12 @@ mod tests {
         let dummy_proof = dummy_proof(&dummy_data, HashMap::new())?;
 
         // Conditionally verify the two proofs.
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::new();
         let pt = builder.add_virtual_proof_with_pis(&data.common);
         pw.set_proof_with_pis_target(&pt, &proof);
         let dummy_pt = builder.add_virtual_proof_with_pis(&data.common);
-        pw.set_proof_with_pis_target::<C, D>(&dummy_pt, &dummy_proof);
+        pw.set_proof_with_pis_target::<C, D, NUM_HASH_OUT_ELTS>(&dummy_pt, &dummy_proof);
         let inner_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         pw.set_verifier_data_target(&inner_data, &data.verifier_only);
@@ -411,7 +411,7 @@ mod tests {
         );
 
         builder.print_gate_counts(100);
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
         data.verify(proof)
     }

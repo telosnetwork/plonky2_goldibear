@@ -116,7 +116,7 @@ where
     pub fn compress(
         self,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         let indices = self.fri_query_indices(circuit_digest, common_data)?;
         let compressed_proof = self.proof.compress(&indices, &common_data.fri_params);
@@ -142,7 +142,7 @@ where
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<Self> {
         let mut buffer = Buffer::new(&bytes);
         let proof = buffer
@@ -234,7 +234,7 @@ where
     pub fn decompress(
         self,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         let challenges =
             self.get_challenges(self.get_public_inputs_hash(), circuit_digest, common_data)?;
@@ -251,7 +251,7 @@ where
     pub(crate) fn verify(
         self,
         verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<()> {
         ensure!(
             self.public_inputs.len() == common_data.num_public_inputs,
@@ -292,7 +292,7 @@ where
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<Self> {
         let mut buffer = Buffer::new(&bytes);
         let proof = buffer
@@ -373,7 +373,7 @@ where
         wires_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
         zs_partial_products_lookup_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
         quotient_polys_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self {
         let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>| {
             c.polynomials
@@ -539,7 +539,7 @@ mod tests {
         config.fri_config.num_query_rounds = 50;
 
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         // Build dummy circuit to get a valid proof.
         let x = F::rand();
@@ -553,7 +553,7 @@ mod tests {
         for _ in 0..100 {
             builder.add_gate(NoopGate, vec![]);
         }
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
         verify(proof.clone(), &data.verifier_only, &data.common)?;
 
@@ -597,7 +597,7 @@ mod tests {
         ];
         let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let lut_index = builder.add_lookup_table_from_pairs(table);
 
         // Build dummy circuit with a lookup to get a valid proof.
@@ -610,7 +610,7 @@ mod tests {
         for _ in 0..100 {
             builder.add_gate(NoopGate, vec![]);
         }
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
 
         let proof = data.prove(pw)?;
         verify(proof.clone(), &data.verifier_only, &data.common)?;

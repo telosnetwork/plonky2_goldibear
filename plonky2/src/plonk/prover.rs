@@ -46,7 +46,7 @@ pub fn set_lookup_wires<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     pw: &mut PartitionWitness<F>,
 ) where
     F::Extension: TwoAdicField,
@@ -120,7 +120,7 @@ pub fn prove<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     inputs: PartialWitness<F>,
     timing: &mut TimingTree,
 ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
@@ -145,7 +145,7 @@ pub fn prove_with_partition_witness<
     const NUM_HASH_OUT_ELTS: usize,
 >(
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     mut partition_witness: PartitionWitness<F>,
     timing: &mut TimingTree,
 ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
@@ -380,7 +380,7 @@ fn all_wires_permutation_partial_products<
     betas: &[F],
     gammas: &[F],
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<Vec<PolynomialValues<F>>>
 where
     F::Extension: TwoAdicField,
@@ -411,7 +411,7 @@ fn wires_permutation_partial_products_and_zs<
     beta: F,
     gamma: F,
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<PolynomialValues<F>>
 where
     F::Extension: TwoAdicField,
@@ -480,7 +480,7 @@ fn compute_lookup_polys<
     witness: &MatrixWitness<F>,
     deltas: &[F; 4],
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<PolynomialValues<F>>
 where
     F::Extension: TwoAdicField,
@@ -603,7 +603,7 @@ fn compute_all_lookup_polys<
     witness: &MatrixWitness<F>,
     deltas: &[F],
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     lookup: bool,
 ) -> Vec<PolynomialValues<F>>
 where
@@ -637,7 +637,7 @@ fn compute_quotient_polys<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     prover_data: &'a ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     public_inputs_hash: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     wires_commitment: &'a PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,

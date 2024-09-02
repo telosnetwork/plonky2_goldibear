@@ -58,11 +58,11 @@ where
         format!("{self:?} + Base: {B}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.num_limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let num_limbs = src.read_usize()?;
         Ok(Self { num_limbs })
     }
@@ -99,7 +99,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let base = builder.constant(F::from_canonical_usize(B));
@@ -124,7 +124,7 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = BaseSplitGenerator::<B> {
             row,
             num_limbs: self.num_limbs,
@@ -183,7 +183,7 @@ pub struct BaseSplitGenerator<const B: usize> {
     num_limbs: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const B: usize, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for BaseSplitGenerator<B>
 where
     F::Extension: TwoAdicField,
@@ -221,12 +221,12 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.num_limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let row = src.read_usize()?;
         let num_limbs = src.read_usize()?;
         Ok(Self { row, num_limbs })
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2>(BaseSumGate::<6>::new(11))
+        test_low_degree::<Goldilocks, _, 2, 4>(BaseSumGate::<6>::new(11))
     }
 
     #[test]

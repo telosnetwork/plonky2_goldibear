@@ -50,11 +50,11 @@ where
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.num_consts)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let num_consts = src.read_usize()?;
         Ok(Self { num_consts })
     }
@@ -81,7 +81,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         (0..self.num_consts)
@@ -94,7 +94,7 @@ where
             .collect()
     }
 
-    fn generators(&self, _row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, _row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         vec![]
     }
 
@@ -150,7 +150,7 @@ mod tests {
     fn low_degree() {
         let num_consts = CircuitConfig::standard_recursion_config().num_constants;
         let gate = ConstantGate { num_consts };
-        test_low_degree::<Goldilocks, _, 2>(gate)
+        test_low_degree::<Goldilocks, _, 2, 4>(gate)
     }
 
     #[test]

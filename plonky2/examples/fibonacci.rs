@@ -10,11 +10,12 @@ use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 /// When a == 0 and b == 1, this is proving knowledge of the 100th (standard) Fibonacci number.
 fn main() -> Result<()> {
     const D: usize = 2;
+    const NUM_HASH_OUT_ELTS: usize = 4;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     // The arithmetic circuit.
     let initial_a = builder.add_virtual_target();
@@ -37,7 +38,7 @@ fn main() -> Result<()> {
     pw.set_target(initial_a, F::zero());
     pw.set_target(initial_b, F::one());
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let proof = data.prove(pw)?;
 
     println!(

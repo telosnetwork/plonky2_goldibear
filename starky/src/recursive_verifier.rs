@@ -41,7 +41,7 @@ pub fn verify_stark_proof_circuit<
     S: Stark<F, D>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: S,
     proof_with_pis: StarkProofWithPublicInputsTarget<D>,
     inner_config: &StarkConfig,
@@ -75,7 +75,7 @@ pub fn verify_stark_proof_with_challenges_circuit<
     S: Stark<F, D>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     proof: &StarkProofTarget<D>,
     public_inputs: &[Target],
@@ -198,7 +198,7 @@ pub fn verify_stark_proof_with_challenges_circuit<
 }
 
 fn eval_l_0_and_l_last_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     log_n: usize,
     x: ExtensionTarget<D>,
     z_x: ExtensionTarget<D>,
@@ -222,7 +222,7 @@ pub fn add_virtual_stark_proof_with_pis<
     S: Stark<F, D>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     config: &StarkConfig,
     degree_bits: usize,
@@ -246,7 +246,7 @@ pub fn add_virtual_stark_proof_with_pis<
 
 /// Adds a new `StarkProofTarget` to this circuit.
 pub fn add_virtual_stark_proof<F: RichField + HasExtension<D>, S: Stark<F, D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     config: &StarkConfig,
     degree_bits: usize,
@@ -289,7 +289,7 @@ pub fn add_virtual_stark_proof<F: RichField + HasExtension<D>, S: Stark<F, D>, c
 }
 
 fn add_virtual_stark_opening_set<F: RichField + HasExtension<D>, S: Stark<F, D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     num_ctl_helper_zs: usize,
     num_ctl_zs: usize,

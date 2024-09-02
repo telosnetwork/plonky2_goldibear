@@ -87,7 +87,7 @@ where
 
     pub fn fri_challenges(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         commit_phase_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
         final_poly: &PolynomialCoeffsExtTarget<D>,
         pow_witness: Target,

@@ -126,7 +126,7 @@ pub struct LookupWire {
 /// builder.register_public_input(cur_target);
 ///
 /// // Build the circuit
-/// let circuit_data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+/// let circuit_data = builder.build::<C>();
 ///
 /// // Now compute the witness and generate a proof
 /// let mut pw = PartialWitness::new();
@@ -139,7 +139,7 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize>
+pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
@@ -155,7 +155,7 @@ where
     gates: HashSet<GateRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// The concrete placement of each gate.
-    pub(crate) gate_instances: Vec<GateInstance<F, D>>,
+    pub(crate) gate_instances: Vec<GateInstance<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// Targets to be made public.
     public_inputs: Vec<Target>,
@@ -169,7 +169,7 @@ where
     context_log: ContextTree,
 
     /// Generators used to generate the witness.
-    generators: Vec<WitnessGeneratorRef<F, D>>,
+    generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     constants_to_targets: HashMap<F, Target>,
     targets_to_constants: HashMap<Target, F>,
@@ -199,14 +199,14 @@ where
     /// Optional common data. When it is `Some(goal_data)`, the `build` function panics if the resulting
     /// common data doesn't equal `goal_data`.
     /// This is used in cyclic recursion.
-    pub(crate) goal_common_data: Option<CommonCircuitData<F, D>>,
+    pub(crate) goal_common_data: Option<CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// Optional verifier data that is registered as public inputs.
     /// This is used in cyclic recursion to hold the circuit's own verifier key.
-    pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget<{2 * D}>>,
+    pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -348,34 +348,34 @@ where
     }
 
     /// Adds a new `HashOutTarget`.
-    pub fn add_virtual_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn add_virtual_hash(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget::from(self.add_virtual_target_arr::<NUM_HASH_OUT_ELTS>())
     }
 
     /// Registers a new `HashOutTarget` as a public input, adding
     /// internally `NUM_HASH_OUT_ELTS` virtual targets.
-    pub fn add_virtual_hash_public_input<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn add_virtual_hash_public_input(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget::from(self.add_virtual_public_input_arr::<NUM_HASH_OUT_ELTS>())
     }
 
     /// Adds a new `MerkleCapTarget`, consisting in `1 << cap_height` `HashOutTarget`.
-    pub fn add_virtual_cap<const NUM_HASH_OUT_ELTS: usize>(&mut self, cap_height: usize) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
+    pub fn add_virtual_cap(&mut self, cap_height: usize) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         MerkleCapTarget(self.add_virtual_hashes(1 << cap_height))
     }
 
     /// Adds `n` new `HashOutTarget` in a vector fashion.
-    pub fn add_virtual_hashes<const NUM_HASH_OUT_ELTS: usize>(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
+    pub fn add_virtual_hashes(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n).map(|_i| self.add_virtual_hash()).collect()
     }
 
     /// Registers `n` new `HashOutTarget` as public inputs, in a vector fashion.
-    pub fn add_virtual_hashes_public_input<const NUM_HASH_OUT_ELTS: usize>(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
+    pub fn add_virtual_hashes_public_input(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n)
             .map(|_i| self.add_virtual_hash_public_input())
             .collect()
     }
 
-    pub(crate) fn add_virtual_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self, len: usize) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
+    pub(crate) fn add_virtual_merkle_proof(&mut self, len: usize) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
         MerkleProofTarget {
             siblings: self.add_virtual_hashes(len),
         }
@@ -422,7 +422,7 @@ where
         ts
     }
 
-    pub fn add_virtual_verifier_data(&mut self, cap_height: usize) -> VerifierCircuitTarget {
+    pub fn add_virtual_verifier_data(&mut self, cap_height: usize) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         VerifierCircuitTarget {
             constants_sigmas_cap: self.add_virtual_cap(cap_height),
             circuit_digest: self.add_virtual_hash(),
@@ -433,7 +433,7 @@ where
     ///
     /// **WARNING**: Do not register any public input after calling this!
     // TODO: relax this
-    pub fn add_verifier_data_public_inputs(&mut self) -> VerifierCircuitTarget {
+    pub fn add_verifier_data_public_inputs(&mut self) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         assert!(
             self.verifier_data_public_input.is_none(),
             "add_verifier_data_public_inputs only needs to be called once"
@@ -566,11 +566,11 @@ where
         self.connect(x, one);
     }
 
-    pub fn add_generators(&mut self, generators: Vec<WitnessGeneratorRef<F, D>>) {
+    pub fn add_generators(&mut self, generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>) {
         self.generators.extend(generators);
     }
 
-    pub fn add_simple_generator<G: SimpleGenerator<F, D>>(&mut self, generator: G) {
+    pub fn add_simple_generator<G: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>>(&mut self, generator: G) {
         self.generators
             .push(WitnessGeneratorRef::new(generator.adapter()));
     }
@@ -634,24 +634,24 @@ where
     }
 
     /// Returns a routable [`HashOutTarget`].
-    pub fn constant_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self, h: HashOut<F, NUM_HASH_OUT_ELTS>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn constant_hash(&mut self, h: HashOut<F, NUM_HASH_OUT_ELTS>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
             elements: h.elements.map(|x| self.constant(x)),
         }
     }
 
     /// Returns a routable [`MerkleCapTarget`].
-    pub fn constant_merkle_cap<H: Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn constant_merkle_cap<H: Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>>>(
         &mut self,
         cap: &MerkleCap<F, H>,
     ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         MerkleCapTarget(cap.0.iter().map(|h| self.constant_hash(*h)).collect())
     }
 
-    pub fn constant_verifier_data<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn constant_verifier_data<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
         verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
-    ) -> VerifierCircuitTarget
+    ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
@@ -1038,7 +1038,7 @@ where
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
         commit_to_sigma: bool,
     ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
@@ -1052,7 +1052,7 @@ where
         circuit_data
     }
 
-    pub fn try_build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn try_build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         mut self,
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
@@ -1072,7 +1072,7 @@ where
         // those hash wires match the claimed public inputs.
         let num_public_inputs = self.public_inputs.len();
         let public_inputs_hash =
-            self.hash_n_to_hash_no_pad::<C::InnerHasher, NUM_HASH_OUT_ELTS>(self.public_inputs.clone());
+            self.hash_n_to_hash_no_pad::<C::InnerHasher>(self.public_inputs.clone());
         let pi_gate = self.add_gate(PublicInputGate, vec![]);
         for (&hash_part, wire) in public_inputs_hash
             .elements
@@ -1307,14 +1307,14 @@ where
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(self) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(self) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
         self.build_with_options(true)
     }
 
-    pub fn mock_build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn mock_build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
@@ -1327,26 +1327,26 @@ where
         }
     }
     /// Builds a "prover circuit", with data needed to generate proofs but not verify them.
-    pub fn build_prover<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn build_prover<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
         // TODO: Can skip parts of this.
-        let circuit_data = self.build::<C, NUM_HASH_OUT_ELTS>();
+        let circuit_data = self.build::<C>();
         circuit_data.prover_data()
     }
 
     /// Builds a "verifier circuit", with data needed to verify proofs but not generate them.
-    pub fn build_verifier<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn build_verifier<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {
         // TODO: Can skip parts of this.
-        let circuit_data = self.build::<C, NUM_HASH_OUT_ELTS>();
+        let circuit_data = self.build::<C>();
         circuit_data.verifier_data()
     }
 }

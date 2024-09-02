@@ -24,7 +24,7 @@ where
     /// Evaluates entire batch of points. Returns a matrix of constraints. Constraint `j` for point
     /// `i` is at `index j * batch_size + i`.
     fn eval_unfiltered_base_batch_packed(&self, vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
-        let mut res = vec![F::zero(); vars_batch.len() * self.num_constraints()];
+        let mut res = vec![F::zero(); vars_batch.len() * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)];
         let (vars_packed_iter, vars_leftovers_iter) = vars_batch.pack::<<F as Packable>::Packing>();
         let leftovers_start = vars_batch.len() - vars_leftovers_iter.len();
         for (i, vars_packed) in vars_packed_iter.enumerate() {

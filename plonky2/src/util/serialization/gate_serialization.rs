@@ -15,20 +15,20 @@ use crate::util::serialization::{Buffer, IoResult};
 
 // For macros below
 
-pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize>
+pub trait GateSerializer<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
     fn read_gate(
         &self,
         buf: &mut Buffer,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>;
     fn write_gate(
         &self,
         buf: &mut Vec<u8>,
         gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>;
 }
 
@@ -40,7 +40,7 @@ macro_rules! read_gate_impl {
         let mut i = 0..;
         $(if tag == i.next().unwrap() {
             let gate = <$gate_types as $crate::gates::gate::Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(buf, $common)?;
-            Ok($crate::gates::gate::GateRef::<F, D>::new(gate))
+            Ok($crate::gates::gate::GateRef::<F, D, NUM_HASH_OUT_ELTS>::new(gate))
         } else)*
         {
             Err($crate::util::serialization::IoError)
@@ -77,7 +77,7 @@ macro_rules! impl_gate_serializer {
         fn read_gate(
             &self,
             buf: &mut $crate::util::serialization::Buffer,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         ) -> $crate::util::serialization::IoResult<$crate::gates::gate::GateRef<F, D, NUM_HASH_OUT_ELTS>> {
             let tag = $crate::util::serialization::Read::read_u32(buf)?;
             read_gate_impl!(buf, tag, common, $($gate_types),+)
@@ -87,7 +87,7 @@ macro_rules! impl_gate_serializer {
             &self,
             buf: &mut $crate::util::serialization::gate_serialization::Vec<u8>,
             gate: &$crate::gates::gate::GateRef<F, D, NUM_HASH_OUT_ELTS>,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         ) -> $crate::util::serialization::IoResult<()> {
             let tag = get_gate_tag_impl!(gate, $($gate_types),+)?;
 
@@ -133,7 +133,7 @@ pub mod default {
     /// the `GateSerializer` trait. This can be easily done through the `impl_gate_serializer` macro.
     #[derive(Debug)]
     pub struct DefaultGateSerializer;
-    impl<F: RichField + HasExtension<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer
+    impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> GateSerializer<F, D, NUM_HASH_OUT_ELTS> for DefaultGateSerializer
     where
         F::Extension: TwoAdicField,
     {

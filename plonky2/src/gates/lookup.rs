@@ -82,7 +82,7 @@ where
         )
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.num_slots)?;
         for (i, lut) in common_data.luts.iter().enumerate() {
             if lut == &self.lut {
@@ -94,7 +94,7 @@ where
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let num_slots = src.read_usize()?;
         let lut_index = src.read_usize()?;
         let mut lut_hash = [0u8; 32];
@@ -126,14 +126,14 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         _vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         // No main trace constraints for lookups.
         vec![]
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_slots)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -184,7 +184,7 @@ pub struct LookupGenerator {
     slot_nb: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D> for LookupGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -224,7 +224,7 @@ where
         };
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.slot_nb)?;
         for (i, lut) in common_data.luts.iter().enumerate() {
@@ -236,7 +236,7 @@ where
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let row = src.read_usize()?;
         let slot_nb = src.read_usize()?;
         let lut_index = src.read_usize()?;

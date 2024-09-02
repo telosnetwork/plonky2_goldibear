@@ -74,8 +74,8 @@ where
     }
 
     /// Same as `mds_row_shf_recursive` for an extension algebra of `F`.
-    fn mds_row_shf_algebra_circuit(
-        builder: &mut CircuitBuilder<F, D>,
+    fn mds_row_shf_algebra_circuit<const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         r: usize,
         v: &[ExtensionAlgebraTarget<D>; SPONGE_WIDTH],
     ) -> ExtensionAlgebraTarget<D> {
@@ -114,8 +114,8 @@ where
     }
 
     /// Same as `mds_layer_recursive` for an extension algebra of `F`.
-    fn mds_layer_algebra_circuit(
-        builder: &mut CircuitBuilder<F, D>,
+    fn mds_layer_algebra_circuit<const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionAlgebraTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionAlgebraTarget<D>; SPONGE_WIDTH] {
         let mut result = [builder.zero_ext_algebra(); SPONGE_WIDTH];
@@ -140,12 +140,12 @@ where
     fn serialize(
         &self,
         _dst: &mut Vec<u8>,
-        _common_data: &CommonCircuitData<F, D>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         Ok(PoseidonMdsGate::new())
     }
 
@@ -195,7 +195,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let inputs: [_; SPONGE_WIDTH] = (0..SPONGE_WIDTH)
@@ -217,7 +217,7 @@ where
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = PoseidonMdsGenerator { row };
         vec![WitnessGeneratorRef::new(gen.adapter())]
     }
@@ -244,7 +244,7 @@ pub struct PoseidonMdsGenerator<const D: usize> {
     row: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for PoseidonMdsGenerator<D>
 where
     F::Extension: TwoAdicField,
@@ -283,11 +283,11 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.row)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let row = src.read_usize()?;
         Ok(Self { row })
     }
@@ -306,7 +306,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = PoseidonMdsGate::<F, D>::new();
-        test_low_degree(gate)
+        test_low_degree::<F, PoseidonMdsGate<F, D>, D, NUM_HASH_OUT_ELTS>(gate)
     }
 
     #[test]

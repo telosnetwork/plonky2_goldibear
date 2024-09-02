@@ -11,27 +11,27 @@ use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn hash_or_noop<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const NUM_HASH_OUT_ELTS: usize>(&mut self, inputs: Vec<Target>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn hash_or_noop<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(&mut self, inputs: Vec<Target>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         let zero = self.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {
             HashOutTarget::from_partial(&inputs, zero)
         } else {
-            self.hash_n_to_hash_no_pad::<H, NUM_HASH_OUT_ELTS>(inputs)
+            self.hash_n_to_hash_no_pad::<H>(inputs)
         }
     }
 
-    pub fn hash_n_to_hash_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn hash_n_to_hash_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         inputs: Vec<Target>,
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
-        HashOutTarget::from_vec(self.hash_n_to_m_no_pad::<H, NUM_HASH_OUT_ELTS>(inputs, NUM_HASH_OUT_ELTS))
+        HashOutTarget::from_vec(self.hash_n_to_m_no_pad::<H>(inputs, NUM_HASH_OUT_ELTS))
     }
 
-    pub fn hash_n_to_m_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn hash_n_to_m_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         inputs: Vec<Target>,
         num_outputs: usize,
@@ -45,7 +45,7 @@ where
             // where we would xor or add in the inputs. This is a well-known variant, though,
             // sometimes called "overwrite mode".
             state.set_from_slice(input_chunk, 0);
-            state = self.permute::<H, NUM_HASH_OUT_ELTS>(state);
+            state = self.permute::<H>(state);
         }
 
         // Squeeze until we have the desired number of outputs.
@@ -57,7 +57,7 @@ where
                     return outputs;
                 }
             }
-            state = self.permute::<H, NUM_HASH_OUT_ELTS>(state);
+            state = self.permute::<H>(state);
         }
     }
 }

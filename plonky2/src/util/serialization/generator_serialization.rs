@@ -15,21 +15,21 @@ use crate::util::serialization::{Buffer, IoResult};
 
 // For macros below
 
-pub trait WitnessGeneratorSerializer<F: RichField + HasExtension<D>, const D: usize>
+pub trait WitnessGeneratorSerializer<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F::Extension: TwoAdicField,
 {
     fn read_generator(
         &self,
         buf: &mut Buffer,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<WitnessGeneratorRef<F, D>>;
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>;
 
     fn write_generator(
         &self,
         buf: &mut Vec<u8>,
-        generator: &WitnessGeneratorRef<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator: &WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>;
 }
 
@@ -42,9 +42,9 @@ macro_rules! read_generator_impl {
 
         $(if tag == i.next().unwrap() {
         let generator =
-            <$generator_types as $crate::iop::generator::SimpleGenerator<F, D>>::deserialize(buf, $common)?;
-        Ok($crate::iop::generator::WitnessGeneratorRef::<F, D>::new(
-            $crate::iop::generator::SimpleGenerator::<F, D>::adapter(generator),
+            <$generator_types as $crate::iop::generator::SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>>::deserialize(buf, $common)?;
+        Ok($crate::iop::generator::WitnessGeneratorRef::<F, D, NUM_HASH_OUT_ELTS>::new(
+            $crate::iop::generator::SimpleGenerator::<F, D, NUM_HASH_OUT_ELTS>::adapter(generator),
         ))
         } else)*
         {
@@ -57,7 +57,7 @@ macro_rules! read_generator_impl {
 macro_rules! get_generator_tag_impl {
     ($generator:expr, $($generator_types:ty),+) => {{
         let mut i = 0..;
-        $(if let (tag, true) = (i.next().unwrap(), $generator.0.id() == $crate::iop::generator::SimpleGenerator::<F, D>::id(&<$generator_types>::default())) {
+        $(if let (tag, true) = (i.next().unwrap(), $generator.0.id() == $crate::iop::generator::SimpleGenerator::<F, D, NUM_HASH_OUT_ELTS>::id(&<$generator_types>::default())) {
             Ok(tag)
         } else)*
         {
@@ -81,8 +81,8 @@ macro_rules! impl_generator_serializer {
         fn read_generator(
             &self,
             buf: &mut $crate::util::serialization::Buffer,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
-        ) -> $crate::util::serialization::IoResult<$crate::iop::generator::WitnessGeneratorRef<F, D>> {
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+        ) -> $crate::util::serialization::IoResult<$crate::iop::generator::WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
             let tag = $crate::util::serialization::Read::read_u32(buf)?;
             read_generator_impl!(buf, tag, common, $($generator_types),+)
         }
@@ -90,8 +90,8 @@ macro_rules! impl_generator_serializer {
         fn write_generator(
             &self,
             buf: &mut $crate::util::serialization::generator_serialization::Vec<u8>,
-            generator: &$crate::iop::generator::WitnessGeneratorRef<F, D>,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
+            generator: &$crate::iop::generator::WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         ) -> $crate::util::serialization::IoResult<()> {
             let tag = get_generator_tag_impl!(generator, $($generator_types),+)?;
 
@@ -152,7 +152,7 @@ pub mod default {
         pub _phantom: PhantomData<C>,
     }
 
-    impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> WitnessGeneratorSerializer<F, D> for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
+    impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS> for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -167,7 +167,7 @@ pub mod default {
             BaseSumGenerator<2>,
             ConstantGenerator<F>,
             CopyGenerator,
-            DummyProofGenerator<F, C, D>,
+            DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>,
             EqualityGenerator,
             ExponentiationGenerator<F, D>,
             InterpolationGenerator<F, D>,

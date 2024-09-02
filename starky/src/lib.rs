@@ -114,7 +114,7 @@
 //!     // Define the constraints to recursively verify this STARK.
 //!     fn eval_ext_circuit(
 //!         &self,
-//!         builder: &mut CircuitBuilder<F, D>,
+//!         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
 //!         vars: &Self::EvaluationFrameTarget,
 //!         yield_constr: &mut RecursiveConstraintConsumer<F, D>,
 //!     ) {
@@ -247,7 +247,7 @@
 //! #     // Define the constraints to recursively verify this STARK.
 //! #     fn eval_ext_circuit(
 //! #         &self,
-//! #         builder: &mut CircuitBuilder<F, D>,
+//! #         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
 //! #         vars: &Self::EvaluationFrameTarget,
 //! #         yield_constr: &mut RecursiveConstraintConsumer<F, D>,
 //! #     ) {

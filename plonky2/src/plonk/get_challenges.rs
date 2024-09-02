@@ -39,7 +39,7 @@ fn get_challenges<
     final_poly: &PolynomialCoeffs<F::Extension>,
     pow_witness: F,
     circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<ProofChallenges<F, D>>
 where
     F::Extension: TwoAdicField,
@@ -110,7 +110,7 @@ where
     pub(crate) fn fri_query_indices(
         &self,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<Vec<usize>> {
         Ok(self
             .get_challenges(self.get_public_inputs_hash(), circuit_digest, common_data)?
@@ -123,7 +123,7 @@ where
         &self,
         public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<ProofChallenges<F, D>> {
         let Proof {
             wires_cap,
@@ -168,7 +168,7 @@ where
         &self,
         public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<ProofChallenges<F, D>> {
         let CompressedProof {
             wires_cap,
@@ -202,7 +202,7 @@ where
     pub(crate) fn get_inferred_elements(
         &self,
         challenges: &ProofChallenges<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> FriInferredElements<F, D> {
         let ProofChallenges {
             plonk_zeta,
@@ -274,11 +274,11 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CircuitBuilder<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    fn get_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    fn get_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
         public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
         wires_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
@@ -289,7 +289,7 @@ where
         final_poly: &PolynomialCoeffsExtTarget<D>,
         pow_witness: Target,
         inner_circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
-        inner_common_data: &CommonCircuitData<F, D>,
+        inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ProofChallengesTarget<D>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
@@ -355,10 +355,10 @@ impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> ProofWithPublicInputsTarget
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     >(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
         inner_circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
-        inner_common_data: &CommonCircuitData<F, D>,
+        inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ProofChallengesTarget<D>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
@@ -378,7 +378,7 @@ impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> ProofWithPublicInputsTarget
                 },
         } = &self.proof;
 
-        builder.get_challenges::<C, NUM_HASH_OUT_ELTS>(
+        builder.get_challenges::<C>(
             public_inputs_hash,
             wires_cap,
             plonk_zs_partial_products_cap,

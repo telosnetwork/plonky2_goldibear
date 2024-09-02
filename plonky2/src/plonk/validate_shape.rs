@@ -9,7 +9,7 @@ use crate::plonk::proof::{OpeningSet, Proof, ProofWithPublicInputs};
 
 pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<()>
 where
     F: RichField + HasExtension<D>,
@@ -30,7 +30,7 @@ where
 
 fn validate_proof_shape<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<()>
 where
     F: RichField + HasExtension<D>,

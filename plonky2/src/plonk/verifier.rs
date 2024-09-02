@@ -22,7 +22,7 @@ pub(crate) fn verify<
 >(
     proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<()>
 where
     F::Extension: TwoAdicField,
@@ -55,7 +55,7 @@ pub(crate) fn verify_with_challenges<
     public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     challenges: ProofChallenges<F, D>,
     verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
-    common_data: &CommonCircuitData<F, D>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<()>
 where
     F::Extension: TwoAdicField,

@@ -73,7 +73,7 @@ pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
     /// in the same order as they are given in `eval_packed_generic`.
     fn eval_ext_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: &Self::EvaluationFrameTarget,
         yield_constr: &mut RecursiveConstraintConsumer<F, D>,
     );
@@ -172,7 +172,7 @@ pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
     /// Computes the FRI instance used to prove this Stark.
     fn fri_instance_target(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         zeta: ExtensionTarget<D>,
         g: F,
         num_ctl_helper_polys: usize,

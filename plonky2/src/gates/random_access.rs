@@ -132,14 +132,14 @@ where
         format!("{self:?}<D={D}>")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.bits)?;
         dst.write_usize(self.num_copies)?;
         dst.write_usize(self.num_extra_constants)?;
         Ok(())
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let bits = src.read_usize()?;
         let num_copies = src.read_usize()?;
         let num_extra_constants = src.read_usize()?;
@@ -147,7 +147,7 @@ where
     }
 
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
 
         for copy in 0..self.num_copies {
             let access_index = vars.local_wires[self.wire_access_index(copy)];
@@ -209,12 +209,12 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let zero = builder.zero_extension();
         let two = builder.two_extension();
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
 
         for copy in 0..self.num_copies {
             let access_index = vars.local_wires[self.wire_access_index(copy)];
@@ -264,7 +264,7 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_copies)
             .map(|copy| {
                 WitnessGeneratorRef::new(
@@ -362,7 +362,7 @@ where
     copy: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for RandomAccessGenerator<F, D>
 where
     F::Extension: TwoAdicField,
@@ -413,13 +413,13 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.copy)?;
         self.gate.serialize(dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let row = src.read_usize()?;
         let copy = src.read_usize()?;
         let gate = RandomAccessGate::<F, D>::deserialize(src, _common_data)?;
@@ -443,7 +443,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2>(RandomAccessGate::new(4, 4, 1));
+        test_low_degree::<Goldilocks, _, 2, 4>(RandomAccessGate::new(4, 4, 1));
     }
 
     #[test]
@@ -510,14 +510,14 @@ mod tests {
             num_extra_constants: 1,
             _phantom: PhantomData,
         };
-        let constants = F::rand_vec(gate.num_constants());
+        let constants = F::rand_vec(<RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constants(&gate));
 
         let good_claimed_elements = lists
             .iter()
             .zip(&access_indices)
             .map(|(l, &i)| l[i])
             .collect();
-        let good_vars = EvaluationVars {
+        let good_vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
             local_constants: &constants.iter().map(|&x| x.into()).collect::<Vec<_>>(),
             local_wires: &get_wires(
                 bits,
@@ -529,7 +529,7 @@ mod tests {
             public_inputs_hash: &HashOut::rand(),
         };
         let bad_claimed_elements = F::rand_vec(4);
-        let bad_vars = EvaluationVars {
+        let bad_vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
             local_constants: &constants.iter().map(|&x| x.into()).collect::<Vec<_>>(),
             local_wires: &get_wires(
                 bits,

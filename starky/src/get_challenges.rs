@@ -165,7 +165,7 @@ where
 /// Circuit version of `get_challenges`, with the same flexibility around
 /// `trace_cap` being passed as an `Option`.
 fn get_challenges_target<F, C, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     challenger: &mut RecursiveChallenger<F, C::Hasher, D>,
     challenges: Option<&GrandProductChallengeSet<Target>>,
     trace_cap: Option<&MerkleCapTarget>,
@@ -234,7 +234,7 @@ impl<const D: usize> StarkProofTarget<D> {
     /// again the cap when generating individual challenges.
     pub fn get_challenges<F, C>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         challenger: &mut RecursiveChallenger<F, C::Hasher, D>,
         challenges: Option<&GrandProductChallengeSet<Target>>,
         ignore_trace_cap: bool,
@@ -291,7 +291,7 @@ impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
     /// again the cap when generating individual challenges.
     pub fn get_challenges<F, C>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         challenger: &mut RecursiveChallenger<F, C::Hasher, D>,
         challenges: Option<&GrandProductChallengeSet<Target>>,
         ignore_trace_cap: bool,

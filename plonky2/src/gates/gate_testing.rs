@@ -22,7 +22,7 @@ const WITNESS_DEGREE: usize = WITNESS_SIZE - 1;
 
 /// Tests that the constraints imposed by the given gate are low-degree by applying them to random
 /// low-degree witness polynomials.
-pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D, NUM_HASH_OUT_ELTS>, const D: usize>(gate: G)
+pub fn test_low_degree<F: RichField + HasExtension<D>, G: Gate<F, D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(gate: G)
 where
     F::Extension: TwoAdicField + Sample,
     F::Extension: TwoAdicField,
@@ -146,7 +146,7 @@ where
 
     let config = CircuitConfig::standard_recursion_config();
     let mut pw = PartialWitness::new();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let wires_t = builder.add_virtual_extension_targets(wires.len());
     let constants_t = builder.add_virtual_extension_targets(constants.len());
@@ -170,7 +170,7 @@ where
     let evals_t = gate.eval_unfiltered_circuit(&mut builder, vars_t);
     pw.set_extension_targets(&evals_t, &evals);
 
-    let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+    let data = builder.build::<C>();
     let proof = data.prove(pw)?;
     verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof, &data.verifier_only, &data.common)
 }

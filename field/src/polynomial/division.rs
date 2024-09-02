@@ -51,7 +51,7 @@ impl<F: TwoAdicField> PolynomialCoeffs<F> {
         } else if a_degree_plus_1 < b_degree_plus_1 {
             (Self::zero(1), self.clone())
         } else {
-            // Now we know that self.degree() >= divisor.degree();
+            // Now we know that <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) >= divisor.degree();
             let mut quotient = Self::zero(a_degree_plus_1 - b_degree_plus_1 + 1);
             let mut remainder = self.clone();
             // Can unwrap here because we know self is not zero.

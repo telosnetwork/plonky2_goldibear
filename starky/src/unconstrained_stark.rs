@@ -71,7 +71,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for Unconstrain
     // We don't constrain any register.
     fn eval_ext_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         _vars: &Self::EvaluationFrameTarget,
         _yield_constr: &mut RecursiveConstraintConsumer<F, D>,
     ) {
@@ -178,7 +178,7 @@ mod tests {
         InnerC::Hasher: AlgebraicHasher<F>,
     {
         let circuit_config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(circuit_config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(circuit_config);
         let mut pw = PartialWitness::new();
         let degree_bits = inner_proof.proof.recover_degree_bits(inner_config);
         let pt =

@@ -73,8 +73,8 @@ pub(crate) fn eval_l_0<F: Field>(n: usize, x: F) -> F {
 /// the order-`n` subgroup.
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound.
-pub(crate) fn eval_l_0_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub(crate) fn eval_l_0_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     n: usize,
     x: ExtensionTarget<D>,
     x_pow_n: ExtensionTarget<D>,
@@ -133,8 +133,8 @@ where
     sum
 }
 
-pub fn reduce_with_powers_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub fn reduce_with_powers_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     terms: &[Target],
     alpha: Target,
 ) -> Target
@@ -153,8 +153,8 @@ where
     }
 }
 
-pub fn reduce_with_powers_ext_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub fn reduce_with_powers_ext_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     terms: &[ExtensionTarget<D>],
     alpha: Target,
 ) -> ExtensionTarget<D>

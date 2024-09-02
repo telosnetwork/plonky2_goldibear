@@ -61,10 +61,10 @@ where
     fn id(&self) -> String;
 
     /// Serializes this custom gate to the targeted byte buffer, with the provided [`CommonCircuitData`].
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()>;
+    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()>;
 
     /// Deserializes the bytes in the provided buffer into this custom gate, given some [`CommonCircuitData`].
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
+    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self>
     where
         Self: Sized;
 
@@ -115,7 +115,7 @@ where
     }
 
     fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
-        let mut res = vec![F::zero(); vars_base.len() * self.num_constraints()];
+        let mut res = vec![F::zero(); vars_base.len() * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)];
         for (i, vars_base_one) in vars_base.iter().enumerate() {
             self.eval_unfiltered_base_one(
                 vars_base_one,
@@ -133,7 +133,7 @@ where
     /// prover won't be able to generate proofs.
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>>;
 
@@ -160,7 +160,7 @@ where
             .collect()
     }
 
-    /// The result is an array of length `vars_batch.len() * self.num_constraints()`. Constraint `j`
+    /// The result is an array of length `vars_batch.len() * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)`. Constraint `j`
     /// for point `i` is at index `j * batch_size + i`.
     fn eval_filtered_base_batch(
         &self,
@@ -193,7 +193,7 @@ where
     /// Adds this gate's filtered constraints into the `combined_gate_constraints` buffer.
     fn eval_filtered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         mut vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
         row: usize,
         selector_index: usize,
@@ -220,7 +220,7 @@ where
     /// The generators used to populate the witness.
     ///
     /// **Note**: This should return exactly 1 generator per operation in the gate.
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>>;
+    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>;
 
     /// The number of wires used by this gate.
     ///
@@ -368,8 +368,8 @@ fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_se
         .product()
 }
 
-fn compute_filter_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+fn compute_filter_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     row: usize,
     group_range: Range<usize>,
     s: ExtensionTarget<D>,

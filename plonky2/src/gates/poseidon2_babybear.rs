@@ -124,12 +124,12 @@ where
     fn serialize(
         &self,
         _dst: &mut Vec<u8>,
-        _common_data: &CommonCircuitData<F, D>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         Ok(Poseidon2BabyBearGate::new())
     }
 
@@ -137,7 +137,7 @@ where
         &self,
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
         constraints
@@ -320,10 +320,10 @@ where
     }
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
         constraints.push(builder.mul_sub_extension(swap, swap, swap));
@@ -417,7 +417,7 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = PoseidonGenerator::<F, D> {
             row,
             _phantom: PhantomData,
@@ -452,7 +452,7 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for PoseidonGenerator<F, D>
 where
     F::Extension: TwoAdicField,
@@ -557,11 +557,11 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.row)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let row = src.read_usize()?;
         Ok(Self {
             row,
@@ -570,8 +570,8 @@ where
     }
 }
 
-fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     input: ExtensionTarget<D>,
 ) -> ExtensionTarget<D>
 where
@@ -583,8 +583,8 @@ where
     builder.mul_extension(x3, x4)
 }
 
-fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     round_idx: usize,
 ) where
@@ -604,8 +604,8 @@ fn add_rc<F: AbstractField>(state: &mut [F; SPONGE_WIDTH], round_idx: usize) {
         .for_each(|i| state[i] += F::from_canonical_u32(EXTERNAL_CONSTANTS[round_idx][i]))
 }
 
-fn permute_internal_mut_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+fn permute_internal_mut_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
 ) where
     F::Extension: TwoAdicField,
@@ -686,8 +686,9 @@ fn permute_external_mut_circuit<
     F: RichField + HasExtension<D>,
     const D: usize,
     const WIDTH: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; WIDTH],
 ) where
     F::Extension: TwoAdicField,
@@ -718,8 +719,8 @@ fn permute_external_mut_circuit<
     }
 }
 
-fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     x: &mut [ExtensionTarget<D>; 4],
 ) where
     F::Extension: TwoAdicField,
@@ -804,7 +805,7 @@ mod tests {
         type Gate = Poseidon2BabyBearGate<F, D>;
         let gate = Gate::new();
         let row = builder.add_gate(gate, vec![]);
-        let circuit = builder.build_prover::<C, NUM_HASH_OUT_ELTS>();
+        let circuit = builder.build_prover::<C>();
 
         let permutation_inputs = (0..SPONGE_WIDTH)
             .map(F::from_canonical_usize)
@@ -845,7 +846,7 @@ mod tests {
     fn low_degree() {
         type F = BabyBear;
         let gate = Poseidon2BabyBearGate::<F, 4>::new();
-        test_low_degree(gate)
+        test_low_degree::<F, Poseidon2BabyBearGate<F, 4>, 4, 8>(gate)
     }
 
     #[test]
@@ -877,12 +878,13 @@ mod tests {
     #[test]
     fn test_permute_internal_circuit() {
         const D: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = 8;
         type F = BabyBear;
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
             .add_virtual_extension_targets(SPONGE_WIDTH)
@@ -892,7 +894,7 @@ mod tests {
         permute_internal_mut::<EF>(&mut state);
         permute_internal_mut_circuit(&mut builder, &mut state_target);
         pw.set_extension_targets(&state_target, &state);
-        let data = builder.build::<Poseidon2BabyBearConfig, 8>();
+        let data = builder.build::<Poseidon2BabyBearConfig>();
         let proof = data.prove(pw);
         data.verify(proof.unwrap()).unwrap();
     }
@@ -900,12 +902,13 @@ mod tests {
     #[test]
     fn test_permute_external_circuit() {
         const D: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = 8;
         type F = BabyBear;
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
             .add_virtual_extension_targets(SPONGE_WIDTH)
@@ -916,7 +919,7 @@ mod tests {
         permute_external_mut_circuit(&mut builder, &mut state_target);
         // This should cause failure if permute_external_mut_circuit and permute_external_mut are not consistent.
         pw.set_extension_targets(&state_target, &state);
-        let data = builder.build::<Poseidon2BabyBearConfig, 8>();
+        let data = builder.build::<Poseidon2BabyBearConfig>();
         let proof = data.prove(pw);
         data.verify(proof.unwrap()).unwrap();
     }

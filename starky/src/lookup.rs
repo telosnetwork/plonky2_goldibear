@@ -78,7 +78,7 @@ impl<F: Field> Filter<F> {
     /// Given the column values for the current and next rows, evaluates the filter.
     pub(crate) fn eval_filter_circuit<const D: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         v: &[ExtensionTarget<D>],
         next_v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
@@ -344,7 +344,7 @@ impl<F: Field> Column<F> {
     /// Circuit version of `eval`: Given a row's targets, returns their linear combination.
     pub(crate) fn eval_circuit<const D: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
     where
@@ -368,7 +368,7 @@ impl<F: Field> Column<F> {
     /// Given the targets of the current and next row, returns the sum of their linear combinations.
     pub(crate) fn eval_with_next_circuit<const D: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         v: &[ExtensionTarget<D>],
         next_v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
@@ -465,7 +465,7 @@ impl<F: Field> GrandProductChallenge<F> {
 impl GrandProductChallenge<Target> {
     pub(crate) fn combine_circuit<F: RichField + HasExtension<D>, const D: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         terms: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D> {
         let reduced = reduce_with_powers_ext_circuit(builder, terms, self.beta);
@@ -478,7 +478,7 @@ impl GrandProductChallenge<Target> {
     /// Circuit version of `combine`.
     pub fn combine_base_circuit<F: RichField + HasExtension<D>, const D: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         terms: &[Target],
     ) -> Target {
         let reduced = reduce_with_powers_circuit(builder, terms, self.beta);
@@ -545,7 +545,7 @@ fn get_grand_product_challenge_target<
     H: AlgebraicHasher<F>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     challenger: &mut RecursiveChallenger<F, H, D>,
 ) -> GrandProductChallenge<Target> {
     let beta = challenger.get_challenge(builder);
@@ -559,7 +559,7 @@ pub fn get_grand_product_challenge_set_target<
     H: AlgebraicHasher<F>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     challenger: &mut RecursiveChallenger<F, H, D>,
     num_challenges: usize,
 ) -> GrandProductChallengeSet<Target> {
@@ -707,7 +707,7 @@ pub(crate) fn eval_helper_columns<F, FE, P, const D: usize, const D2: usize>(
 /// Circuit version of `eval_helper_columns`.
 /// Given data associated to a lookup (either a CTL or a range-check), check the associated helper polynomials.
 pub(crate) fn eval_helper_columns_circuit<F: RichField + HasExtension<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     filter: &[Option<Filter<F>>],
     columns: &[Vec<ExtensionTarget<D>>],
     local_values: &[ExtensionTarget<D>],
@@ -948,7 +948,7 @@ pub(crate) fn eval_ext_lookups_circuit<
     S: Stark<F, D>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     vars: &S::EvaluationFrameTarget,
     lookup_vars: LookupCheckVarsTarget<D>,

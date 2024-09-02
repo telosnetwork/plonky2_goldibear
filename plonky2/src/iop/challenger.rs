@@ -182,7 +182,7 @@ impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, c
 where
     F::Extension: TwoAdicField,
 {
-    pub fn new(builder: &mut CircuitBuilder<F, D>) -> Self {
+    pub fn new(builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> Self {
         let zero = builder.zero();
         Self {
             sponge_state: H::AlgebraicPermutation::new(core::iter::repeat(zero)),
@@ -234,12 +234,12 @@ where
         }
     }
 
-    pub fn get_challenge(&mut self, builder: &mut CircuitBuilder<F, D>) -> Target {
+    pub fn get_challenge(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> Target {
         self.absorb_buffered_inputs(builder);
 
         if self.output_buffer.is_empty() {
             // Evaluate the permutation to produce `r` new outputs.
-            self.sponge_state = builder.permute::<H, NUM_HASH_OUT_ELTS>(self.sponge_state);
+            self.sponge_state = builder.permute::<H>(self.sponge_state);
             self.output_buffer = self.sponge_state.squeeze().to_vec();
         }
 
@@ -250,13 +250,13 @@ where
 
     pub fn get_n_challenges(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         n: usize,
     ) -> Vec<Target> {
         (0..n).map(|_| self.get_challenge(builder)).collect()
     }
 
-    pub fn get_hash(&mut self, builder: &mut CircuitBuilder<F, D>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn get_hash(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
             elements: self.get_n_challenges(builder, NUM_HASH_OUT_ELTS).try_into().unwrap()
         }
@@ -264,14 +264,14 @@ where
 
     pub fn get_extension_challenge(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D> {
         self.get_n_challenges(builder, D).try_into().unwrap()
     }
 
     /// Absorb any buffered inputs. After calling this, the input buffer will be empty, and the
     /// output buffer will be full.
-    fn absorb_buffered_inputs(&mut self, builder: &mut CircuitBuilder<F, D>) {
+    fn absorb_buffered_inputs(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) {
         if self.input_buffer.is_empty() {
             return;
         }
@@ -281,7 +281,7 @@ where
             // where we would xor or add in the inputs. This is a well-known variant, though,
             // sometimes called "overwrite mode".
             self.sponge_state.set_from_slice(input_chunk, 0);
-            self.sponge_state = builder.permute::<H, NUM_HASH_OUT_ELTS>(self.sponge_state);
+            self.sponge_state = builder.permute::<H>(self.sponge_state);
         }
 
         self.output_buffer = self.sponge_state.squeeze().to_vec();
@@ -289,7 +289,7 @@ where
         self.input_buffer.clear();
     }
 
-    pub fn compact(&mut self, builder: &mut CircuitBuilder<F, D>) -> H::AlgebraicPermutation {
+    pub fn compact(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> H::AlgebraicPermutation {
         self.absorb_buffered_inputs(builder);
         self.output_buffer.clear();
         self.sponge_state
@@ -360,7 +360,7 @@ mod tests {
         }
 
         let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut recursive_challenger =
             RecursiveChallenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher, D, NUM_HASH_OUT_ELTS>::new(&mut builder);
         let mut recursive_outputs_per_round: Vec<Vec<Target>> = Vec::new();
@@ -370,7 +370,7 @@ mod tests {
                 recursive_challenger.get_n_challenges(&mut builder, num_outputs_per_round[r]),
             );
         }
-        let circuit = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let circuit = builder.build::<C>();
         let inputs = PartialWitness::new();
         let witness = generate_partial_witness(inputs, &circuit.prover_only, &circuit.common);
         let recursive_output_values_per_round: Vec<Vec<F>> = recursive_outputs_per_round

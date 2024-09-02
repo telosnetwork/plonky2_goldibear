@@ -135,10 +135,10 @@ impl<const D: usize> ReducingFactorTarget<D> {
     }
 
     /// Reduces a vector of `Target`s using `ReducingGate`s.
-    pub fn reduce_base<F>(
+    pub fn reduce_base<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         terms: &[Target],
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
@@ -191,10 +191,10 @@ impl<const D: usize> ReducingFactorTarget<D> {
     }
 
     /// Reduces a vector of `ExtensionTarget`s using `ReducingExtensionGate`s.
-    pub fn reduce<F>(
+    pub fn reduce<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         terms: &[ExtensionTarget<D>], // Could probably work with a `DoubleEndedIterator` too.
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
@@ -245,10 +245,10 @@ impl<const D: usize> ReducingFactorTarget<D> {
     }
 
     /// Reduces a vector of `ExtensionTarget`s using `ArithmeticGate`s.
-    fn reduce_arithmetic<F>(
+    fn reduce_arithmetic<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         terms: &[ExtensionTarget<D>],
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
@@ -263,10 +263,10 @@ impl<const D: usize> ReducingFactorTarget<D> {
             })
     }
 
-    pub fn shift<F>(
+    pub fn shift<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         x: ExtensionTarget<D>,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
@@ -311,7 +311,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let alpha = FF::rand();
         let vs = F::rand_vec(n);
@@ -328,7 +328,7 @@ mod tests {
 
         builder.connect_extension(manual_reduce, circuit_reduce);
 
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)
@@ -344,7 +344,7 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let alpha = FF::rand();
         let vs = (0..n)
@@ -361,7 +361,7 @@ mod tests {
 
         builder.connect_extension(manual_reduce, circuit_reduce);
 
-        let data = builder.build::<C, NUM_HASH_OUT_ELTS>();
+        let data = builder.build::<C>();
         let proof = data.prove(pw)?;
 
         verify(proof, &data.verifier_only, &data.common)

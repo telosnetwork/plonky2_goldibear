@@ -88,7 +88,7 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>: Hasher<
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,
         swap: BoolTarget,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,

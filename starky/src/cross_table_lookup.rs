@@ -848,7 +848,7 @@ pub(crate) fn eval_cross_table_lookup_checks_circuit<
     F: RichField + HasExtension<D>,
     const D: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     vars: &S::EvaluationFrameTarget,
     ctl_vars: &[CtlCheckVarsTarget<F, D>],
     consumer: &mut RecursiveConstraintConsumer<F, D>,
@@ -1000,7 +1000,7 @@ pub fn verify_cross_table_lookups_circuit<
     const D: usize,
     const N: usize,
 >(
-    builder: &mut CircuitBuilder<F, D>,
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     cross_table_lookups: Vec<CrossTableLookup<F>>,
     ctl_zs_first: [Vec<Target>; N],
     ctl_extra_looking_sums: Option<&[Vec<Target>]>,

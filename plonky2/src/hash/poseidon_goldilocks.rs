@@ -600,8 +600,8 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `mds_row_shf`.
-    fn mds_row_shf_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    fn mds_row_shf_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         r: usize,
         v: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> ExtensionTarget<D>
@@ -655,15 +655,15 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `mds_layer`.
-    pub(crate) fn mds_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn mds_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField{
         // If we have enough routed wires, we will use PoseidonMdsGate.
         let mds_gate = PoseidonMdsGate::new();
-        if builder.config.num_routed_wires >= PoseidonMdsGate::num_wires(&mds_gate) {
+        if builder.config.num_routed_wires >= <PoseidonMdsGate<F,D> as Gate<F,D,NUM_HASH_OUT_ELTS>>::num_wires(&mds_gate) {
             let index = builder.add_gate(mds_gate, vec![]);
             for i in 0..SPONGE_WIDTH {
                 let input_wire = PoseidonMdsGate::<F,D>::wires_input(i);
@@ -721,8 +721,8 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `partial_first_constant_layer`.
-    pub(crate) fn partial_first_constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn partial_first_constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where 
     F: RichField + HasExtension<D>,
@@ -804,8 +804,8 @@ impl PoseidonGoldilocks {
         result
     }
     /// Recursive version of `mds_partial_layer_init`.
-    pub(crate) fn mds_partial_layer_init_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn mds_partial_layer_init_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where 
@@ -923,8 +923,8 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `mds_partial_layer_fast`.
-    pub(crate) fn mds_partial_layer_fast_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn mds_partial_layer_fast_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
         r: usize,
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
@@ -993,8 +993,8 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `constant_layer`.
-    pub(crate) fn constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
         round_ctr: usize,
     ) 
@@ -1018,8 +1018,8 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `sbox_monomial`.
-    pub(crate) fn sbox_monomial_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn sbox_monomial_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         x: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where 
@@ -1047,8 +1047,8 @@ impl PoseidonGoldilocks {
     }
 
     /// Recursive version of `sbox_layer`.
-    pub(crate) fn sbox_layer_circuit<F: RichField + HasExtension<D>, const D: usize>(
-        builder: &mut CircuitBuilder<F, D>,
+    pub(crate) fn sbox_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) 
     where F: RichField + HasExtension<D>,
@@ -1287,7 +1287,7 @@ impl<F: RichField> AlgebraicHasher<F, 4> for Poseidon64Hash {
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,
         swap: BoolTarget,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, 4>,
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,

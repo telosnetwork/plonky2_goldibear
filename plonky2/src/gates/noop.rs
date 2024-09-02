@@ -28,12 +28,12 @@ where
     fn serialize(
         &self,
         _dst: &mut Vec<u8>,
-        _common_data: &CommonCircuitData<F, D>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()> {
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         Ok(Self)
     }
 
@@ -47,13 +47,13 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         _vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         Vec::new()
     }
 
-    fn generators(&self, _row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, _row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         Vec::new()
     }
 
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2>(NoopGate)
+        test_low_degree::<Goldilocks, _, 2, 4>(NoopGate)
     }
 
     #[test]

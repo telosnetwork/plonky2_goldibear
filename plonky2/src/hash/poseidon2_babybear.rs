@@ -193,7 +193,7 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
     fn permute_swapped<const D: usize>(
         inputs: Self::AlgebraicPermutation,
         swap: BoolTarget,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, 8>,
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,

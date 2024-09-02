@@ -89,11 +89,11 @@ where
         format!("{self:?}<D={D}>")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.num_power_bits)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let num_power_bits = src.read_usize()?;
         Ok(Self::new(num_power_bits))
     }
@@ -110,7 +110,7 @@ where
 
         let output = vars.local_wires[self.wire_output()];
 
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
 
         for i in 0..self.num_power_bits {
             let prev_intermediate_value = if i == 0 {
@@ -147,7 +147,7 @@ where
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let base = vars.local_wires[self.wire_base()];
@@ -161,7 +161,7 @@ where
 
         let output = vars.local_wires[self.wire_output()];
 
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
 
         let one = builder.one_extension();
         for i in 0..self.num_power_bits {
@@ -186,7 +186,7 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = ExponentiationGenerator::<F, D> {
             row,
             gate: self.clone(),
@@ -261,7 +261,7 @@ where
     gate: ExponentiationGate<F, D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> SimpleGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
     for ExponentiationGenerator<F, D>
 where
     F::Extension: TwoAdicField,
@@ -315,12 +315,12 @@ where
         out_buffer.set_wire(output_wire, intermediate_values[num_power_bits - 1]);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
         dst.write_usize(self.row)?;
         self.gate.serialize(dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
         let row = src.read_usize()?;
         let gate = ExponentiationGate::deserialize(src, _common_data)?;
         Ok(Self { row, gate })
@@ -367,7 +367,7 @@ mod tests {
             ..CircuitConfig::standard_recursion_config()
         };
 
-        test_low_degree::<Goldilocks, _, 2>(ExponentiationGate::new_from_config(&config));
+        test_low_degree::<Goldilocks, _, 2, 4>(ExponentiationGate::new_from_config(&config));
     }
 
     #[test]
@@ -435,7 +435,7 @@ mod tests {
             _phantom: PhantomData,
         };
 
-        let vars = EvaluationVars {
+        let vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
             local_constants: &[],
             local_wires: &get_wires(base, power as u64),
             public_inputs_hash: &HashOut::rand(),
