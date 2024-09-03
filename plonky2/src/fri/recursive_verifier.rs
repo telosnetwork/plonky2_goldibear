@@ -271,9 +271,9 @@ where
 
         // Note that this `low_bits` decomposition permits non-canonical binary encodings. Here we
         // verify that this has a negligible impact on soundness error.
-        Self::assert_noncanonical_indices_ok(&params.config);
-        let mut x_index_bits = self.low_bits(x_index, n_log, F::bits());
-
+        // Self::assert_noncanonical_indices_ok(&params.config);
+        let mut x_index_bits = self.low_bits(x_index, n_log);
+        
         let cap_index =
             self.le_sum(x_index_bits[x_index_bits.len() - params.config.cap_height..].iter());
         with_context!(

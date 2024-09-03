@@ -42,7 +42,7 @@ impl ArithmeticGate {
 
     /// Determine the maximum number of operations that can fit in one gate for the given config.
     pub(crate) const fn num_ops(config: &CircuitConfig) -> usize {
-        let wires_per_op = 4;
+        let wires_per_op: usize = 4;
         config.num_routed_wires / wires_per_op
     }
 

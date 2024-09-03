@@ -1,5 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use static_assertions::const_assert;
 use std::mem::size_of;
 
 use anyhow::ensure;
@@ -14,7 +15,10 @@ use crate::plonk::config::GenericHashOut;
 use crate::util::serialization::{IoResult, Read, Write};
 
 /// A prime order field with the features we need to use it as a base field in our argument system.
+/// We assume F::ORDER = 2^EXP0 - 2^EXP1 + 1, where 64 >= EXP0 > EXP1 >= 1.
 pub trait RichField: PrimeField64 + Sample + TwoAdicField {
+    const EXP0: usize;
+    const EXP1: usize;
     const NUM_HASH_OUT_ELTS: usize;
     fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self>;
     fn write_to_buffer<T: Write + ?Sized>(&self, writer: &mut T) -> IoResult<()>;
@@ -46,7 +50,12 @@ impl RichField for Goldilocks {
             .map(|x|Goldilocks::from_canonical_u64(u64::from_le_bytes(x.try_into().unwrap())))
             .collect::<Vec<_>>()
     }
+    
+    const EXP0: usize = 64;
+    
+    const EXP1: usize = 32;
 }
+const_assert!(Goldilocks::ORDER_U64 == ((1u128 << Goldilocks::EXP0) - (1u128 << Goldilocks::EXP1) + 1u128) as u64);
 impl RichField for BabyBear {
     const NUM_HASH_OUT_ELTS: usize = 8;
 
@@ -71,8 +80,12 @@ impl RichField for BabyBear {
             .map(|x| BabyBear::from_canonical_u32(u32::from_le_bytes(x.try_into().unwrap())))
             .collect::<Vec<_>>()
     }
-
+    
+    const EXP0: usize = 31;
+    
+    const EXP1: usize = 27;
 }
+const_assert!(BabyBear::ORDER_U64 == ((1u128 << BabyBear::EXP0) - (1u128 << BabyBear::EXP1) + 1u128) as u64);
 
 //pub const NUM_HASH_OUT_ELTS: usize = 4;
 

@@ -337,6 +337,19 @@ where
         self.inverse_extension(x_ext).0[0]
     }
 
+    /// Compute 1 / x if x != 0, otherwise it returns 0
+    pub fn inverse_or_zero(&mut self, x: Target) -> Target {
+        let inv = self.add_virtual_target();
+        let one = self.one();
+        self.add_simple_generator(QuotientOrZeroGenerator {
+            numerator: one,
+            denominator: x,
+            quotient: inv,
+        });
+
+        self.mul(one, inv)
+    }
+
     /// Computes the logical NOT of the provided [`BoolTarget`].
     pub fn not(&mut self, b: BoolTarget) -> BoolTarget {
         let one = self.one();
@@ -438,4 +451,51 @@ pub(crate) struct BaseArithmeticOperation<F: PrimeField64> {
     multiplicand_0: Target,
     multiplicand_1: Target,
     addend: Target,
+}
+
+
+#[derive(Debug, Default)]
+pub struct QuotientOrZeroGenerator {
+    numerator: Target,
+    denominator: Target,
+    quotient: Target,
+}
+
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
+    for QuotientOrZeroGenerator
+where
+    F::Extension: TwoAdicField,
+{
+    fn id(&self) -> String {
+        "QuotientGeneratorExtension".to_string()
+    }
+
+    fn dependencies(&self) -> Vec<Target> {
+        vec![self.numerator, self.denominator]
+    }
+
+    fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
+        let num = witness.get_target(self.numerator);
+        let den = witness.get_target(self.denominator);
+        let zero = F::zero();
+        let quotient = if den == zero {zero} else {num/den};
+        out_buffer.set_target(self.quotient, quotient)
+    }
+
+    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+        dst.write_target(self.numerator)?;
+        dst.write_target(self.denominator)?;
+        dst.write_target(self.quotient)
+    }
+
+    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+        let numerator = src.read_target()?;
+        let denominator = src.read_target()?;
+        let quotient = src.read_target()?;
+        Ok(Self {
+            numerator,
+            denominator,
+            quotient,
+        })
+    }
 }
