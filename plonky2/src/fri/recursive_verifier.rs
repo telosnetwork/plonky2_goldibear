@@ -1,27 +1,27 @@
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec::Vec};
-use std::num::NonZeroU8;
 
 use itertools::Itertools;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
-use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{flatten_target, ExtensionTarget};
+use crate::iop::ext_target::{ExtensionTarget, flatten_target};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
+use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
@@ -380,11 +380,14 @@ where
     ///
     /// Here we compare the probabilities as a sanity check, to verify the claim above.
     fn assert_noncanonical_indices_ok(config: &FriConfig) {
-        let num_ambiguous_elems = u64::MAX - F::ORDER_U64 + 1;
+        let num_ambiguous_elems =  (((1 << (F::bits() -1) ) - (F::ORDER_U64 >> 1)) << 1) -1;
         let query_error = config.rate();
         let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER_U64 as f64);
-        assert!(p_ambiguous < query_error * 1e-5,
-                "A non-negligible portion of field elements are in the range that permits non-canonical encodings. Need to do more analysis or enforce canonical encodings.");
+        let bits = F::bits();
+        let max_ambiguous = query_error * 1e-5;
+        assert!(p_ambiguous < max_ambiguous,
+                "A non-negligible portion of field elements are in the range that permits non-canonical encodings. Need to do more analysis or enforce canonical encodings (bits {bits}, p_ambiguous {p_ambiguous}, max_ambiguous {max_ambiguous}).");
+
     }
 
     pub fn add_virtual_fri_proof(

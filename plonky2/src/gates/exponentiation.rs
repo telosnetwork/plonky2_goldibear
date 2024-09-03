@@ -364,7 +364,7 @@ mod tests {
         let config = CircuitConfig {
             num_wires: 120,
             num_routed_wires: 30,
-            ..CircuitConfig::standard_recursion_config()
+            ..CircuitConfig::standard_recursion_config_gl()
         };
 
         test_low_degree::<Goldilocks, _, 2, 4>(ExponentiationGate::new_from_config(&config));
@@ -377,7 +377,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(ExponentiationGate::new_from_config(
-            &CircuitConfig::standard_recursion_config(),
+            &CircuitConfig::standard_recursion_config_gl(),
         ))
     }
 

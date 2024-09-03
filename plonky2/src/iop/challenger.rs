@@ -359,7 +359,7 @@ mod tests {
             outputs_per_round.push(challenger.get_n_challenges(num_outputs_per_round[r]));
         }
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut recursive_challenger =
             RecursiveChallenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher, D, NUM_HASH_OUT_ELTS>::new(&mut builder);

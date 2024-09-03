@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config());
+        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
         test_low_degree::<Goldilocks, _, 2, 4>(gate);
     }
 
@@ -280,7 +280,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config());
+        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

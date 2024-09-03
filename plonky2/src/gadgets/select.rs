@@ -59,7 +59,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut pw = PartialWitness::<F>::new();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 

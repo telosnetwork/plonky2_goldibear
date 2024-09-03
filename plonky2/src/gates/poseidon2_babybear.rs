@@ -164,14 +164,7 @@ where
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
         permute_external_mut(&mut state);
-        let mut round_ctr = 0;
 
-        // First set of full rounds.
-        // for r in 0..rounds_f_half {
-        //     self.add_rc(state, &self.external_constants[r]);
-        //     self.sbox(state);
-        //     self.external_linear_layer.permute_mut(state);
-        // }
         for r in 0..HALF_N_FULL_ROUNDS {
             add_rc(&mut state, r);
             if r > 0 {
@@ -183,7 +176,6 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             permute_external_mut(&mut state);
-            round_ctr += 1;
         }
 
         // The internal rounds.
@@ -193,7 +185,6 @@ where
         //     self.internal_linear_layer.permute_mut(state);
         // }
         for r in 0..N_PARTIAL_ROUNDS {
-            round_ctr += 1;
             state[0] += F::Extension::from_canonical_u32(INTERNAL_CONSTANTS[r]);
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             constraints.push(state[0] - sbox_in);
@@ -217,7 +208,6 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             permute_external_mut(&mut state);
-            round_ctr += 1;
         }
 
         for i in 0..SPONGE_WIDTH {
@@ -258,14 +248,7 @@ where
         }
 
         permute_external_mut(&mut state);
-        let mut round_ctr = 0;
 
-        // First set of full rounds.
-        // for r in 0..rounds_f_half {
-        //     self.add_rc(state, &self.external_constants[r]);
-        //     self.sbox(state);
-        //     self.external_linear_layer.permute_mut(state);
-        // }
         for r in 0..HALF_N_FULL_ROUNDS {
             add_rc(&mut state, r);
             if r > 0 {
@@ -277,17 +260,9 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             permute_external_mut(&mut state);
-            round_ctr += 1;
         }
 
-        // The internal rounds.
-        // for r in 0..self.rounds_p {
-        //     state[0] += AF::from_f(self.internal_constants[r]);
-        //     state[0] = self.sbox_p(&state[0]);
-        //     self.internal_linear_layer.permute_mut(state);
-        // }
         for r in 0..N_PARTIAL_ROUNDS {
-            round_ctr += 1;
             state[0] += F::from_canonical_u32(INTERNAL_CONSTANTS[r]);
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
             yield_constr.one(state[0] - sbox_in);
@@ -297,11 +272,6 @@ where
 
         // Second set of full rounds.
         // The second half of the external rounds.
-        // for r in rounds_f_half..self.rounds_f {
-        //     self.add_rc(state, &self.external_constants[r]);
-        //     self.sbox(state);
-        //     self.external_linear_layer.permute_mut(state);
-        // }
         for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
             add_rc(&mut state, r);
             for i in 0..SPONGE_WIDTH {
@@ -311,7 +281,6 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
             permute_external_mut(&mut state);
-            round_ctr += 1;
         }
 
         for i in 0..SPONGE_WIDTH {
@@ -352,14 +321,8 @@ where
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
         permute_external_mut_circuit(builder, &mut state);
-        let mut round_ctr = 0;
 
         // First set of full rounds.
-        // for r in 0..rounds_f_half {
-        //     self.add_rc(state, &self.external_constants[r]);
-        //     self.sbox(state);
-        //     self.external_linear_layer.permute_mut(state);
-        // }
         for r in 0..HALF_N_FULL_ROUNDS {
             add_rc_circuit(builder, &mut state, r);
             if r > 0 {
@@ -371,17 +334,10 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = sbox_circuit(builder, state[i]));
             permute_external_mut_circuit(builder, &mut state);
-            round_ctr += 1;
         }
 
         // The internal rounds.
-        // for r in 0..self.rounds_p {
-        //     state[0] += AF::from_f(self.internal_constants[r]);
-        //     state[0] = self.sbox_p(&state[0]);
-        //     self.internal_linear_layer.permute_mut(state);
-        // }
         for r in 0..N_PARTIAL_ROUNDS {
-            round_ctr += 1;
             state[0] =
                 builder.add_const_extension(state[0], F::from_canonical_u32(INTERNAL_CONSTANTS[r]));
             let sbox_in = vars.local_wires[Self::wire_partial_sbox(r)];
@@ -392,11 +348,6 @@ where
 
         // Second set of full rounds.
         // The second half of the external rounds.
-        // for r in rounds_f_half..self.rounds_f {
-        //     self.add_rc(state, &self.external_constants[r]);
-        //     self.sbox(state);
-        //     self.external_linear_layer.permute_mut(state);
-        // }
         for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
             add_rc_circuit(builder, &mut state, r);
             for i in 0..SPONGE_WIDTH {
@@ -406,7 +357,6 @@ where
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = sbox_circuit(builder, state[i]));
             permute_external_mut_circuit(builder, &mut state);
-            round_ctr += 1;
         }
 
         for i in 0..SPONGE_WIDTH {
@@ -797,10 +747,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 8;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig {
-            num_wires: 246,
-            ..CircuitConfig::standard_recursion_config()
-        };
+        let config = CircuitConfig::standard_recursion_config_bb();
         let mut builder = CircuitBuilder::new(config);
         type Gate = Poseidon2BabyBearGate<F, D>;
         let gate = Gate::new();
@@ -883,7 +830,7 @@ mod tests {
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
@@ -907,7 +854,7 @@ mod tests {
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder

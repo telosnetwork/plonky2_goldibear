@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        let num_consts = CircuitConfig::standard_recursion_config().num_constants;
+        let num_consts = CircuitConfig::standard_recursion_config_gl().num_constants;
         let gate = ConstantGate { num_consts };
         test_low_degree::<Goldilocks, _, 2, 4>(gate)
     }
@@ -159,7 +159,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let num_consts = CircuitConfig::standard_recursion_config().num_constants;
+        let num_consts = CircuitConfig::standard_recursion_config_gl().num_constants;
         let gate = ConstantGate { num_consts };
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }

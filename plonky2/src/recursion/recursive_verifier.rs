@@ -232,7 +232,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let config = CircuitConfig::standard_recursion_zk_config();
+        let config = CircuitConfig::standard_recursion_zk_config_gl();
 
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
         let (proof, vd, common_data) =
@@ -249,7 +249,7 @@ mod tests {
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = 8;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let config = CircuitConfig { num_wires: 246, ..CircuitConfig::standard_recursion_zk_config()};
+        let config = CircuitConfig::standard_recursion_zk_config_bb();
 
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
         let (proof, vd, common_data) =
@@ -267,7 +267,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let config = CircuitConfig::standard_recursion_zk_config();
+        let config = CircuitConfig::standard_recursion_zk_config_gl();
 
         let (proof, vd, common_data) = dummy_lookup_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 10)?;
         let (proof, vd, common_data) =
@@ -284,7 +284,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         let (proof, vd, common_data) = dummy_two_luts_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config)?;
         let (proof, vd, common_data) =
@@ -301,7 +301,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         let (proof, vd, common_data) = dummy_too_many_rows_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config)?;
         let (proof, vd, common_data) =
@@ -319,7 +319,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
@@ -348,7 +348,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 8;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig { num_wires: 246, ..CircuitConfig::standard_recursion_config()};
+        let config = CircuitConfig::standard_recursion_config_bb();
 
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
@@ -380,7 +380,7 @@ mod tests {
         type KC = KeccakGoldilocksConfig;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let standard_config = CircuitConfig::standard_recursion_config();
+        let standard_config = CircuitConfig::standard_recursion_config_gl();
 
         // An initial dummy proof.
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&standard_config, 4_000)?;
@@ -456,7 +456,7 @@ mod tests {
         type KC = KeccakGoldilocksConfig;
         type F = <PC as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let (proof, vd, common_data) = dummy_proof::<F, PC, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
 
         let (proof, vd, common_data) =

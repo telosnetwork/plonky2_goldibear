@@ -37,6 +37,7 @@ use rand::rngs::OsRng;
 use rand::{RngCore, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use structopt::StructOpt;
+use tynm::type_name;
 
 type ProofTuple<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> = (
     ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -386,17 +387,6 @@ where
 }
 
 fn main() -> Result<()> {
-    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(CircuitConfig { num_wires: 246, ..CircuitConfig::standard_recursion_config()})
-    //do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(CircuitConfig::standard_recursion_config())
-}
-fn do_bench<F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-    const D: usize,
-    const NUM_HASH_OUT_ELTS: usize>(config: CircuitConfig) -> Result<()>
-where
-    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField {
-    // Parse command line arguments, see `--help` for details.
     let options = Options::from_args_safe()?;
     // Initialize logging
     let mut builder = env_logger::Builder::from_default_env();
@@ -410,9 +400,21 @@ where
     };
     builder.try_init()?;
 
+    do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(CircuitConfig::standard_recursion_config_gl())?;
+    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(CircuitConfig::standard_recursion_config_bb())
+}
+fn do_bench<F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize>(config: CircuitConfig) -> Result<()>
+where
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    F::Extension: TwoAdicField {
+    // Parse command line arguments, see `--help` for details.
+    let options = Options::from_args_safe()?;
     // Initialize randomness source
     let rng_seed = options.seed.unwrap_or_else(|| OsRng.next_u64());
-    info!("Using random seed {rng_seed:16x}");
+    info!("Benching {:?} using random seed {rng_seed:16x}", type_name::<F>());
     let _rng = ChaCha8Rng::seed_from_u64(rng_seed);
     // TODO: Use `rng` to create deterministic runs
 

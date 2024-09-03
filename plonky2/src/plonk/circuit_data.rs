@@ -20,19 +20,19 @@ use std::collections::BTreeMap;
 
 use anyhow::Result;
 use p3_field::{AbstractExtensionField, TwoAdicField};
-use plonky2_field::types::HasExtension;
 use serde::Serialize;
 
-use super::circuit_builder::LookupWire;
+use plonky2_field::types::HasExtension;
+
 use crate::field::fft::FftRootTable;
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::reduction_strategies::FriReductionStrategy;
 use crate::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
 };
-use crate::fri::{FriConfig, FriParams};
-use crate::gates::gate::{Gate, GateRef};
+use crate::gates::gate::GateRef;
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
 use crate::gates::selectors::SelectorsInfo;
@@ -52,6 +52,8 @@ use crate::util::serialization::{
     Buffer, GateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
 use crate::util::timing::TimingTree;
+
+use super::circuit_builder::LookupWire;
 
 /// Configuration to be used when building a circuit. This defines the shape of the circuit
 /// as well as its targeted security level and sub-protocol (e.g. FRI) parameters.
@@ -88,7 +90,7 @@ pub struct CircuitConfig {
 
 impl Default for CircuitConfig {
     fn default() -> Self {
-        Self::standard_recursion_config()
+        Self::standard_recursion_config_gl()
     }
 }
 
@@ -98,9 +100,19 @@ impl CircuitConfig {
     }
 
     /// A typical recursion config, without zero-knowledge, targeting ~100 bit security.
-    pub const fn standard_recursion_config() -> Self {
+    pub fn standard_recursion_config_gl() -> Self {
         Self {
-            num_wires: 135,
+            num_wires: 135, ..Self::standard_recursion_config()
+        }
+    }
+    pub fn standard_recursion_config_bb() -> Self {
+        Self {
+            num_wires: 246, ..Self::standard_recursion_config()
+        }
+    }
+    fn standard_recursion_config() -> Self {
+        Self {
+            num_wires: 0,
             num_routed_wires: 80,
             num_constants: 2,
             use_base_arithmetic_gate: true,
@@ -121,21 +133,27 @@ impl CircuitConfig {
     pub fn standard_ecc_config() -> Self {
         Self {
             num_wires: 136,
-            ..Self::standard_recursion_config()
+            ..Self::standard_recursion_config_gl()
         }
     }
 
     pub fn wide_ecc_config() -> Self {
         Self {
             num_wires: 234,
-            ..Self::standard_recursion_config()
+            ..Self::standard_recursion_config_gl()
         }
     }
 
-    pub fn standard_recursion_zk_config() -> Self {
+    pub fn standard_recursion_zk_config_gl() -> Self {
         CircuitConfig {
             zero_knowledge: true,
-            ..Self::standard_recursion_config()
+            ..Self::standard_recursion_config_gl()
+        }
+    }
+    pub fn standard_recursion_zk_config_bb() -> Self {
+        CircuitConfig {
+            zero_knowledge: true,
+            ..Self::standard_recursion_config_bb()
         }
     }
 }

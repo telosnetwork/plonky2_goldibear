@@ -105,7 +105,7 @@ pub struct LookupWire {
 /// type C = PoseidonGoldilocksConfig;
 /// type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 ///
-/// let config = CircuitConfig::standard_recursion_config();
+/// let config = CircuitConfig::standard_recursion_config_gl();
 /// let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 ///
 /// // Build a circuit for the statement: "I know the 100th term

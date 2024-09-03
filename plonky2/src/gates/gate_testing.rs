@@ -144,7 +144,7 @@ where
     let wires = F::Extension::rand_vec(gate.num_wires());
     let constants = F::Extension::rand_vec(gate.num_constants());
 
-    let config = CircuitConfig::standard_recursion_config();
+    let config = CircuitConfig::standard_recursion_config_gl();
     let mut pw = PartialWitness::new();
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 

@@ -534,7 +534,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let mut config = CircuitConfig::standard_recursion_config();
+        let mut config = CircuitConfig::standard_recursion_config_gl();
         config.fri_config.reduction_strategy = FriReductionStrategy::Fixed(vec![1, 1]);
         config.fri_config.num_query_rounds = 50;
 
@@ -574,7 +574,7 @@ mod tests {
 
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let mut config = CircuitConfig::standard_recursion_config();
+        let mut config = CircuitConfig::standard_recursion_config_gl();
         config.fri_config.reduction_strategy = FriReductionStrategy::Fixed(vec![1, 1]);
         config.fri_config.num_query_rounds = 50;
 
@@ -596,7 +596,7 @@ mod tests {
             210, 27, 41, 1, 170, 40, 131, 192, 229, 248, 255,
         ];
         let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let lut_index = builder.add_lookup_table_from_pairs(table);
 

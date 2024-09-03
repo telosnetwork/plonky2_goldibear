@@ -12,7 +12,6 @@ use plonky2_util::{assume, branch_hint};
 use unroll::unroll_for_loops;
 
 use super::hash_types::HashOut;
-use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::poseidon_goldilocks::PoseidonGate;
 use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
@@ -527,39 +526,7 @@ impl PoseidonGoldilocks {
             crate::hash::arch::aarch64::poseidon_goldilocks_neon::mds_layer(state)
         }
     }
-    
-    // Total number of round constants required: width of the input
-    // times number of rounds.
-    const N_ROUND_CONSTANTS: usize = SPONGE_WIDTH * N_ROUNDS;
 
-    // The MDS matrix we use is C + D, where C is the circulant matrix whose first
-    // row is given by `MDS_MATRIX_CIRC`, and D is the diagonal matrix whose
-    // diagonal is given by `MDS_MATRIX_DIAG`.
-
-
-    #[inline(always)]
-    #[unroll_for_loops]
-    fn mds_row_shf(r: usize, v: &[u64; SPONGE_WIDTH]) -> u128 {
-        debug_assert!(r < SPONGE_WIDTH);
-        // The values of `MDS_MATRIX_CIRC` and `MDS_MATRIX_DIAG` are
-        // known to be small, so we can accumulate all the products for
-        // each row and reduce just once at the end (done by the
-        // caller).
-
-        // NB: Unrolling this, calculating each term independently, and
-        // summing at the end, didn't improve performance for me.
-        let mut res = 0u128;
-
-        // This is a hacky way of fully unrolling the loop.
-        for i in 0..12 {
-            if i < SPONGE_WIDTH {
-                res += (v[(i + r) % SPONGE_WIDTH] as u128) * (Self::MDS_MATRIX_CIRC[i] as u128);
-            }
-        }
-        res += (v[r] as u128) * (Self::MDS_MATRIX_DIAG[r] as u128);
-
-        res
-    }
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
     fn mds_row_shf_field<BF: Field, F: ExtensionField<BF>>(r: usize, v: &[F; SPONGE_WIDTH]) -> F {
@@ -574,30 +541,6 @@ impl PoseidonGoldilocks {
         res
     }
 
-    /// Same as `mds_row_shf` for `PackedField`.
-    fn mds_row_shf_packed_field<
-        F: RichField + HasExtension<D> + HasExtension<D2>,
-        const D: usize,
-        P,
-        const D2: usize,
-    >(
-        r: usize,
-        v: &[P; SPONGE_WIDTH],
-    ) -> P
-    where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
-    {
-        debug_assert!(r < SPONGE_WIDTH);
-        let mut res = P::zeros();
-
-        for i in 0..SPONGE_WIDTH {
-            res += v[(i + r) % SPONGE_WIDTH]
-                * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_CIRC[i]);
-        }
-        res += v[r] * <P::Scalar as AbstractField>::from_canonical_u64(Self::MDS_MATRIX_DIAG[r]);
-
-        res
-    }
 
     /// Recursive version of `mds_row_shf`.
     fn mds_row_shf_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
@@ -633,26 +576,7 @@ impl PoseidonGoldilocks {
         result
     }
 
-    /// Same as `mds_layer` for `PackedField`.
-    fn mds_layer_packed_field<
-        F: RichField + HasExtension<D> + HasExtension<D2>,
-        const D: usize,
-        P,
-        const D2: usize,
-    >(
-        state: &[P; SPONGE_WIDTH],
-    ) -> [P; SPONGE_WIDTH]
-    where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
-    {
-        let mut result = [P::zeros(); SPONGE_WIDTH];
 
-        for r in 0..SPONGE_WIDTH {
-            result[r] = Self::mds_row_shf_packed_field::<F, D, P, D2>(r, state);
-        }
-
-        result
-    }
 
     /// Recursive version of `mds_layer`.
     pub(crate) fn mds_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
@@ -698,27 +622,6 @@ impl PoseidonGoldilocks {
         }
     }
 
-    /// Same as `partial_first_constant_layer` for `PackedField`.
-    #[inline(always)]
-    #[unroll_for_loops]
-    fn partial_first_constant_layer_packed_field<
-        F: RichField + HasExtension<D> + HasExtension<D2>,
-        const D: usize,
-        P,
-        const D2: usize,
-    >(
-        state: &mut [P; SPONGE_WIDTH],
-    ) where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
-    {
-        for i in 0..12 {
-            if i < SPONGE_WIDTH {
-                state[i] += <P::Scalar as AbstractField>::from_canonical_u64(
-                    Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i],
-                );
-            }
-        }
-    }
 
     /// Recursive version of `partial_first_constant_layer`.
     pub(crate) fn partial_first_constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
@@ -765,44 +668,7 @@ impl PoseidonGoldilocks {
         result
     }
 
-    /// Same as `mds_partial_layer_init` for `PackedField`.
-    #[inline(always)]
-    #[unroll_for_loops]
-    fn mds_partial_layer_init_packed_field<
-        F: RichField + HasExtension<D> + HasExtension<D2>,
-        const D: usize,
-        P,
-        const D2: usize,
-    >(
-        state: &[P; SPONGE_WIDTH],
-    ) -> [P; SPONGE_WIDTH]
-    where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
-    {
-        let mut result = [P::zeros(); SPONGE_WIDTH];
 
-        // Initial matrix has first row/column = [1, 0, ..., 0];
-
-        // c = 0
-        result[0] = state[0];
-
-        for r in 1..12 {
-            if r < SPONGE_WIDTH {
-                for c in 1..12 {
-                    if c < SPONGE_WIDTH {
-                        // NB: FAST_PARTIAL_ROUND_INITIAL_MATRIX is stored in
-                        // row-major order so that this dot product is cache
-                        // friendly.
-                        let t = <P::Scalar as AbstractField>::from_canonical_u64(
-                            Self::FAST_PARTIAL_ROUND_INITIAL_MATRIX[r - 1][c - 1],
-                        );
-                        result[c] += state[r] * t;
-                    }
-                }
-            }
-        }
-        result
-    }
     /// Recursive version of `mds_partial_layer_init`.
     pub(crate) fn mds_partial_layer_init_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
@@ -887,40 +753,7 @@ impl PoseidonGoldilocks {
         result
     }
 
-    /// Same as `mds_partial_layer_fast` for `PackedField.
-    fn mds_partial_layer_fast_packed_field<
-        F: RichField + HasExtension<D> + HasExtension<D2>,
-        const D: usize,
-        P,
-        const D2: usize,
-    >(
-        state: &[P; SPONGE_WIDTH],
-        r: usize,
-    ) -> [P; SPONGE_WIDTH]
-    where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
-    {
-        let s0 = state[0];
-        let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
-        let mut d = s0 * <P::Scalar as AbstractField>::from_canonical_u64(mds0to0);
-        for i in 1..SPONGE_WIDTH {
-            let t = <P::Scalar as AbstractField>::from_canonical_u64(
-                Self::FAST_PARTIAL_ROUND_W_HATS[r][i - 1],
-            );
-            d += state[i] * t;
-        }
 
-        // result = [d] concat [state[0] * v + state[shift up by 1]]
-        let mut result = [P::zeros(); SPONGE_WIDTH];
-        result[0] = d;
-        for i in 1..SPONGE_WIDTH {
-            let t = <P::Scalar as AbstractField>::from_canonical_u64(
-                Self::FAST_PARTIAL_ROUND_VS[r][i - 1],
-            );
-            result[i] = state[0] * t + state[i];
-        }
-        result
-    }
 
     /// Recursive version of `mds_partial_layer_fast`.
     pub(crate) fn mds_partial_layer_fast_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
@@ -973,24 +806,7 @@ impl PoseidonGoldilocks {
         }
     }
 
-    /// Same as `constant_layer` for PackedFields.
-    fn constant_layer_packed_field<
-        F: RichField + HasExtension<D> + HasExtension<D2>,
-        const D: usize,
-        P,
-        const D2: usize,
-    >(
-        state: &mut [P; SPONGE_WIDTH],
-        round_ctr: usize,
-    ) where
-        P: PackedField<Scalar = <F as HasExtension<D2>>::Extension>,
-    {
-        for i in 0..SPONGE_WIDTH {
-            state[i] += <P::Scalar as AbstractField>::from_canonical_u64(
-                ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr],
-            );
-        }
-    }
+
 
     /// Recursive version of `constant_layer`.
     pub(crate) fn constant_layer_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
@@ -1095,6 +911,7 @@ impl PoseidonGoldilocks {
     }
 
     // For testing only, to ensure that various tricks are correct.
+    #[cfg(test)]
     #[inline]
     fn partial_rounds_naive<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
         for _ in 0..N_PARTIAL_ROUNDS {
@@ -1105,6 +922,7 @@ impl PoseidonGoldilocks {
         }
     }
 
+    #[cfg(test)]
     #[inline]
     fn poseidon_naive<F: RichField>(input: [F; SPONGE_WIDTH]) -> [F; SPONGE_WIDTH] {
         let mut state = input;

@@ -250,7 +250,7 @@ mod tests {
     where
         InnerC::Hasher: AlgebraicHasher<F>,
     {
-        let circuit_config = CircuitConfig::standard_recursion_config();
+        let circuit_config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(circuit_config);
         let mut pw = PartialWitness::new();
         let degree_bits = inner_proof.proof.recover_degree_bits(inner_config);
