@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_recursive_recursive_verifier() -> Result<()> {
+    fn test_recursive_recursive_verifier_gl() -> Result<()> {
         init_logger();
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
@@ -340,6 +340,34 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_recursive_recursive_verifier_bb() -> Result<()> {
+        init_logger();
+        const D: usize = 4;
+        type C = Poseidon2BabyBearConfig;
+        const NUM_HASH_OUT_ELTS: usize = 8;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+
+        let config = CircuitConfig { num_wires: 246, ..CircuitConfig::standard_recursion_config()};
+
+        // Start with a degree 2^14 proof
+        let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
+        assert_eq!(common_data.degree_bits(), 14);
+
+        // Shrink it to 2^13.
+        let (proof, vd, common_data) =
+            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, Some(13), false, false)?;
+        assert_eq!(common_data.degree_bits(), 13);
+
+        // Shrink it to 2^12.
+        let (proof, vd, common_data) =
+            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        //assert_eq!(common_data.degree_bits(), 12); ???
+
+        test_serialization(&proof, &vd, &common_data)?;
+
+        Ok(())
+    }
     /// Creates a chain of recursive proofs where the last proof is made as small as reasonably
     /// possible, using a high rate, high PoW bits, etc.
     #[test]

@@ -155,18 +155,16 @@ pub trait Read {
     #[inline]
     fn read_field<F>(&mut self) -> IoResult<F>
     where
-        F: PrimeField64,
+        F: PrimeField64 + RichField
     {
-        let mut buf = [0; size_of::<u64>()];
-        self.read_exact(&mut buf)?;
-        Ok(F::from_canonical_u64(u64::from_le_bytes(buf)))
+        F::read_from_buffer(self)
     }
 
     /// Reads a vector of elements from the field `F` from `self`.
     #[inline]
     fn read_field_vec<F>(&mut self, length: usize) -> IoResult<Vec<F>>
     where
-        F: PrimeField64,
+        F: PrimeField64 + RichField,
     {
         (0..length)
             .map(|_| self.read_field())
@@ -177,7 +175,7 @@ pub trait Read {
     #[inline]
     fn read_field_ext<F, const D: usize>(&mut self) -> IoResult<F::Extension>
     where
-        F: PrimeField64 + HasExtension<D>,
+        F: PrimeField64 + HasExtension<D> + RichField,
     {
         let mut arr = [F::zero(); D];
         for a in arr.iter_mut() {
@@ -1293,16 +1291,16 @@ pub trait Write {
     #[inline]
     fn write_field<F>(&mut self, x: F) -> IoResult<()>
     where
-        F: PrimeField64,
+        F: PrimeField64 + RichField,
     {
-        self.write_all(&x.as_canonical_u64().to_le_bytes())
+        x.write_to_buffer(self)
     }
 
     /// Writes a vector `v` of elements from the field `F` to `self`.
     #[inline]
     fn write_field_vec<F>(&mut self, v: &[F]) -> IoResult<()>
     where
-        F: PrimeField64,
+        F: PrimeField64 + RichField,
     {
         for &a in v {
             self.write_field(a)?;

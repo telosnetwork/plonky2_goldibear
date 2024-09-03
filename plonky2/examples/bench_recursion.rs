@@ -17,14 +17,16 @@ use std::sync::Arc;
 use anyhow::{anyhow, Context as _, Result};
 use itertools::Itertools;
 use log::{info, Level, LevelFilter};
+use p3_baby_bear::BabyBear;
 use p3_field::TwoAdicField;
+use p3_goldilocks::Goldilocks;
 use plonky2::gadgets::lookup::TIP5_TABLE;
 use plonky2::gates::noop::NoopGate;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::{CircuitConfig, CommonCircuitData, VerifierOnlyCircuitData};
-use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
+use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig};
 use plonky2::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
 use plonky2::plonk::prover::prove;
 use plonky2::util::serialization::DefaultGateSerializer;
@@ -322,15 +324,18 @@ where
     Ok(())
 }
 
-pub fn benchmark_function(
+pub fn benchmark_function<F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize>(
     config: &CircuitConfig,
     log2_inner_size: usize,
     lookup_type: u64,
-) -> Result<()> {
-    const D: usize = 2;
-    const NUM_HASH_OUT_ELTS: usize = 4;
-    type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+) -> Result<()>
+where
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    F::Extension: TwoAdicField,
+{
 
     let dummy_proof_function = match lookup_type {
         0 => dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -381,6 +386,16 @@ pub fn benchmark_function(
 }
 
 fn main() -> Result<()> {
+    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(CircuitConfig { num_wires: 246, ..CircuitConfig::standard_recursion_config()})
+    //do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(CircuitConfig::standard_recursion_config())
+}
+fn do_bench<F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize>(config: CircuitConfig) -> Result<()>
+where
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    F::Extension: TwoAdicField {
     // Parse command line arguments, see `--help` for details.
     let options = Options::from_args_safe()?;
     // Initialize logging
@@ -404,7 +419,6 @@ fn main() -> Result<()> {
     let num_cpus = num_cpus::get();
     let threads = options.threads.unwrap_or(num_cpus..=num_cpus);
 
-    let config = CircuitConfig::standard_recursion_config();
 
     for log2_inner_size in options.size {
         // Since the `size` is most likely to be an unbounded range we make that the outer iterator.
@@ -420,7 +434,7 @@ fn main() -> Result<()> {
                         num_cpus
                     );
                     // Run the benchmark. `options.lookup_type` determines which benchmark to run.
-                    benchmark_function(&config, log2_inner_size, options.lookup_type)
+                    benchmark_function::<F, C, D, NUM_HASH_OUT_ELTS>(&config, log2_inner_size, options.lookup_type)
                 })?;
         }
     }

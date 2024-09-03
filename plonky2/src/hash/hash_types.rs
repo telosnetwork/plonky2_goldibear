@@ -1,21 +1,78 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use std::mem::size_of;
 
 use anyhow::ensure;
 use p3_baby_bear::BabyBear;
-use p3_field::{Field, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, Field, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::field::types::Sample;
 use crate::iop::target::Target;
 use crate::plonk::config::GenericHashOut;
+use crate::util::serialization::{IoResult, Read, Write};
 
 /// A prime order field with the features we need to use it as a base field in our argument system.
-pub trait RichField: PrimeField64 + Sample + TwoAdicField { const NUM_HASH_OUT_ELTS: usize; }
+pub trait RichField: PrimeField64 + Sample + TwoAdicField {
+    const NUM_HASH_OUT_ELTS: usize;
+    fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self>;
+    fn write_to_buffer<T: Write + ?Sized>(&self, writer: &mut T) -> IoResult<()>;
+    fn to_bytes(&self) -> Vec<u8>;
+    fn hash_out_elements_from_bytes(bytes: &[u8]) -> Vec<Self>;
+}
 
-impl RichField for Goldilocks { const NUM_HASH_OUT_ELTS: usize = 4; }
-impl RichField for BabyBear { const NUM_HASH_OUT_ELTS: usize = 8; }
+impl RichField for Goldilocks {
+    const NUM_HASH_OUT_ELTS: usize = 4;
+
+    fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self> {
+        let mut buf = [0; size_of::<u64>()];
+        reader.read_exact(&mut buf)?;
+        Ok(Goldilocks::from_canonical_u64(u64::from_le_bytes(buf)))
+    }
+
+    fn write_to_buffer<T: Write + ?Sized>(&self, writer: &mut T) -> IoResult<()> {
+        writer.write_all(&self.as_canonical_u64().to_le_bytes())
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.as_canonical_u64().to_le_bytes().to_vec()
+    }
+
+    fn hash_out_elements_from_bytes(bytes: &[u8]) -> Vec<Self> {
+        bytes
+            .chunks(8)
+            .take(Self::NUM_HASH_OUT_ELTS)
+            .map(|x|Goldilocks::from_canonical_u64(u64::from_le_bytes(x.try_into().unwrap())))
+            .collect::<Vec<_>>()
+    }
+}
+impl RichField for BabyBear {
+    const NUM_HASH_OUT_ELTS: usize = 8;
+
+    fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self> {
+        let mut buf = [0; size_of::<u32>()];
+        reader.read_exact(&mut buf)?;
+        Ok(BabyBear::from_canonical_u32(u32::from_le_bytes(buf)))
+    }
+
+    fn write_to_buffer<T: Write + ?Sized>(&self, writer: &mut T) -> IoResult<()> {
+        writer.write_all(&self.as_canonical_u32().to_le_bytes())
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.as_canonical_u32().to_le_bytes().to_vec()
+    }
+
+    fn hash_out_elements_from_bytes(bytes: &[u8]) -> Vec<Self> {
+        bytes
+            .chunks(4)
+            .take(Self::NUM_HASH_OUT_ELTS)
+            .map(|x| BabyBear::from_canonical_u32(u32::from_le_bytes(x.try_into().unwrap())))
+            .collect::<Vec<_>>()
+    }
+
+}
 
 //pub const NUM_HASH_OUT_ELTS: usize = 4;
 
@@ -85,19 +142,15 @@ impl<F: RichField, const NUM_HASH_OUT_ELTS: usize> GenericHashOut<F> for HashOut
     fn to_bytes(&self) -> Vec<u8> {
         self.elements
             .into_iter()
-            .flat_map(|x| x.as_canonical_u64().to_le_bytes())
+            .flat_map(|x| x.to_bytes())
             .collect()
     }
 
     fn from_bytes(bytes: &[u8]) -> Self {
         HashOut {
-            elements: bytes
-                .chunks(8)
-                .take(NUM_HASH_OUT_ELTS)
-                .map(|x| F::from_canonical_u64(u64::from_le_bytes(x.try_into().unwrap())))
-                .collect::<Vec<_>>()
+            elements: F::hash_out_elements_from_bytes(bytes)
                 .try_into()
-                .unwrap(),
+                .unwrap()
         }
     }
 
