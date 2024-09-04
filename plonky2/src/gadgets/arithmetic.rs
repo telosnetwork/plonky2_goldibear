@@ -9,6 +9,7 @@ use core::borrow::Borrow;
 use p3_field::{PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
+use crate::gates::add_many::AddManyGate;
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::gates::exponentiation::ExponentiationGate;
 use crate::hash::hash_types::RichField;
@@ -19,7 +20,10 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+const ADD_MANY_THRESHOLD: usize = 23;
+
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -203,9 +207,26 @@ where
     where
         T: Borrow<Target>,
     {
-        terms
-            .into_iter()
-            .fold(self.zero(), |acc, t| self.add(acc, *t.borrow()))
+        let addends: Vec<Target> = terms.into_iter().map(|t| *t.borrow()).collect();
+        let num_addends = addends.len();
+        match num_addends {
+            ADD_MANY_THRESHOLD => {
+                let gate_type = AddManyGate::<ADD_MANY_THRESHOLD>::new_from_config::<F>(&self.config);
+                let (row, i) = self.find_slot(gate_type, &[], &[]);
+                let addends_indices = AddManyGate::<ADD_MANY_THRESHOLD>::wires_ith_op_addends(i);
+                addends.iter().zip(addends_indices).for_each(|(&target, idx)| self.connect(target, Target::wire(row, idx)));
+                Target::wire(row, AddManyGate::<ADD_MANY_THRESHOLD>::wire_ith_sum(i))
+            }
+
+            0..ADD_MANY_THRESHOLD => addends
+                .into_iter()
+                .fold(self.zero(), |acc, t| self.add(acc, *t.borrow())),
+
+            _ => {
+                let new_addends = addends.chunks(ADD_MANY_THRESHOLD).map(|chunk| self.add_many(chunk)).collect::<Vec<_>>();
+                self.add_many(new_addends)
+            }
+        }
     }
 
     /// Computes `x - y`.
@@ -405,7 +426,8 @@ pub struct EqualityGenerator {
     inv: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for EqualityGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for EqualityGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -427,14 +449,21 @@ where
         out_buffer.set_target(self.inv, inv);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.x)?;
         dst.write_target(self.y)?;
         dst.write_target_bool(self.equal)?;
         dst.write_target(self.inv)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let x = src.read_target()?;
         let y = src.read_target()?;
         let equal = src.read_target_bool()?;
@@ -453,7 +482,6 @@ pub(crate) struct BaseArithmeticOperation<F: PrimeField64> {
     addend: Target,
 }
 
-
 #[derive(Debug, Default)]
 pub struct QuotientOrZeroGenerator {
     numerator: Target,
@@ -461,8 +489,8 @@ pub struct QuotientOrZeroGenerator {
     quotient: Target,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for QuotientOrZeroGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientOrZeroGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -478,17 +506,24 @@ where
         let num = witness.get_target(self.numerator);
         let den = witness.get_target(self.denominator);
         let zero = F::zero();
-        let quotient = if den == zero {zero} else {num/den};
+        let quotient = if den == zero { zero } else { num / den };
         out_buffer.set_target(self.quotient, quotient)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.numerator)?;
         dst.write_target(self.denominator)?;
         dst.write_target(self.quotient)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let numerator = src.read_target()?;
         let denominator = src.read_target()?;
         let quotient = src.read_target()?;
