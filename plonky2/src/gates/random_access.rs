@@ -11,7 +11,7 @@ use itertools::Itertools;
 use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -329,7 +329,7 @@ where
             }
 
             // Assert that the binary decomposition was correct.
-            let reconstructed_index = bits.iter().rev().fold(P::zeros(), |acc, &b| acc + acc + b);
+            let reconstructed_index = bits.iter().rev().fold(P::zero(), |acc, &b| acc + acc + b);
             yield_constr.one(reconstructed_index - access_index);
 
             // Repeatedly fold the list, selecting the left or right item from each pair based on

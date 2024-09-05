@@ -5,7 +5,7 @@ use core::borrow::Borrow;
 use p3_field::{AbstractExtensionField, ExtensionField, Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
 use crate::gates::reducing::ReducingGate;
@@ -70,7 +70,7 @@ impl<F: Field> ReducingFactor<F> {
         P: PackedField<Scalar = F::Extension>,
     {
         iter.rev()
-            .fold(P::zeros(), |acc, x| self.mul_ext(acc) + *x.borrow())
+            .fold(P::zero(), |acc, x| self.mul_ext(acc) + *x.borrow())
     }
 
     pub fn reduce_polys(

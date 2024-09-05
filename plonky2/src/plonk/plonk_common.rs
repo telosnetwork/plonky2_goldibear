@@ -6,7 +6,7 @@ use alloc::{vec, vec::Vec};
 use p3_field::{Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::fri::oracle::SALT_SIZE;
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::hash::hash_types::RichField;
@@ -126,7 +126,7 @@ pub fn reduce_with_powers<'a, P: PackedField, T: IntoIterator<Item = &'a P>>(
 where
     T::IntoIter: DoubleEndedIterator,
 {
-    let mut sum = P::zeros();
+    let mut sum = P::zero();
     for &term in terms.into_iter().rev() {
         sum = sum * alpha + term;
     }

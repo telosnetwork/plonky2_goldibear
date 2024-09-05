@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use p3_field::{batch_multiplicative_inverse, Field, TwoAdicField};
 
-use crate::packed::PackedField;
+use p3_field::PackedField;
 use crate::types::two_adic_subgroup;
 
 /// Precomputations of the evaluation of `Z_H(X) = X^n - 1` on a coset `gK` with `H <= K`.
@@ -48,7 +48,7 @@ impl<F: TwoAdicField> ZeroPolyOnCoset<F> {
 
     /// Like `eval_inverse`, but for a range of indices starting with `i_start`.
     pub fn eval_inverse_packed<P: PackedField<Scalar = F>>(&self, i_start: usize) -> P {
-        let mut packed = P::zeros();
+        let mut packed = P::zero();
         packed
             .as_slice_mut()
             .iter_mut()

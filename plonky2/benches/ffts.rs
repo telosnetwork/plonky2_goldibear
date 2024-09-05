@@ -1,6 +1,7 @@
 mod allocator;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use p3_baby_bear::BabyBear;
 use p3_field::TwoAdicField;
 use p3_goldilocks::Goldilocks;
 use plonky2::field::polynomial::PolynomialCoeffs;
@@ -9,7 +10,7 @@ use tynm::type_name;
 pub(crate) fn bench_ffts<F: TwoAdicField + Sample>(c: &mut Criterion) {
     let mut group = c.benchmark_group(format!("fft<{}>", type_name::<F>()));
 
-    for size_log in [13, 14, 15, 16] {
+    for size_log in [14, 16, 18] {
         let size = 1 << size_log;
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
             let coeffs = PolynomialCoeffs::new(F::rand_vec(size));
@@ -39,6 +40,7 @@ pub(crate) fn bench_ldes<F: TwoAdicField + Sample>(c: &mut Criterion) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     bench_ffts::<Goldilocks>(c);
+    bench_ffts::<BabyBear>(c);
     bench_ldes::<Goldilocks>(c);
 }
 

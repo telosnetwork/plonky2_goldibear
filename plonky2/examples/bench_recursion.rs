@@ -414,7 +414,8 @@ where
     let options = Options::from_args_safe()?;
     // Initialize randomness source
     let rng_seed = options.seed.unwrap_or_else(|| OsRng.next_u64());
-    info!("Benching {:?} using random seed {rng_seed:16x}", type_name::<F>());
+    info!("\n\n\nBenching **************{:?}**************", type_name::<F>());
+    info!("using random seed {rng_seed:16x}");
     let _rng = ChaCha8Rng::seed_from_u64(rng_seed);
     // TODO: Use `rng` to create deterministic runs
 

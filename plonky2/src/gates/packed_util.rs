@@ -1,11 +1,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use p3_field::TwoAdicField;
+use p3_field::{PackedValue, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::packable::Packable;
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -25,7 +24,7 @@ where
     /// `i` is at `index j * batch_size + i`.
     fn eval_unfiltered_base_batch_packed(&self, vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
         let mut res = vec![F::zero(); vars_batch.len() * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)];
-        let (vars_packed_iter, vars_leftovers_iter) = vars_batch.pack::<<F as Packable>::Packing>();
+        let (vars_packed_iter, vars_leftovers_iter) = vars_batch.pack::<F::Packing>();
         let leftovers_start = vars_batch.len() - vars_leftovers_iter.len();
         for (i, vars_packed) in vars_packed_iter.enumerate() {
             self.eval_unfiltered_base_packed(
@@ -33,7 +32,7 @@ where
                 StridedConstraintConsumer::new(
                     &mut res[..],
                     vars_batch.len(),
-                    <F as Packable>::Packing::WIDTH * i,
+                    F::Packing::WIDTH * i,
                 ),
             );
         }

@@ -7,7 +7,7 @@ use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::fft::FftRootTable;
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use crate::fri::proof::FriProof;
 use crate::fri::prover::fri_proof;
@@ -179,7 +179,7 @@ where
         let leaf_size = row_wise[0].len();
         (0..leaf_size)
             .map(|j| {
-                let mut packed = P::zeros();
+                let mut packed = P::zero();
                 packed
                     .as_slice_mut()
                     .iter_mut()

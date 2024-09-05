@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 use p3_field::{AbstractField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -234,7 +234,7 @@ where
 
         for i in 0..self.num_power_bits {
             let prev_intermediate_value = if i == 0 {
-                P::ones()
+                P::one()
             } else {
                 intermediate_values[i - 1].square()
             };
@@ -242,7 +242,7 @@ where
             // power_bits is in LE order, but we accumulate in BE order.
             let cur_bit = power_bits[self.num_power_bits - i - 1];
 
-            let not_cur_bit = P::ones() - cur_bit;
+            let not_cur_bit = P::one() - cur_bit;
             let computed_intermediate_value =
                 prev_intermediate_value * (cur_bit * base + not_cur_bit);
             yield_constr.one(computed_intermediate_value - intermediate_values[i]);

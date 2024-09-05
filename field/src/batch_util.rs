@@ -1,7 +1,5 @@
 use p3_field::Field;
-
-use crate::packable::Packable;
-use crate::packed::PackedField;
+use p3_field::PackedField;
 
 const fn pack_with_leftovers_split_point<P: PackedField>(slice: &[P::Scalar]) -> usize {
     let n = slice.len();
@@ -33,8 +31,8 @@ pub fn batch_multiply_inplace<F: Field>(out: &mut [F], a: &[F]) {
 
     // Split out slice of vectors, leaving leftovers as scalars
     let (out_packed, out_leftovers) =
-        pack_slice_with_leftovers_mut::<<F as Packable>::Packing>(out);
-    let (a_packed, a_leftovers) = pack_slice_with_leftovers::<<F as Packable>::Packing>(a);
+        pack_slice_with_leftovers_mut::<F::Packing>(out);
+    let (a_packed, a_leftovers) = pack_slice_with_leftovers::<F::Packing>(a);
 
     // Multiply packed and the leftovers
     for (x_out, x_a) in out_packed.iter_mut().zip(a_packed) {
@@ -53,8 +51,8 @@ pub fn batch_add_inplace<F: Field>(out: &mut [F], a: &[F]) {
 
     // Split out slice of vectors, leaving leftovers as scalars
     let (out_packed, out_leftovers) =
-        pack_slice_with_leftovers_mut::<<F as Packable>::Packing>(out);
-    let (a_packed, a_leftovers) = pack_slice_with_leftovers::<<F as Packable>::Packing>(a);
+        pack_slice_with_leftovers_mut::<F::Packing>(out);
+    let (a_packed, a_leftovers) = pack_slice_with_leftovers::<F::Packing>(a);
 
     // Add packed and the leftovers
     for (x_out, x_a) in out_packed.iter_mut().zip(a_packed) {

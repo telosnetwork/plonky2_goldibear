@@ -13,7 +13,7 @@ use p3_field::TwoAdicField;
 use plonky2_field::types::HasExtension;
 
 use super::lookup_table::LookupTable;
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;

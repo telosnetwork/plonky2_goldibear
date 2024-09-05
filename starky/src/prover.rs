@@ -230,7 +230,7 @@ where
     let quotient_polys = timed!(
         timing,
         "compute quotient polys",
-        compute_quotient_polys::<F, <F as Packable>::Packing, C, S, D>(
+        compute_quotient_polys::<F, F::Packing, C, S, D>(
             stark,
             trace_commitment,
             &auxiliary_polys_commitment,

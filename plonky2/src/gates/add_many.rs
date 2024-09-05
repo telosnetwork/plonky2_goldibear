@@ -2,10 +2,9 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
-use p3_field::{AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PackedField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -152,7 +151,7 @@ where
         (0..self.num_ops).for_each(|i| {
             let computed_sum = Self::wires_ith_op_addends(i)
                 .map(|j| vars.local_wires[j])
-                .fold(P::zeros(), |acc,i| acc + i);
+                .fold(P::zero(), |acc,i| acc + i);
             yield_constr.one(computed_sum - vars.local_wires[Self::wire_ith_sum(i)]);
         });
     }

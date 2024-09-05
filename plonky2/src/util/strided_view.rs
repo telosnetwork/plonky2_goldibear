@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::mem::size_of;
 use core::ops::{Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
 
 /// Imagine a slice, but with a stride (a la a NumPy array).
 ///

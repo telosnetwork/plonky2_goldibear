@@ -1,12 +1,11 @@
 use alloc::vec::Vec;
 use core::cmp::{max, min};
 
-use p3_field::{Field, TwoAdicField};
+use p3_field::{Field, PackedValue, TwoAdicField};
 use plonky2_util::{log2_strict, reverse_index_bits_in_place};
 use unroll::unroll_for_loops;
 
-use crate::packable::Packable;
-use crate::packed::PackedField;
+use p3_field::PackedField;
 use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
 
 pub type FftRootTable<F> = Vec<Vec<F>>;
@@ -196,13 +195,13 @@ pub(crate) fn fft_classic<F: Field>(values: &mut [F], r: usize, root_table: &Fft
         }
     }
 
-    let lg_packed_width = log2_strict(<F as Packable>::Packing::WIDTH);
+    let lg_packed_width = log2_strict(F::Packing::WIDTH);
     if lg_n <= lg_packed_width {
         // Need the slice to be at least the width of two packed vectors for the vectorized version
         // to work. Do this tiny problem in scalar.
         fft_classic_simd::<F>(values, r, lg_n, root_table);
     } else {
-        fft_classic_simd::<<F as Packable>::Packing>(values, r, lg_n, root_table);
+        fft_classic_simd::<F::Packing>(values, r, lg_n, root_table);
     }
 }
 
