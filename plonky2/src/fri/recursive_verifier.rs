@@ -271,8 +271,7 @@ where
 
         // Note that this `low_bits` decomposition permits non-canonical binary encodings. Here we
         // verify that this has a negligible impact on soundness error.
-        // Self::assert_noncanonical_indices_ok(&params.config);
-        let mut x_index_bits = self.low_bits(x_index, n_log);
+        let mut x_index_bits = self.low_bits(x_index, n_log, Self::are_noncanonical_indices_ok(&params.config));
         
         let cap_index =
             self.le_sum(x_index_bits[x_index_bits.len() - params.config.cap_height..].iter());
@@ -379,15 +378,12 @@ where
     /// Thus ambiguous elements contribute a negligible amount to soundness error.
     ///
     /// Here we compare the probabilities as a sanity check, to verify the claim above.
-    fn assert_noncanonical_indices_ok(config: &FriConfig) {
+    fn are_noncanonical_indices_ok(config: &FriConfig) -> bool {
         let num_ambiguous_elems =  (((1 << (F::bits() -1) ) - (F::ORDER_U64 >> 1)) << 1) -1;
         let query_error = config.rate();
         let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER_U64 as f64);
-        let bits = F::bits();
         let max_ambiguous = query_error * 1e-5;
-        assert!(p_ambiguous < max_ambiguous,
-                "A non-negligible portion of field elements are in the range that permits non-canonical encodings. Need to do more analysis or enforce canonical encodings (bits {bits}, p_ambiguous {p_ambiguous}, max_ambiguous {max_ambiguous}).");
-
+        p_ambiguous < max_ambiguous
     }
 
     pub fn add_virtual_fri_proof(

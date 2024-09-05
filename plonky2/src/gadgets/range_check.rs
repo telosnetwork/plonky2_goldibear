@@ -29,18 +29,19 @@ where
 
     /// Returns the first `num_low_bits` little-endian bits of `x`.
     /// Assume that F::ORDER = 2^EXP0 - 2^EXP1 + 1
-    pub fn low_bits(&mut self, x: Target, num_low_bits: usize) -> Vec<BoolTarget> {
-        let one = self.one();
+    pub fn low_bits(&mut self, x: Target, num_low_bits: usize, are_noncanonical_indices_ok: bool) -> Vec<BoolTarget> {
         let mut res = self.split_le(x, F::EXP0);
-        let (lo_bits, hi_bits) = res.split_at(F::EXP1);
-        let lo_bits_sum = self.add_many(lo_bits.into_iter().map(|b| b.target));
-        let hi_bits_sum = self.add_many(hi_bits.into_iter().map(|b| b.target));
-        let hi_bits_sum_minus_exp0_plus_exp1 = self.add_const(hi_bits_sum, F::from_canonical_usize(F::EXP1 - F::EXP0));
-        let y = self.inverse_or_zero(hi_bits_sum_minus_exp0_plus_exp1);
-        let maybe_0 = self.arithmetic(F::one(), - F::one(), hi_bits_sum_minus_exp0_plus_exp1, y, one);
-        let must_be_0 = self.mul(maybe_0, lo_bits_sum);
-        self.assert_zero(must_be_0);
-
+        if !are_noncanonical_indices_ok {
+            let one = self.one();
+            let (lo_bits, hi_bits) = res.split_at(F::EXP1);
+            let lo_bits_sum = self.add_many(lo_bits.into_iter().map(|b| b.target));
+            let hi_bits_sum = self.add_many(hi_bits.into_iter().map(|b| b.target));
+            let hi_bits_sum_minus_exp0_plus_exp1 = self.add_const(hi_bits_sum, F::from_canonical_usize(F::EXP1 - F::EXP0));
+            let y = self.inverse_or_zero(hi_bits_sum_minus_exp0_plus_exp1);
+            let maybe_0 = self.arithmetic(F::one(), -F::one(), hi_bits_sum_minus_exp0_plus_exp1, y, one);
+            let must_be_0 = self.mul(maybe_0, lo_bits_sum);
+            self.assert_zero(must_be_0);
+        }
         res.truncate(num_low_bits);
         res
     }
