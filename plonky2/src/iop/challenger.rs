@@ -302,7 +302,6 @@ mod tests {
     use alloc::vec::Vec;
 
     use crate::field::types::Sample;
-    use crate::hash::hash_types::RichField;
     use crate::iop::challenger::{Challenger, RecursiveChallenger};
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::target::Target;

@@ -175,7 +175,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU8;
     use p3_field::{AbstractField, Field};
     use plonky2_field::types::Sample;
     use rand::rngs::OsRng;

@@ -9,8 +9,9 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
-use plonky2_field::types::{two_adic_subgroup, HasExtension};
+use plonky2_field::types::{HasExtension, two_adic_subgroup};
 
 use crate::field::interpolation::barycentric_weights;
 use crate::gates::gate::Gate;
@@ -690,22 +691,18 @@ where
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use log::info;
-    use p3_field::{AbstractField, PrimeField64};
+    use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
+
     use plonky2_field::polynomial::PolynomialValues;
     use plonky2_util::log2_strict;
 
-    use super::*;
     use crate::field::types::Sample;
-    use crate::fri::{FriConfig, FriParams};
-    use crate::fri::reduction_strategies::FriReductionStrategy;
-    use crate::gates::gate::GateRef;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::gates::selectors::SelectorsInfo;
     use crate::hash::hash_types::HashOut;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use crate::util::serialization::{DefaultGateSerializer, GateSerializer};
+
+    use super::*;
 
     #[test]
     fn test_degree_and_wires_minimized() {
