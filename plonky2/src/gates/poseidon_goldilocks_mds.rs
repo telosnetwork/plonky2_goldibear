@@ -8,6 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
+use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -26,7 +27,7 @@ use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// Poseidon MDS Gate
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct PoseidonMdsGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
 impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F, D>
@@ -118,17 +119,50 @@ where
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionAlgebraTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionAlgebraTarget<D>; SPONGE_WIDTH] {
+        let use_mds_gate = builder.config.num_routed_wires
+            >= <PoseidonMdsGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(
+                &PoseidonMdsGate::<F, D>::new(),
+            );
+        
         let mut result = [builder.zero_ext_algebra(); SPONGE_WIDTH];
-
-        for r in 0..SPONGE_WIDTH {
-            result[r] = Self::mds_row_shf_algebra_circuit(builder, r, state);
+        if use_mds_gate {
+            let gate = Self::new();
+            for i in 0..D {
+                let state_i: Vec<ExtensionTarget<D>> =
+                    (0..SPONGE_WIDTH).map(|j| state[j].0[i]).collect();
+                let (row, col) = builder.find_slot(gate.clone(), &[], &[]);
+                (0..SPONGE_WIDTH).for_each(|j| {
+                    builder.connect_extension(
+                        state_i[j],
+                        ExtensionTarget::<D>(
+                            Self::wires_input(col)
+                                .map(|k| Target::wire(row, k))
+                                .collect_vec()
+                                .try_into()
+                                .unwrap(),
+                        ),
+                    );
+                    result[j].0[i] = ExtensionTarget::<D>(
+                        Self::wires_output(col)
+                            .map(|k| Target::wire(row, k))
+                            .collect_vec()
+                            .try_into()
+                            .unwrap(),
+                    );
+                })
+            }
+            result
+        } else {
+            for r in 0..SPONGE_WIDTH {
+                result[r] = Self::mds_row_shf_algebra_circuit(builder, r, state);
+            }
+            result
         }
-
-        result
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGate<F, D>
 where
     F: HasExtension<D>,
     F::Extension: TwoAdicField,
@@ -145,7 +179,10 @@ where
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        _src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         Ok(PoseidonMdsGate::new())
     }
 
@@ -217,7 +254,11 @@ where
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = PoseidonMdsGenerator { row };
         vec![WitnessGeneratorRef::new(gen.adapter())]
     }
@@ -244,8 +285,8 @@ pub struct PoseidonMdsGenerator<const D: usize> {
     row: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for PoseidonMdsGenerator<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGenerator<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -283,11 +324,18 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         Ok(Self { row })
     }

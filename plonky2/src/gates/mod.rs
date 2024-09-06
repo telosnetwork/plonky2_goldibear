@@ -24,6 +24,7 @@
 // Gates have `new` methods that return `GateRef`s.
 
 pub mod add_many;
+pub mod apply_mat4;
 pub mod arithmetic_base;
 pub mod arithmetic_extension;
 pub mod base_sum;

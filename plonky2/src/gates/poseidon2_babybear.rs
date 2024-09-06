@@ -8,10 +8,12 @@ use alloc::{
 use core::marker::PhantomData;
 use core::usize;
 
+use itertools::Itertools;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
+use super::apply_mat4::ApplyMat4Gate;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -113,7 +115,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -129,7 +132,10 @@ where
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        _src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         Ok(Poseidon2BabyBearGate::new())
     }
 
@@ -137,7 +143,9 @@ where
         &self,
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
         constraints
@@ -292,7 +300,9 @@ where
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
         constraints.push(builder.mul_sub_extension(swap, swap, swap));
@@ -367,7 +377,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = PoseidonGenerator::<F, D> {
             row,
             _phantom: PhantomData,
@@ -402,8 +416,8 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for PoseidonGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -507,11 +521,18 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         Ok(Self {
             row,
@@ -554,7 +575,11 @@ fn add_rc<F: AbstractField>(state: &mut [F; SPONGE_WIDTH], round_idx: usize) {
         .for_each(|i| state[i] += F::from_canonical_u32(EXTERNAL_CONSTANTS[round_idx][i]))
 }
 
-fn permute_internal_mut_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+fn permute_internal_mut_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
 ) where
@@ -669,12 +694,28 @@ fn permute_external_mut_circuit<
     }
 }
 
-fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+fn apply_mat4_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     x: &mut [ExtensionTarget<D>; 4],
 ) where
     F::Extension: TwoAdicField,
 {
+    let gate = ApplyMat4Gate::<F, D>::new_from_config(&builder.config);
+    let (row, op) = builder.find_slot(gate, &[], &[]);
+    (0..4).for_each(|i| {
+        builder.connect_extension(
+            x[i],
+            ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_input(op, i))
+        )
+    });
+    *x = [0, 1, 2, 3].map(|i| {
+        ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_output(op, i))
+    });
+    /*
     let t01 = builder.add_extension(x[0], x[1]); //x[0].clone() + x[1].clone();
     let t23 = builder.add_extension(x[2], x[3]); //x[2].clone() + x[3].clone();
     let t0123 = builder.add_extension(t01, t23); //t01.clone() + t23.clone();
@@ -685,6 +726,7 @@ fn apply_mat4_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_
     x[1] = builder.mul_const_add_extension(F::two(), x[2], t01123); //t01123.clone() + x[2].double(); // x[0] + 2*x[1] + 3*x[2] + x[3]
     x[0] = builder.add_extension(t01123, t01); //t01123 + t01; // 2*x[0] + 3*x[1] + x[2] + x[3]
     x[2] = builder.add_extension(t01233, t23); //t01233 + t23; // x[0] + x[1] + 2*x[2] + 3*x[3]
+    */
 }
 
 fn apply_mat4<AF>(x: &mut [AF; 4])
