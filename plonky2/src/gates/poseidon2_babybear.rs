@@ -13,7 +13,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use super::apply_mat4::ApplyMat4Gate;
+use super::{apply_mat4::ApplyMat4Gate, poseidon2_internal_permutation::Poseidon2InternalPermutationGate};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -32,7 +32,7 @@ use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 const SBOX_EXP: u64 = 7;
-const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] = [
+pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23,
 ];
 
@@ -585,6 +585,17 @@ fn permute_internal_mut_circuit<
 ) where
     F::Extension: TwoAdicField,
 {
+    // let gate = Poseidon2InternalPermutationGate::<F, D>::new();
+    // let row = builder.add_gate(gate, vec![]);
+    // (0..SPONGE_WIDTH).for_each(|i| {
+    //     builder.connect_extension(
+    //         state[i],
+    //         ExtensionTarget::<D>::from_range(row, Poseidon2InternalPermutationGate::<F,D>::wires_input(i))
+    //     )
+    // });
+    // *state = (0..SPONGE_WIDTH).map(|i| {
+    //     ExtensionTarget::<D>::from_range(row, Poseidon2InternalPermutationGate::<F,D>::wires_output(i))
+    // }).collect_vec().try_into().unwrap();
     state
         .iter_mut()
         .for_each(|x| *x = builder.mul_const_extension(F::from_canonical_u32(943718400), *x));

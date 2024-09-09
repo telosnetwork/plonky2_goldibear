@@ -38,6 +38,7 @@ pub mod multiplication_extension;
 pub mod noop;
 pub mod packed_util;
 pub mod poseidon2_babybear;
+pub mod poseidon2_internal_permutation;
 pub mod poseidon_goldilocks;
 pub mod poseidon_goldilocks_mds;
 pub mod public_input;
