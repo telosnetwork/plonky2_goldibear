@@ -19,13 +19,16 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{OpeningSetTarget, ProofTarget, ProofWithPublicInputsTarget};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
-    pub fn conditionally_verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+    pub fn conditionally_verify_proof<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
         condition: BoolTarget,
         proof_with_pis0: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
@@ -178,8 +181,8 @@ where
     fn select_vec_cap(
         &mut self,
         b: BoolTarget,
-        v0: &[MerkleCapTarget< NUM_HASH_OUT_ELTS>],
-        v1: &[MerkleCapTarget< NUM_HASH_OUT_ELTS>],
+        v0: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        v1: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
     ) -> Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)

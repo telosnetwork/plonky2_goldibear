@@ -211,10 +211,14 @@ where
         let num_addends = addends.len();
         match num_addends {
             ADD_MANY_THRESHOLD => {
-                let gate_type = AddManyGate::<ADD_MANY_THRESHOLD>::new_from_config::<F>(&self.config);
+                let gate_type =
+                    AddManyGate::<ADD_MANY_THRESHOLD>::new_from_config::<F>(&self.config);
                 let (row, i) = self.find_slot(gate_type, &[], &[]);
                 let addends_indices = AddManyGate::<ADD_MANY_THRESHOLD>::wires_ith_op_addends(i);
-                addends.iter().zip(addends_indices).for_each(|(&target, idx)| self.connect(target, Target::wire(row, idx)));
+                addends
+                    .iter()
+                    .zip(addends_indices)
+                    .for_each(|(&target, idx)| self.connect(target, Target::wire(row, idx)));
                 Target::wire(row, AddManyGate::<ADD_MANY_THRESHOLD>::wire_ith_sum(i))
             }
 
@@ -223,7 +227,10 @@ where
                 .fold(self.zero(), |acc, t| self.add(acc, *t.borrow())),
 
             _ => {
-                let new_addends = addends.chunks(ADD_MANY_THRESHOLD).map(|chunk| self.add_many(chunk)).collect::<Vec<_>>();
+                let new_addends = addends
+                    .chunks(ADD_MANY_THRESHOLD)
+                    .map(|chunk| self.add_many(chunk))
+                    .collect::<Vec<_>>();
                 self.add_many(new_addends)
             }
         }

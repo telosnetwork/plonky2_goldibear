@@ -18,7 +18,8 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::ceil_div_usize;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -72,7 +73,8 @@ pub struct SplitGenerator {
     bits: Vec<Target>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SplitGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SplitGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -99,12 +101,19 @@ where
         );
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.integer)?;
         dst.write_target_vec(&self.bits)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let integer = src.read_target()?;
         let bits = src.read_target_vec()?;
         Ok(Self { integer, bits })
@@ -118,7 +127,8 @@ pub struct WireSplitGenerator {
     num_limbs: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for WireSplitGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for WireSplitGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -157,13 +167,20 @@ where
         );
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.integer)?;
         dst.write_usize_vec(&self.gates)?;
         dst.write_usize(self.num_limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let integer = src.read_target()?;
         let gates = src.read_usize_vec()?;
         let num_limbs = src.read_usize()?;

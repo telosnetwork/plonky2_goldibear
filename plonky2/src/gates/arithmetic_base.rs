@@ -5,10 +5,9 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::TwoAdicField;
+use p3_field::{PackedField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -60,7 +59,8 @@ impl ArithmeticGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
 where
     F::Extension: TwoAdicField,
 {
@@ -68,11 +68,18 @@ where
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_ops)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_ops = src.read_usize()?;
         Ok(Self { num_ops })
     }
@@ -103,7 +110,10 @@ where
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
@@ -134,7 +144,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -167,7 +181,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize,  const NUM_HASH_OUT_ELTS: usize> PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
 where
     F::Extension: TwoAdicField,
 {
@@ -202,8 +217,8 @@ where
     i: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for ArithmeticBaseGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ArithmeticBaseGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -237,14 +252,21 @@ where
         out_buffer.set_target(output_target, computed_output)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_field(self.const_0)?;
         dst.write_field(self.const_1)?;
         dst.write_usize(self.i)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let const_0 = src.read_field()?;
         let const_1 = src.read_field()?;

@@ -2,10 +2,9 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
-use p3_field::{AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PackedField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -50,7 +49,12 @@ impl<const B: usize> BaseSumGate<B> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const B: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for BaseSumGate<B>
+impl<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const B: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > Gate<F, D, NUM_HASH_OUT_ELTS> for BaseSumGate<B>
 where
     F::Extension: TwoAdicField,
 {
@@ -58,11 +62,18 @@ where
         format!("{self:?} + Base: {B}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_limbs = src.read_usize()?;
         Ok(Self { num_limbs })
     }
@@ -93,7 +104,10 @@ where
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
@@ -124,7 +138,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = BaseSplitGenerator::<B> {
             row,
             num_limbs: self.num_limbs,
@@ -152,8 +170,12 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const B: usize, const NUM_HASH_OUT_ELTS: usize> PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS>
-    for BaseSumGate<B>
+impl<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const B: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for BaseSumGate<B>
 where
     F::Extension: TwoAdicField,
 {
@@ -183,8 +205,12 @@ pub struct BaseSplitGenerator<const B: usize> {
     num_limbs: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const B: usize, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for BaseSplitGenerator<B>
+impl<
+        F: RichField + HasExtension<D>,
+        const B: usize,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for BaseSplitGenerator<B>
 where
     F::Extension: TwoAdicField,
 {
@@ -221,12 +247,19 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.num_limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let num_limbs = src.read_usize()?;
         Ok(Self { row, num_limbs })

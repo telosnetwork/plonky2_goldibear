@@ -101,7 +101,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
 
     pub fn get_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> HashOut<F, NUM_HASH_OUT_ELTS> {
         HashOut {
-            elements: self.get_n_challenges(NUM_HASH_OUT_ELTS).try_into().unwrap()
+            elements: self.get_n_challenges(NUM_HASH_OUT_ELTS).try_into().unwrap(),
         }
     }
 
@@ -167,7 +167,7 @@ pub struct RecursiveChallenger<
     F: RichField + HasExtension<D>,
     H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     const D: usize,
-    const NUM_HASH_OUT_ELTS: usize
+    const NUM_HASH_OUT_ELTS: usize,
 > where
     F::Extension: TwoAdicField,
 {
@@ -177,8 +177,12 @@ pub struct RecursiveChallenger<
     __: PhantomData<(F, H)>,
 }
 
-impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
+impl<
+        F: RichField + HasExtension<D>,
+        H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -234,7 +238,10 @@ where
         }
     }
 
-    pub fn get_challenge(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> Target {
+    pub fn get_challenge(
+        &mut self,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Target {
         self.absorb_buffered_inputs(builder);
 
         if self.output_buffer.is_empty() {
@@ -256,9 +263,15 @@ where
         (0..n).map(|_| self.get_challenge(builder)).collect()
     }
 
-    pub fn get_hash(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn get_hash(
+        &mut self,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
-            elements: self.get_n_challenges(builder, NUM_HASH_OUT_ELTS).try_into().unwrap()
+            elements: self
+                .get_n_challenges(builder, NUM_HASH_OUT_ELTS)
+                .try_into()
+                .unwrap(),
         }
     }
 
@@ -289,7 +302,10 @@ where
         self.input_buffer.clear();
     }
 
-    pub fn compact(&mut self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> H::AlgebraicPermutation {
+    pub fn compact(
+        &mut self,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> H::AlgebraicPermutation {
         self.absorb_buffered_inputs(builder);
         self.output_buffer.clear();
         self.sponge_state
@@ -316,7 +332,8 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let mut challenger = Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
+        let mut challenger =
+            Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
         let mut challenges = Vec::new();
 
         for i in 1..10 {
@@ -351,7 +368,8 @@ mod tests {
             .map(|&n| F::rand_vec(n))
             .collect();
 
-        let mut challenger = Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
+        let mut challenger =
+            Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
         let mut outputs_per_round: Vec<Vec<F>> = Vec::new();
         for (r, inputs) in inputs_per_round.iter().enumerate() {
             challenger.observe_elements(inputs);
@@ -360,8 +378,12 @@ mod tests {
 
         let config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
-        let mut recursive_challenger =
-            RecursiveChallenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher, D, NUM_HASH_OUT_ELTS>::new(&mut builder);
+        let mut recursive_challenger = RecursiveChallenger::<
+            F,
+            <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher,
+            D,
+            NUM_HASH_OUT_ELTS,
+        >::new(&mut builder);
         let mut recursive_outputs_per_round: Vec<Vec<Target>> = Vec::new();
         for (r, inputs) in inputs_per_round.iter().enumerate() {
             recursive_challenger.observe_elements(&builder.constants(inputs));

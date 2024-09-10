@@ -1,6 +1,5 @@
 use core::marker::PhantomData;
 use core::ops::Range;
-use core::panic;
 
 use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
@@ -149,14 +148,21 @@ where
                 .try_into()
                 .unwrap();
             for i in 0..D {
-                let input: [ExtensionTarget<D>; 4]  = (0..4).map(|j| x[j].0[i]).collect_vec().try_into().unwrap();
-                let (row,op) = builder.find_slot(gate.clone(), &[], &[]);
+                let input: [ExtensionTarget<D>; 4] =
+                    (0..4).map(|j| x[j].0[i]).collect_vec().try_into().unwrap();
+                let (row, op) = builder.find_slot(gate.clone(), &[], &[]);
                 (0..4).for_each(|j| {
                     builder.connect_extension(
                         input[j],
-                        ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_input(op, i))
+                        ExtensionTarget::<D>::from_range(
+                            row,
+                            ApplyMat4Gate::<F, D>::wires_input(op, i),
+                        ),
                     );
-                    x[j].0[i] = ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_output(op, i));
+                    x[j].0[i] = ExtensionTarget::<D>::from_range(
+                        row,
+                        ApplyMat4Gate::<F, D>::wires_output(op, i),
+                    );
                 });
             }
             // let two = ExtensionAlgebraTarget::<D>([builder.two_extension(); D]);
@@ -186,15 +192,7 @@ where
         _local_constants: &[F],
     ) -> Vec<crate::iop::generator::WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
-            .map(|op| {
-                WitnessGeneratorRef::new(
-                    ApplyMat4Generator {
-                        row,
-                        op,
-                    }
-                    .adapter(),
-                )
-            })
+            .map(|op| WitnessGeneratorRef::new(ApplyMat4Generator { row, op }.adapter()))
             .collect()
     }
 
@@ -218,7 +216,7 @@ where
 #[derive(Clone, Debug, Default)]
 pub struct ApplyMat4Generator<const D: usize> {
     row: usize,
-    op: usize
+    op: usize,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
@@ -252,14 +250,14 @@ where
 
         let mut x = inputs.clone();
         let t01 = x[0] + x[1];
-            let t23 = x[2] + x[3];
-            let t0123 = t01 + t23;
-            let t01123 = t0123 + x[1];
-            let t01233 = t0123 + x[3];
-            x[3] = t01233 + x[0] * F::Extension::two();
-            x[1] = t01123 + x[2] * F::Extension::two();
-            x[0] = t01123 + t01;
-            x[2] = t01233 + t23;
+        let t23 = x[2] + x[3];
+        let t0123 = t01 + t23;
+        let t01123 = t0123 + x[1];
+        let t01233 = t0123 + x[3];
+        x[3] = t01233 + x[0] * F::Extension::two();
+        x[1] = t01123 + x[2] * F::Extension::two();
+        x[0] = t01123 + t01;
+        x[2] = t01233 + t23;
 
         for (i, &out) in x.iter().enumerate() {
             out_buffer.set_extension_target(

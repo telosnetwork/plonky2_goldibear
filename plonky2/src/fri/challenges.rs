@@ -29,7 +29,7 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn fri_challenges<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
@@ -74,8 +74,12 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
+impl<
+        F: RichField + HasExtension<D>,
+        H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {

@@ -63,7 +63,8 @@ impl<const D: usize> ReducingGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingGate<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingGate<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -71,12 +72,19 @@ where
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_coeffs)?;
         Ok(())
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized,
     {
@@ -95,7 +103,9 @@ where
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
+        );
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             constraints.push(acc * alpha + ExtensionAlgebra::from_base(coeffs[i]) - accs[i]);
@@ -151,7 +161,9 @@ where
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
+        );
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             let coeff = builder.convert_to_ext_algebra(coeffs[i]);
@@ -167,7 +179,11 @@ where
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         vec![WitnessGeneratorRef::new(
             ReducingGenerator {
                 row,
@@ -200,7 +216,8 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingGate<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ReducingGenerator<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ReducingGenerator<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -245,14 +262,22 @@ where
         out_buffer.set_extension_target(output, acc);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         <ReducingGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::serialize(&self.gate, dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
-        let gate = <ReducingGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(src, _common_data)?;
+        let gate =
+            <ReducingGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(src, _common_data)?;
         Ok(Self { row, gate })
     }
 }

@@ -94,7 +94,8 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {

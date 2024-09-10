@@ -18,12 +18,16 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
+impl<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
 where
     C::F: RichField + HasExtension<D>,
     <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
 {
-    fn from_slice(slice: &[C::F], common_data: &CommonCircuitData<C::F, D, NUM_HASH_OUT_ELTS>) -> Result<Self>
+    fn from_slice(
+        slice: &[C::F],
+        common_data: &CommonCircuitData<C::F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<Self>
     where
         C::Hasher: AlgebraicHasher<C::F, NUM_HASH_OUT_ELTS>,
     {
@@ -94,7 +98,8 @@ impl<const NUM_HASH_OUT_ELTS: usize> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -111,7 +116,9 @@ where
     /// that the verification key matches.
     ///
     /// WARNING: Do not register any public input after calling this! TODO: relax this
-    pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+    pub fn conditionally_verify_cyclic_proof<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
         condition: BoolTarget,
         cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
@@ -207,7 +214,10 @@ where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
-    let pis = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS>::from_slice(&proof.public_inputs, common_data)?;
+    let pis = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS>::from_slice(
+        &proof.public_inputs,
+        common_data,
+    )?;
     ensure!(verifier_data.constants_sigmas_cap == pis.constants_sigmas_cap);
     ensure!(verifier_data.circuit_digest == pis.circuit_digest);
 
@@ -393,10 +403,15 @@ mod tests {
         cyclic_circuit_data.verify(proof)
     }
 
-    fn iterate_poseidon<F: RichField, const NUM_HASH_OUT_ELTS: usize>(initial_state: [F; NUM_HASH_OUT_ELTS], n: usize) -> [F; NUM_HASH_OUT_ELTS] {
+    fn iterate_poseidon<F: RichField, const NUM_HASH_OUT_ELTS: usize>(
+        initial_state: [F; NUM_HASH_OUT_ELTS],
+        n: usize,
+    ) -> [F; NUM_HASH_OUT_ELTS] {
         let mut current = initial_state;
         for _ in 0..n {
-            current = hash_n_to_hash_no_pad::<F, Poseidon64Permutation<F>, NUM_HASH_OUT_ELTS>(&current).elements;
+            current =
+                hash_n_to_hash_no_pad::<F, Poseidon64Permutation<F>, NUM_HASH_OUT_ELTS>(&current)
+                    .elements;
         }
         current
     }

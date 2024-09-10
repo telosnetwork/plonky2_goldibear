@@ -6,7 +6,8 @@ use crate::iop::target::BoolTarget;
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::AlgebraicHasher;
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {

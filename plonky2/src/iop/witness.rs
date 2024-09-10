@@ -20,7 +20,11 @@ use crate::plonk::proof::{Proof, ProofTarget, ProofWithPublicInputs, ProofWithPu
 pub trait WitnessWrite<F: Field> {
     fn set_target(&mut self, target: Target, value: F);
 
-    fn set_hash_target<const NUM_HASH_OUT_ELTS: usize>(&mut self, ht: HashOutTarget<NUM_HASH_OUT_ELTS>, value: HashOut<F, NUM_HASH_OUT_ELTS>) {
+    fn set_hash_target<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        ht: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        value: HashOut<F, NUM_HASH_OUT_ELTS>,
+    ) {
         ht.elements
             .iter()
             .zip(value.elements)
@@ -71,7 +75,11 @@ pub trait WitnessWrite<F: Field> {
 
     /// Set the targets in a `ProofWithPublicInputsTarget` to their corresponding values in a
     /// `ProofWithPublicInputs`.
-    fn set_proof_with_pis_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn set_proof_with_pis_target<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         proof_with_pis_target: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
         proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -98,7 +106,11 @@ pub trait WitnessWrite<F: Field> {
     }
 
     /// Set the targets in a `ProofTarget` to their corresponding values in a `Proof`.
-    fn set_proof_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn set_proof_target<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         proof_target: &ProofTarget<D, NUM_HASH_OUT_ELTS>,
         proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -139,7 +151,11 @@ pub trait WitnessWrite<F: Field> {
         }
     }
 
-    fn set_verifier_data_target<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn set_verifier_data_target<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         vdt: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
         vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
@@ -223,13 +239,19 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         panic!("not a bool")
     }
 
-    fn get_hash_target<const NUM_HASH_OUT_ELTS: usize>(&self, ht: HashOutTarget<NUM_HASH_OUT_ELTS>) -> HashOut<F, NUM_HASH_OUT_ELTS> {
+    fn get_hash_target<const NUM_HASH_OUT_ELTS: usize>(
+        &self,
+        ht: HashOutTarget<NUM_HASH_OUT_ELTS>,
+    ) -> HashOut<F, NUM_HASH_OUT_ELTS> {
         HashOut {
             elements: self.get_targets(&ht.elements).try_into().unwrap(),
         }
     }
 
-    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(&self, cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS>) -> MerkleCap<F, H>
+    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(
+        &self,
+        cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    ) -> MerkleCap<F, H>
     where
         F: RichField,
         H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,

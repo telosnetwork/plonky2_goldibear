@@ -8,10 +8,9 @@ use alloc::{
 use core::marker::PhantomData;
 
 use itertools::Itertools;
-use p3_field::{AbstractField, TwoAdicField};
+use p3_field::{AbstractField, PackedField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -124,7 +123,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -132,14 +132,21 @@ where
         format!("{self:?}<D={D}>")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.bits)?;
         dst.write_usize(self.num_copies)?;
         dst.write_usize(self.num_extra_constants)?;
         Ok(())
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let bits = src.read_usize()?;
         let num_copies = src.read_usize()?;
         let num_extra_constants = src.read_usize()?;
@@ -147,7 +154,9 @@ where
     }
 
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         for copy in 0..self.num_copies {
             let access_index = vars.local_wires[self.wire_access_index(copy)];
@@ -203,7 +212,10 @@ where
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
@@ -214,7 +226,9 @@ where
     ) -> Vec<ExtensionTarget<D>> {
         let zero = builder.zero_extension();
         let two = builder.two_extension();
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         for copy in 0..self.num_copies {
             let access_index = vars.local_wires[self.wire_access_index(copy)];
@@ -264,7 +278,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_copies)
             .map(|copy| {
                 WitnessGeneratorRef::new(
@@ -303,8 +321,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize,  const NUM_HASH_OUT_ELTS: usize> PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS>
-    for RandomAccessGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -362,8 +380,8 @@ where
     copy: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for RandomAccessGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -413,13 +431,20 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.copy)?;
         self.gate.serialize(dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let copy = src.read_usize()?;
         let gate = RandomAccessGate::<F, D>::deserialize(src, _common_data)?;
@@ -510,7 +535,9 @@ mod tests {
             num_extra_constants: 1,
             _phantom: PhantomData,
         };
-        let constants = F::rand_vec(<RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constants(&gate));
+        let constants = F::rand_vec(
+            <RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constants(&gate),
+        );
 
         let good_claimed_elements = lists
             .iter()

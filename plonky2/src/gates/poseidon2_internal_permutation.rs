@@ -8,14 +8,15 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
-use crate::{gates::gate::Gate, hash::poseidon2_babybear::SPONGE_WIDTH};
+use super::poseidon2_babybear::INTERNAL_DIAG_SHIFTS;
+use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
+use crate::hash::poseidon2_babybear::SPONGE_WIDTH;
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
 use crate::iop::target::Target;
@@ -24,8 +25,6 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
-
-use super::poseidon2_babybear::INTERNAL_DIAG_SHIFTS;
 
 /// Poseidon2 BabyBear internal
 #[derive(Clone, Debug, Default)]
@@ -87,7 +86,6 @@ where
             .try_into()
             .unwrap();
 
-
         let mut state = inputs;
         state
             .iter_mut()
@@ -101,7 +99,11 @@ where
 
         for i in 0..INTERNAL_DIAG_SHIFTS.len() {
             state[i + 1] = full_sum.clone()
-                + state[i + 1].clone().scalar_mul(F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]));
+                + state[i + 1]
+                    .clone()
+                    .scalar_mul(F::Extension::from_canonical_u32(
+                        1 << INTERNAL_DIAG_SHIFTS[i],
+                    ));
         }
 
         (0..SPONGE_WIDTH)
@@ -122,21 +124,22 @@ where
             .try_into()
             .unwrap();
 
-            let mut state = inputs;
-            state
-                .iter_mut()
-                .for_each(|x| *x *= F::Extension::from_canonical_u32(943718400));
-            let part_sum: F::Extension = state
-                .iter()
-                .skip(1)
-                .fold(F::Extension::zero(), |acc, x| acc + x.clone());
-            let full_sum = part_sum.clone() + state[0].clone();
-            state[0] = part_sum.clone() - state[0].clone();
-    
-            for i in 0..INTERNAL_DIAG_SHIFTS.len() {
-                state[i + 1] = full_sum.clone()
-                    + state[i + 1].clone() * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
-            }
+        let mut state = inputs;
+        state
+            .iter_mut()
+            .for_each(|x| *x *= F::Extension::from_canonical_u32(943718400));
+        let part_sum: F::Extension = state
+            .iter()
+            .skip(1)
+            .fold(F::Extension::zero(), |acc, x| acc + x.clone());
+        let full_sum = part_sum.clone() + state[0].clone();
+        state[0] = part_sum.clone() - state[0].clone();
+
+        for i in 0..INTERNAL_DIAG_SHIFTS.len() {
+            state[i + 1] = full_sum.clone()
+                + state[i + 1].clone()
+                    * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
+        }
 
         for i in 0..SPONGE_WIDTH {
             let out = vars.get_local_ext(Self::wires_output(i));
@@ -161,22 +164,26 @@ where
             .try_into()
             .unwrap();
 
-            let mut state = inputs;
-            let my_const = builder.constant_extension(F::Extension::from_canonical_u32(943718400));
-            state
-                .iter_mut()
-                .for_each(|x| *x = builder.scalar_mul_ext_algebra(my_const, *x));
-            let part_sum: ExtensionAlgebraTarget<D> = state
-                .iter()
-                .skip(1)
-                .fold(builder.zero_ext_algebra(), |acc, x| builder.add_ext_algebra(acc, *x));
-            let full_sum = builder.add_ext_algebra(part_sum, state[0]);
-            state[0] = builder.sub_ext_algebra(part_sum, state[0]);
-    
-            for i in 0..INTERNAL_DIAG_SHIFTS.len() {
-                let shift = builder.constant_extension(F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]));
-                state[i + 1] = builder.scalar_mul_add_ext_algebra(shift, state[i + 1], full_sum);
-            }
+        let mut state = inputs;
+        let my_const = builder.constant_extension(F::Extension::from_canonical_u32(943718400));
+        state
+            .iter_mut()
+            .for_each(|x| *x = builder.scalar_mul_ext_algebra(my_const, *x));
+        let part_sum: ExtensionAlgebraTarget<D> = state
+            .iter()
+            .skip(1)
+            .fold(builder.zero_ext_algebra(), |acc, x| {
+                builder.add_ext_algebra(acc, *x)
+            });
+        let full_sum = builder.add_ext_algebra(part_sum, state[0]);
+        state[0] = builder.sub_ext_algebra(part_sum, state[0]);
+
+        for i in 0..INTERNAL_DIAG_SHIFTS.len() {
+            let shift = builder.constant_extension(F::Extension::from_canonical_u32(
+                1 << INTERNAL_DIAG_SHIFTS[i],
+            ));
+            state[i + 1] = builder.scalar_mul_add_ext_algebra(shift, state[i + 1], full_sum);
+        }
 
         (0..SPONGE_WIDTH)
             .map(|i| vars.get_local_ext_algebra(Self::wires_output(i)))
@@ -265,7 +272,8 @@ where
 
         for i in 0..INTERNAL_DIAG_SHIFTS.len() {
             state[i + 1] = full_sum.clone()
-                + state[i + 1].clone() * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
+                + state[i + 1].clone()
+                    * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
         }
 
         for (i, &out) in state.iter().enumerate() {

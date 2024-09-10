@@ -103,7 +103,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -119,7 +120,10 @@ where
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        _src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         Ok(PoseidonGate::new())
     }
 
@@ -127,7 +131,9 @@ where
         &self,
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
@@ -297,10 +303,14 @@ where
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         // The naive method is more efficient if we have enough routed wires for PoseidonMdsGate.
-        let use_mds_gate =
-            builder.config.num_routed_wires >= <PoseidonMdsGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(&PoseidonMdsGate::<F, D>::new());
+        let use_mds_gate = builder.config.num_routed_wires
+            >= <PoseidonMdsGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(
+                &PoseidonMdsGate::<F, D>::new(),
+            );
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         // Assert that `swap` is binary.
         let swap = vars.local_wires[Self::WIRE_SWAP];
@@ -400,7 +410,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = PoseidonGenerator::<F, D> {
             row,
             _phantom: PhantomData,
@@ -431,8 +445,8 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for PoseidonGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -529,11 +543,18 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         Ok(Self {
             row,

@@ -14,25 +14,25 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, vec, vec::Vec};
-use p3_baby_bear::BabyBear;
 use core::ops::{Range, RangeFrom};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
 use anyhow::Result;
+use p3_baby_bear::BabyBear;
 use p3_field::{AbstractExtensionField, TwoAdicField};
+use plonky2_field::types::HasExtension;
 use serde::Serialize;
 
-use plonky2_field::types::HasExtension;
-
+use super::circuit_builder::LookupWire;
 use crate::field::fft::FftRootTable;
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::reduction_strategies::FriReductionStrategy;
 use crate::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
 };
+use crate::fri::{FriConfig, FriParams};
 use crate::gates::gate::{Gate, GateRef};
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
@@ -55,8 +55,6 @@ use crate::util::serialization::{
     Buffer, GateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
 use crate::util::timing::TimingTree;
-
-use super::circuit_builder::LookupWire;
 
 /// Configuration to be used when building a circuit. This defines the shape of the circuit
 /// as well as its targeted security level and sub-protocol (e.g. FRI) parameters.
@@ -105,14 +103,19 @@ impl CircuitConfig {
     /// A typical recursion config, without zero-knowledge, targeting ~100 bit security.
     pub fn standard_recursion_config_gl() -> Self {
         Self {
-            num_wires: 135, ..Self::standard_recursion_config()
+            num_wires: 135,
+            ..Self::standard_recursion_config()
         }
     }
     pub fn standard_recursion_config_bb() -> Self {
-        println!("num_wires: {}", Poseidon2BabyBearGate::<BabyBear,4>::end() + 1);
+        println!(
+            "num_wires: {}",
+            Poseidon2BabyBearGate::<BabyBear, 4>::end() + 1
+        );
         Self {
             //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
-            num_wires: 2 * Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
+            num_wires: 2 * Poseidon2BabyBearGate::<BabyBear, 4>::end() + 1,
+            num_routed_wires: 160,
             ..Self::standard_recursion_config()
         }
     }
@@ -188,7 +191,11 @@ where
     F::Extension: TwoAdicField,
 {
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
-        generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(inputs, &self.prover_only, &self.common)
+        generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(
+            inputs,
+            &self.prover_only,
+            &self.common,
+        )
     }
 }
 
@@ -235,7 +242,10 @@ where
         buffer.read_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
+    pub fn prove(
+        &self,
+        inputs: PartialWitness<F>,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
@@ -244,13 +254,22 @@ where
         )
     }
 
-    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
+    pub fn verify(
+        &self,
+        proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<()> {
         unsafe {
             TWO_TO_ONE_COUNTER = 0;
-            PERMUTE_COUNTER = 0;  
+            PERMUTE_COUNTER = 0;
         }
-        let res = verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common);
-        unsafe {println!("TWO_TO_ONE_COUNTER = {}\n PERMUTE_COUNTER = {}\n",TWO_TO_ONE_COUNTER, PERMUTE_COUNTER);}
+        let res =
+            verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common);
+        unsafe {
+            println!(
+                "TWO_TO_ONE_COUNTER = {}\n PERMUTE_COUNTER = {}\n",
+                TWO_TO_ONE_COUNTER, PERMUTE_COUNTER
+            );
+        }
         res
     }
 
@@ -348,7 +367,10 @@ where
         buffer.read_prover_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
+    pub fn prove(
+        &self,
+        inputs: PartialWitness<F>,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F::Extension: TwoAdicField,
     {
@@ -393,7 +415,10 @@ impl<
 where
     F::Extension: TwoAdicField,
 {
-    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Vec<u8>> {
+    pub fn to_bytes(
+        &self,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_verifier_circuit_data(self, gate_serializer)?;
         Ok(buffer)
@@ -407,7 +432,10 @@ where
         buffer.read_verifier_circuit_data(gate_serializer)
     }
 
-    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
+    pub fn verify(
+        &self,
+        proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<()> {
         verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
@@ -486,7 +514,11 @@ where
 
 /// Circuit data required by the verifier, but not the prover.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct VerifierOnlyCircuitData<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+pub struct VerifierOnlyCircuitData<
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> {
     /// A commitment to each constant polynomial and each permutation polynomial.
     pub constants_sigmas_cap: MerkleCap<C::F, C::Hasher>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
@@ -495,9 +527,13 @@ pub struct VerifierOnlyCircuitData<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const
 }
 
 impl<
-        C: GenericConfig<D, NUM_HASH_OUT_ELTS, FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension>,
+        C: GenericConfig<
+            D,
+            NUM_HASH_OUT_ELTS,
+            FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension,
+        >,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     > VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
 where
     C::F: HasExtension<D>,
@@ -517,8 +553,11 @@ where
 
 /// Circuit data required by both the prover and the verifier.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CommonCircuitData<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-where
+pub struct CommonCircuitData<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
     F::Extension: TwoAdicField,
 {
     pub config: CircuitConfig,
@@ -558,11 +597,15 @@ where
     pub luts: Vec<LookupTable>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Vec<u8>> {
+    pub fn to_bytes(
+        &self,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_common_circuit_data(self, gate_serializer)?;
         Ok(buffer)

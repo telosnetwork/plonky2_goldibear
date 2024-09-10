@@ -26,7 +26,9 @@ use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::{CircuitConfig, CommonCircuitData, VerifierOnlyCircuitData};
-use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig};
+use plonky2::plonk::config::{
+    AlgebraicHasher, GenericConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig,
+};
 use plonky2::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
 use plonky2::plonk::prover::prove;
 use plonky2::util::serialization::DefaultGateSerializer;
@@ -109,7 +111,8 @@ where
     let inputs = PartialWitness::new();
 
     let mut timing = TimingTree::new("prove", Level::Debug);
-    let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, inputs, &mut timing)?;
+    let proof =
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
     data.verify(proof.clone())?;
 
@@ -265,7 +268,8 @@ where
     pw.set_verifier_data_target(&inner_data, inner_vd);
 
     let mut timing = TimingTree::new("prove", Level::Debug);
-    let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, pw, &mut timing)?;
+    let proof =
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
 
     data.verify(proof.clone())?;
@@ -317,18 +321,22 @@ where
         "Common circuit data length: {} bytes",
         common_data_bytes.len()
     );
-    let common_data_from_bytes =
-        CommonCircuitData::<F, D, NUM_HASH_OUT_ELTS>::from_bytes(common_data_bytes, &gate_serializer)
-            .map_err(|_| anyhow::Error::msg("CommonCircuitData deserialization failed."))?;
+    let common_data_from_bytes = CommonCircuitData::<F, D, NUM_HASH_OUT_ELTS>::from_bytes(
+        common_data_bytes,
+        &gate_serializer,
+    )
+    .map_err(|_| anyhow::Error::msg("CommonCircuitData deserialization failed."))?;
     assert_eq!(common_data, &common_data_from_bytes);
 
     Ok(())
 }
 
-pub fn benchmark_function<F: RichField + HasExtension<D>,
+pub fn benchmark_function<
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-    const NUM_HASH_OUT_ELTS: usize>(
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     config: &CircuitConfig,
     log2_inner_size: usize,
     lookup_type: u64,
@@ -337,7 +345,6 @@ where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
-
     let dummy_proof_function = match lookup_type {
         0 => dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
         1 => dummy_lookup_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -400,28 +407,39 @@ fn main() -> Result<()> {
     };
     builder.try_init()?;
 
-    do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(CircuitConfig::standard_recursion_config_gl())?;
-    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(CircuitConfig::standard_recursion_config_bb())
+    do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(
+        CircuitConfig::standard_recursion_config_gl(),
+    )?;
+    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(
+        CircuitConfig::standard_recursion_config_bb(),
+    )
 }
-fn do_bench<F: RichField + HasExtension<D>,
+fn do_bench<
+    F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-    const NUM_HASH_OUT_ELTS: usize>(config: CircuitConfig) -> Result<()>
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    config: CircuitConfig,
+) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField {
+    F::Extension: TwoAdicField,
+{
     // Parse command line arguments, see `--help` for details.
     let options = Options::from_args_safe()?;
     // Initialize randomness source
     let rng_seed = options.seed.unwrap_or_else(|| OsRng.next_u64());
-    info!("\n\n\nBenching **************{:?}**************", type_name::<F>());
+    info!(
+        "\n\n\nBenching **************{:?}**************",
+        type_name::<F>()
+    );
     info!("using random seed {rng_seed:16x}");
     let _rng = ChaCha8Rng::seed_from_u64(rng_seed);
     // TODO: Use `rng` to create deterministic runs
 
     let num_cpus = num_cpus::get();
     let threads = options.threads.unwrap_or(num_cpus..=num_cpus);
-
 
     for log2_inner_size in options.size {
         // Since the `size` is most likely to be an unbounded range we make that the outer iterator.
@@ -437,7 +455,11 @@ where
                         num_cpus
                     );
                     // Run the benchmark. `options.lookup_type` determines which benchmark to run.
-                    benchmark_function::<F, C, D, NUM_HASH_OUT_ELTS>(&config, log2_inner_size, options.lookup_type)
+                    benchmark_function::<F, C, D, NUM_HASH_OUT_ELTS>(
+                        &config,
+                        log2_inner_size,
+                        options.lookup_type,
+                    )
                 })?;
         }
     }

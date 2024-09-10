@@ -129,20 +129,27 @@ where
     circuit
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
-    pub(crate) fn dummy_proof_and_vk<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static>(
+    pub(crate) fn dummy_proof_and_vk<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
+    >(
         &mut self,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
-    ) -> anyhow::Result<(ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>, VerifierCircuitTarget<NUM_HASH_OUT_ELTS>)>
+    ) -> anyhow::Result<(
+        ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+    )>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
         F::Extension: TwoAdicField,
     {
-        let dummy_circuit = dummy_circuit::<F, C, D,NUM_HASH_OUT_ELTS>(common_data);
-        let dummy_proof_with_pis = dummy_proof::<F, C, D,NUM_HASH_OUT_ELTS>(&dummy_circuit, HashMap::new())?;
+        let dummy_circuit = dummy_circuit::<F, C, D, NUM_HASH_OUT_ELTS>(common_data);
+        let dummy_proof_with_pis =
+            dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&dummy_circuit, HashMap::new())?;
         let dummy_proof_with_pis_target = self.add_virtual_proof_with_pis(common_data);
         let dummy_verifier_data_target =
             self.add_virtual_verifier_data(self.config.fri_config.cap_height);
@@ -171,7 +178,8 @@ where
     pub(crate) verifier_data: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> Default for DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>
+impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> Default
+    for DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
@@ -217,12 +225,21 @@ where
             },
         };
 
-        let verifier_data = VerifierOnlyCircuitData {
-            constants_sigmas_cap: MerkleCap(vec![]),
-            circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash::from_bytes(
-                &vec![0; <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::HASH_SIZE],
-            ),
-        };
+        let verifier_data =
+            VerifierOnlyCircuitData {
+                constants_sigmas_cap: MerkleCap(vec![]),
+                circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<
+                    C::F,
+                >>::Hash::from_bytes(&vec![
+                    0;
+                    <<C as GenericConfig<
+                        D,
+                        NUM_HASH_OUT_ELTS,
+                    >>::Hasher as Hasher<
+                        C::F,
+                    >>::HASH_SIZE
+                ]),
+            };
 
         Self {
             proof_with_pis_target,
@@ -233,7 +250,8 @@ where
     }
 }
 
-impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>
+impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
+    for DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
@@ -253,14 +271,21 @@ where
         out_buffer.set_verifier_data_target(&self.verifier_data_target, &self.verifier_data);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target_proof_with_public_inputs(&self.proof_with_pis_target)?;
         dst.write_proof_with_public_inputs(&self.proof_with_pis)?;
         dst.write_target_verifier_circuit(&self.verifier_data_target)?;
         dst.write_verifier_only_circuit_data(&self.verifier_data)
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let proof_with_pis_target = src.read_target_proof_with_public_inputs()?;
         let proof_with_pis = src.read_proof_with_public_inputs(common_data)?;
         let verifier_data_target = src.read_target_verifier_circuit()?;

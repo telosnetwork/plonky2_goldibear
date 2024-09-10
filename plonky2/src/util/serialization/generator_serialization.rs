@@ -15,8 +15,11 @@ use crate::util::serialization::{Buffer, IoResult};
 
 // For macros below
 
-pub trait WitnessGeneratorSerializer<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-where
+pub trait WitnessGeneratorSerializer<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
     F::Extension: TwoAdicField,
 {
     fn read_generator(
@@ -149,11 +152,17 @@ pub mod default {
     /// the `WitnessGeneratorSerializer` trait. This can be easily done through the
     /// `impl_generator_serializer` macro.
     #[derive(Debug, Default)]
-    pub struct DefaultGeneratorSerializer<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub struct DefaultGeneratorSerializer<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > {
         pub _phantom: PhantomData<C>,
     }
 
-    impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS> for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
+    impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+        WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>
+        for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,

@@ -139,8 +139,11 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-where
+pub struct CircuitBuilder<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
     F::Extension: TwoAdicField,
 {
     /// Circuit configuration to be used by this [`CircuitBuilder`].
@@ -206,7 +209,8 @@ where
     pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -369,13 +373,19 @@ where
     }
 
     /// Registers `n` new `HashOutTarget` as public inputs, in a vector fashion.
-    pub fn add_virtual_hashes_public_input(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
+    pub fn add_virtual_hashes_public_input(
+        &mut self,
+        n: usize,
+    ) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n)
             .map(|_i| self.add_virtual_hash_public_input())
             .collect()
     }
 
-    pub(crate) fn add_virtual_merkle_proof(&mut self, len: usize) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
+    pub(crate) fn add_virtual_merkle_proof(
+        &mut self,
+        len: usize,
+    ) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
         MerkleProofTarget {
             siblings: self.add_virtual_hashes(len),
         }
@@ -422,7 +432,10 @@ where
         ts
     }
 
-    pub fn add_virtual_verifier_data(&mut self, cap_height: usize) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
+    pub fn add_virtual_verifier_data(
+        &mut self,
+        cap_height: usize,
+    ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         VerifierCircuitTarget {
             constants_sigmas_cap: self.add_virtual_cap(cap_height),
             circuit_digest: self.add_virtual_hash(),
@@ -451,7 +464,11 @@ where
     }
 
     /// Adds a gate to the circuit, and returns its index.
-    pub fn add_gate<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(&mut self, gate_type: G, mut constants: Vec<F>) -> usize {
+    pub fn add_gate<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(
+        &mut self,
+        gate_type: G,
+        mut constants: Vec<F>,
+    ) -> usize {
         self.check_gate_compatibility(&gate_type);
 
         assert!(
@@ -566,11 +583,17 @@ where
         self.connect(x, one);
     }
 
-    pub fn add_generators(&mut self, generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>) {
+    pub fn add_generators(
+        &mut self,
+        generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
+    ) {
         self.generators.extend(generators);
     }
 
-    pub fn add_simple_generator<G: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>>(&mut self, generator: G) {
+    pub fn add_simple_generator<G: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>>(
+        &mut self,
+        generator: G,
+    ) {
         self.generators
             .push(WitnessGeneratorRef::new(generator.adapter()));
     }
@@ -634,7 +657,10 @@ where
     }
 
     /// Returns a routable [`HashOutTarget`].
-    pub fn constant_hash(&mut self, h: HashOut<F, NUM_HASH_OUT_ELTS>) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+    pub fn constant_hash(
+        &mut self,
+        h: HashOut<F, NUM_HASH_OUT_ELTS>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
             elements: h.elements.map(|x| self.constant(x)),
         }
@@ -648,7 +674,9 @@ where
         MerkleCapTarget(cap.0.iter().map(|h| self.constant_hash(*h)).collect())
     }
 
-    pub fn constant_verifier_data<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+    pub fn constant_verifier_data<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
         verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS>
@@ -1052,7 +1080,9 @@ where
         circuit_data
     }
 
-    pub fn try_build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+    pub fn try_build_with_options<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         mut self,
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
@@ -1167,7 +1197,7 @@ where
 
         let constants_sigmas_commitment = if commit_to_sigma {
             let constants_sigmas_vecs = [constant_vecs, sigma_vecs.clone()].concat();
-            PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::from_values(
+            PolynomialBatch::<F, C, D, NUM_HASH_OUT_ELTS>::from_values(
                 constants_sigmas_vecs,
                 rate_bits,
                 PlonkOracle::CONSTANTS_SIGMAS.blinding,
@@ -1176,7 +1206,7 @@ where
                 Some(&fft_root_table),
             )
         } else {
-            PolynomialBatch::<F, C, D,  NUM_HASH_OUT_ELTS>::default()
+            PolynomialBatch::<F, C, D, NUM_HASH_OUT_ELTS>::default()
         };
 
         // Map between gates where not all generators are used and the gate's number of used generators.
@@ -1307,7 +1337,9 @@ where
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(self) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+        self,
+    ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
         F::Extension: TwoAdicField,
     {

@@ -2,10 +2,9 @@
 use alloc::{vec, vec::Vec};
 use core::borrow::Borrow;
 
-use p3_field::{AbstractExtensionField, ExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, ExtensionField, Field, PackedField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use p3_field::PackedField;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
 use crate::gates::reducing::ReducingGate;

@@ -3,10 +3,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use p3_field::{Field, TwoAdicField};
+use p3_field::{Field, PackedField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use p3_field::PackedField;
 use crate::fri::oracle::SALT_SIZE;
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::hash::hash_types::RichField;
@@ -73,7 +72,11 @@ pub(crate) fn eval_l_0<F: Field>(n: usize, x: F) -> F {
 /// the order-`n` subgroup.
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound.
-pub(crate) fn eval_l_0_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+pub(crate) fn eval_l_0_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     n: usize,
     x: ExtensionTarget<D>,
@@ -133,7 +136,11 @@ where
     sum
 }
 
-pub fn reduce_with_powers_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+pub fn reduce_with_powers_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     terms: &[Target],
     alpha: Target,
@@ -153,7 +160,11 @@ where
     }
 }
 
-pub fn reduce_with_powers_ext_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+pub fn reduce_with_powers_ext_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     terms: &[ExtensionTarget<D>],
     alpha: Target,

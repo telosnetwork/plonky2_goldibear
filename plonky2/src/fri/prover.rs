@@ -61,8 +61,13 @@ where
     );
 
     // Query phase
-    let query_round_proofs =
-        fri_prover_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(initial_merkle_trees, &trees, challenger, n, fri_params);
+    let query_round_proofs = fri_prover_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(
+        initial_merkle_trees,
+        &trees,
+        challenger,
+        n,
+        fri_params,
+    );
 
     FriProof {
         commit_phase_merkle_caps: trees.iter().map(|t| t.cap.clone()).collect(),
@@ -206,7 +211,12 @@ where
         .into_par_iter()
         .map(|rand| {
             let x_index = rand.as_canonical_u64() as usize % n;
-            fri_prover_query_round::<F, C, D, NUM_HASH_OUT_ELTS>(initial_merkle_trees, trees, x_index, fri_params)
+            fri_prover_query_round::<F, C, D, NUM_HASH_OUT_ELTS>(
+                initial_merkle_trees,
+                trees,
+                x_index,
+                fri_params,
+            )
         })
         .collect()
 }

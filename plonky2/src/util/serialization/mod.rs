@@ -155,7 +155,7 @@ pub trait Read {
     #[inline]
     fn read_field<F>(&mut self) -> IoResult<F>
     where
-        F: PrimeField64 + RichField
+        F: PrimeField64 + RichField,
     {
         F::read_from_buffer(self)
     }
@@ -263,7 +263,9 @@ pub trait Read {
 
     /// Reads a HashOutTarget value from `self`.
     #[inline]
-    fn read_target_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<HashOutTarget<NUM_HASH_OUT_ELTS>> {
+    fn read_target_hash<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         let mut elements = [Target::wire(0, 0); NUM_HASH_OUT_ELTS];
         for e in elements.iter_mut() {
             *e = self.read_target()?;
@@ -301,7 +303,9 @@ pub trait Read {
 
     /// Reads a value of type [`MerkleCapTarget`] from `self`.
     #[inline]
-    fn read_target_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<MerkleCapTarget<NUM_HASH_OUT_ELTS>> {
+    fn read_target_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<MerkleCapTarget<NUM_HASH_OUT_ELTS>> {
         let length = self.read_usize()?;
         Ok(MerkleCapTarget(
             (0..length)
@@ -415,7 +419,9 @@ pub trait Read {
 
     /// Reads a value of type [`MerkleProofTarget`] from `self`.
     #[inline]
-    fn read_target_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<MerkleProofTarget<NUM_HASH_OUT_ELTS>> {
+    fn read_target_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<MerkleProofTarget<NUM_HASH_OUT_ELTS>> {
         let length = self.read_u8()?;
         Ok(MerkleProofTarget {
             siblings: (0..length)
@@ -466,7 +472,9 @@ pub trait Read {
 
     /// Reads a value of type [`FriInitialTreeProofTarget`] from `self`.
     #[inline]
-    fn read_target_fri_initial_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>> {
+    fn read_target_fri_initial_proof<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>> {
         let len = self.read_usize()?;
         let mut evals_proofs = Vec::with_capacity(len);
 
@@ -500,7 +508,9 @@ pub trait Read {
 
     /// Reads a value of type [`FriQueryStepTarget`] from `self`.
     #[inline]
-    fn read_target_fri_query_step<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>> {
+    fn read_target_fri_query_step<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>> {
         let evals = self.read_target_ext_vec::<D>()?;
         let merkle_proof = self.read_target_merkle_proof()?;
         Ok(FriQueryStepTarget {
@@ -524,7 +534,8 @@ pub trait Read {
         let config = &common_data.config;
         let mut fqrs = Vec::with_capacity(config.fri_config.num_query_rounds);
         for _ in 0..config.fri_config.num_query_rounds {
-            let initial_trees_proof = self.read_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
+            let initial_trees_proof =
+                self.read_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
             let steps = common_data
                 .fri_params
                 .reduction_arity_bits
@@ -575,7 +586,8 @@ pub trait Read {
         let commit_phase_merkle_caps = (0..common_data.fri_params.reduction_arity_bits.len())
             .map(|_| self.read_merkle_cap(config.fri_config.cap_height))
             .collect::<Result<Vec<_>, _>>()?;
-        let query_round_proofs = self.read_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
+        let query_round_proofs =
+            self.read_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         let final_poly = PolynomialCoeffs::new(
             self.read_field_ext_vec::<F, D>(common_data.fri_params.final_poly_len())?,
         );
@@ -590,7 +602,9 @@ pub trait Read {
 
     /// Reads a value of type [`FriProofTarget`] from `self`.
     #[inline]
-    fn read_target_fri_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<FriProofTarget<D, NUM_HASH_OUT_ELTS>> {
+    fn read_target_fri_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<FriProofTarget<D, NUM_HASH_OUT_ELTS>> {
         let length = self.read_usize()?;
         let commit_phase_merkle_caps = (0..length)
             .map(|_| self.read_target_merkle_cap())
@@ -700,7 +714,11 @@ pub trait Read {
     where
         F::Extension: TwoAdicField;
 
-    fn read_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn read_generator<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
@@ -727,7 +745,8 @@ pub trait Read {
     fn read_polynomial_batch<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-        const D: usize, const NUM_HASH_OUT_ELTS: usize
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
     ) -> IoResult<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>
@@ -755,7 +774,11 @@ pub trait Read {
         })
     }
 
-    fn read_common_circuit_data<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn read_common_circuit_data<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>>
@@ -819,7 +842,8 @@ pub trait Read {
     fn read_circuit_data<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-        const D: usize, const NUM_HASH_OUT_ELTS: usize
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
@@ -842,7 +866,7 @@ pub trait Read {
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
@@ -892,7 +916,8 @@ pub trait Read {
             false => None,
         };
 
-        let circuit_digest = self.read_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>()?;
+        let circuit_digest =
+            self.read_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>()?;
 
         let length = self.read_usize()?;
         let mut lookup_rows = Vec::with_capacity(length);
@@ -959,7 +984,8 @@ pub trait Read {
     {
         let height = self.read_usize()?;
         let constants_sigmas_cap = self.read_merkle_cap(height)?;
-        let circuit_digest = self.read_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>()?;
+        let circuit_digest =
+            self.read_hash::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>()?;
         Ok(VerifierOnlyCircuitData {
             constants_sigmas_cap,
             circuit_digest,
@@ -986,7 +1012,9 @@ pub trait Read {
         })
     }
 
-    fn read_target_verifier_circuit<const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>> {
+    fn read_target_verifier_circuit<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>> {
         let constants_sigmas_cap = self.read_target_merkle_cap()?;
         let circuit_digest = self.read_target_hash()?;
         Ok(VerifierCircuitTarget {
@@ -1024,7 +1052,9 @@ pub trait Read {
 
     /// Reads a value of type [`ProofTarget`] from `self`.
     #[inline]
-    fn read_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self) -> IoResult<ProofTarget<D, NUM_HASH_OUT_ELTS>> {
+    fn read_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+    ) -> IoResult<ProofTarget<D, NUM_HASH_OUT_ELTS>> {
         let wires_cap = self.read_target_merkle_cap()?;
         let plonk_zs_partial_products_cap = self.read_target_merkle_cap()?;
         let quotient_polys_cap = self.read_target_merkle_cap()?;
@@ -1093,7 +1123,10 @@ pub trait Read {
         indices.dedup();
         let mut pairs = Vec::new();
         for &i in &indices {
-            pairs.push((i, self.read_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?));
+            pairs.push((
+                i,
+                self.read_fri_initial_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?,
+            ));
         }
         let initial_trees_proofs = HashMap::from_iter(pairs);
 
@@ -1137,7 +1170,8 @@ pub trait Read {
         let commit_phase_merkle_caps = (0..common_data.fri_params.reduction_arity_bits.len())
             .map(|_| self.read_merkle_cap(config.fri_config.cap_height))
             .collect::<Result<Vec<_>, _>>()?;
-        let query_round_proofs = self.read_compressed_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
+        let query_round_proofs =
+            self.read_compressed_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         let final_poly = PolynomialCoeffs::new(
             self.read_field_ext_vec::<F, D>(common_data.fri_params.final_poly_len())?,
         );
@@ -1166,7 +1200,8 @@ pub trait Read {
         let plonk_zs_partial_products_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
         let quotient_polys_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
         let openings = self.read_opening_set::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
-        let opening_proof = self.read_compressed_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
+        let opening_proof =
+            self.read_compressed_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(common_data)?;
         Ok(CompressedProof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -1178,7 +1213,12 @@ pub trait Read {
 
     /// Reads a value of type [`CompressedProofWithPublicInputs`] from `self` with `common_data`.
     #[inline]
-    fn read_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn read_compressed_proof_with_public_inputs<
+        F,
+        C,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
@@ -1406,7 +1446,10 @@ pub trait Write {
 
     /// Writes a HashOutTarget `h` to `self`.
     #[inline]
-    fn write_target_hash<const NUM_HASH_OUT_ELTS: usize>(&mut self, h: &HashOutTarget<NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn write_target_hash<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        h: &HashOutTarget<NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         for r in h.elements.iter() {
             self.write_target(*r)?;
         }
@@ -1444,7 +1487,10 @@ pub trait Write {
 
     /// Writes `cap`, a value of type [`MerkleCapTarget`], to `self`.
     #[inline]
-    fn write_target_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(&mut self, cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn write_target_merkle_cap<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         self.write_usize(cap.0.len())?;
         for a in &cap.0 {
             self.write_target_hash(a)?;
@@ -1527,7 +1573,10 @@ pub trait Write {
 
     /// Writes a value `pt` of type [`MerkleProofTarget`] to `self.`
     #[inline]
-    fn write_target_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(&mut self, pt: &MerkleProofTarget<NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn write_target_merkle_proof<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        pt: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         let length = pt.siblings.len();
         self.write_u8(
             length
@@ -1655,7 +1704,10 @@ pub trait Write {
 
     /// Writes a value `fpt` of type [`FriProofTarget`] to `self.`
     #[inline]
-    fn write_target_fri_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, fpt: &FriProofTarget<D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn write_target_fri_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        fpt: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         self.write_usize(fpt.commit_phase_merkle_caps.len())?;
         for cap in &fpt.commit_phase_merkle_caps {
             self.write_target_merkle_cap(cap)?;
@@ -1766,7 +1818,11 @@ pub trait Write {
     where
         F::Extension: TwoAdicField;
 
-    fn write_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn write_generator<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         generator: &WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
@@ -1793,7 +1849,8 @@ pub trait Write {
     fn write_polynomial_batch<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-        const D: usize, const NUM_HASH_OUT_ELTS: usize
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         poly_batch: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -1814,7 +1871,11 @@ pub trait Write {
         Ok(())
     }
 
-    fn write_common_circuit_data<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn write_common_circuit_data<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
@@ -1871,7 +1932,7 @@ pub trait Write {
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         circuit_data: &CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -1894,7 +1955,7 @@ pub trait Write {
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         prover_only_circuit_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -1920,7 +1981,11 @@ pub trait Write {
 
         self.write_usize(generators.len())?;
         for generator in generators.iter() {
-            self.write_generator::<F, D, NUM_HASH_OUT_ELTS>(generator, generator_serializer, common_data)?;
+            self.write_generator::<F, D, NUM_HASH_OUT_ELTS>(
+                generator,
+                generator_serializer,
+                common_data,
+            )?;
         }
 
         self.write_usize(generator_indices_by_watches.len())?;
@@ -1973,7 +2038,7 @@ pub trait Write {
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         prover_circuit_data: &ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -1995,7 +2060,7 @@ pub trait Write {
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
@@ -2019,7 +2084,7 @@ pub trait Write {
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-        const NUM_HASH_OUT_ELTS: usize
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         &mut self,
         verifier_circuit_data: &VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -2049,7 +2114,10 @@ pub trait Write {
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>) -> IoResult<()>
+    fn write_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField,
@@ -2064,7 +2132,10 @@ pub trait Write {
 
     /// Writes a value `proof` of type [`Proof`] to `self.`
     #[inline]
-    fn write_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(&mut self, proof: &ProofTarget<D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn write_target_proof<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        proof: &ProofTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         self.write_target_merkle_cap(&proof.wires_cap)?;
         self.write_target_merkle_cap(&proof.plonk_zs_partial_products_cap)?;
         self.write_target_merkle_cap(&proof.quotient_polys_cap)?;
@@ -2149,7 +2220,9 @@ pub trait Write {
         for cap in &fp.commit_phase_merkle_caps {
             self.write_merkle_cap(cap)?;
         }
-        self.write_compressed_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(&fp.query_round_proofs)?;
+        self.write_compressed_fri_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(
+            &fp.query_round_proofs,
+        )?;
         self.write_field_ext_vec::<F, D>(&fp.final_poly.coeffs)?;
         self.write_field(fp.pow_witness)
     }
@@ -2174,7 +2247,12 @@ pub trait Write {
 
     /// Writes a value `proof_with_pis` of type [`CompressedProofWithPublicInputs`] to `self.`
     #[inline]
-    fn write_compressed_proof_with_public_inputs<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn write_compressed_proof_with_public_inputs<
+        F,
+        C,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         proof_with_pis: &CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
@@ -2237,7 +2315,11 @@ impl Write for Vec<u8> {
         gate_serializer.write_gate(self, gate, common_data)
     }
 
-    fn write_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn write_generator<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         generator: &WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
@@ -2313,7 +2395,11 @@ impl<'a> Read for Buffer<'a> {
         gate_serializer.read_gate(self, common_data)
     }
 
-    fn read_generator<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn read_generator<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,

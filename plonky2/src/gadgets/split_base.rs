@@ -16,7 +16,8 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::log_floor;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -90,8 +91,12 @@ pub struct BaseSumGenerator<const B: usize> {
     limbs: Vec<BoolTarget>,
 }
 
-impl<F: RichField + HasExtension<D>, const B: usize, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for BaseSumGenerator<B>
+impl<
+        F: RichField + HasExtension<D>,
+        const B: usize,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for BaseSumGenerator<B>
 where
     F::Extension: TwoAdicField,
 {
@@ -116,12 +121,19 @@ where
         out_buffer.set_target(Target::wire(self.row, BaseSumGate::<B>::WIRE_SUM), sum);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_target_bool_vec(&self.limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let limbs = src.read_target_bool_vec()?;
         Ok(Self { row, limbs })

@@ -1,7 +1,6 @@
 use p3_field::extension::{BinomialExtensionField, HasFrobenius, HasTwoAdicBionmialExtension};
 use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
 
-use crate::packed::PackedField;
 use crate::types::{HasExtension, Sample};
 
 #[macro_export]
@@ -82,9 +81,9 @@ pub(crate) fn test_add_neg_sub_mul<AF: AbstractField + HasExtension<D> + Sample,
     let x = BinomialExtensionField::<AF, D>::rand();
     let y = BinomialExtensionField::<AF, D>::rand();
     let z = BinomialExtensionField::<AF, D>::rand();
-    assert_eq!(x + (-x), BinomialExtensionField::<AF, D>::zeros());
-    assert_eq!(-x, BinomialExtensionField::<AF, D>::zeros() - x);
-    assert_eq!(x + x, x * BinomialExtensionField::<AF, D>::twos());
+    assert_eq!(x + (-x), BinomialExtensionField::<AF, D>::zero());
+    assert_eq!(-x, BinomialExtensionField::<AF, D>::zero() - x);
+    assert_eq!(x + x, x * BinomialExtensionField::<AF, D>::two());
     assert_eq!(x * (-x), -AbstractField::square(&x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
@@ -99,8 +98,8 @@ pub(crate) fn test_inv_div<AF: AbstractField + HasExtension<D> + Sample, const D
     let x = BinomialExtensionField::<AF, D>::rand();
     let y = BinomialExtensionField::<AF, D>::rand();
     let z = BinomialExtensionField::<AF, D>::rand();
-    assert_eq!(x * x.inverse(), BinomialExtensionField::<AF, D>::ones());
-    assert_eq!(x.inverse() * x, BinomialExtensionField::<AF, D>::ones());
+    assert_eq!(x * x.inverse(), BinomialExtensionField::<AF, D>::zero());
+    assert_eq!(x.inverse() * x, BinomialExtensionField::<AF, D>::zero());
     assert_eq!(
         AbstractField::square(&x).inverse(),
         AbstractField::square(&x.inverse())
@@ -127,7 +126,7 @@ fn exp_biguint<AF: AbstractField + HasExtension<D> + Sample, const D: usize>(
     x: BinomialExtensionField<AF, D>,
     power: &num::BigUint,
 ) -> BinomialExtensionField<AF, D> {
-    let mut result = BinomialExtensionField::<AF, D>::ones();
+    let mut result = BinomialExtensionField::<AF, D>::zero();
     for &digit in power.to_u64_digits().iter().rev() {
         result = result.exp_power_of_2(64);
         result *= x.exp_u64(digit);
@@ -140,7 +139,7 @@ pub(crate) fn test_field_order<AF: AbstractField + HasExtension<D> + Sample, con
     let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(
         exp_biguint::<AF, D>(x, &(BinomialExtensionField::<AF, D>::order() - 1u8)),
-        BinomialExtensionField::<AF, D>::ones()
+        BinomialExtensionField::<AF, D>::zero()
     );
 }
 

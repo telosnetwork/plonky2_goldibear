@@ -37,20 +37,21 @@ impl<const NUM_ADDENDS: usize> AddManyGate<NUM_ADDENDS> {
         Self::new(num_ops)
     }
 
-    pub(crate) const fn wires_ith_op_addends(i: usize) -> Range<usize>
-    {
+    pub(crate) const fn wires_ith_op_addends(i: usize) -> Range<usize> {
         (NUM_ADDENDS + 1) * i..(NUM_ADDENDS + 1) * i + NUM_ADDENDS
     }
 
-    pub(crate) const fn wire_ith_sum(i: usize) -> usize
-    {
+    pub(crate) const fn wire_ith_sum(i: usize) -> usize {
         (NUM_ADDENDS + 1) * i + NUM_ADDENDS
     }
-
-
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize, const NUM_ADDENDS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for AddManyGate<NUM_ADDENDS>
+impl<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+        const NUM_ADDENDS: usize,
+    > Gate<F, D, NUM_HASH_OUT_ELTS> for AddManyGate<NUM_ADDENDS>
 where
     F::Extension: TwoAdicField,
 {
@@ -58,11 +59,18 @@ where
         format!("{self:?} + Number of addends: {NUM_ADDENDS}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_ops)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_ops = src.read_usize()?;
         Ok(Self { num_ops })
     }
@@ -72,7 +80,7 @@ where
         (0..self.num_ops).for_each(|i| {
             let computed_sum = Self::wires_ith_op_addends(i)
                 .map(|j| vars.local_wires[j])
-                .fold(F::Extension::zero(), |acc,i| acc + i);
+                .fold(F::Extension::zero(), |acc, i| acc + i);
             constraints.push(computed_sum - vars.local_wires[Self::wire_ith_sum(i)]);
         });
         constraints
@@ -86,7 +94,7 @@ where
         (0..self.num_ops).for_each(|i| {
             let computed_sum = Self::wires_ith_op_addends(i)
                 .map(|j| vars.local_wires[j])
-                .fold(F::zero(), |acc,i| acc + i);
+                .fold(F::zero(), |acc, i| acc + i);
             yield_constr.one(computed_sum - vars.local_wires[Self::wire_ith_sum(i)]);
         });
     }
@@ -98,8 +106,7 @@ where
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints: Vec<ExtensionTarget<D>> = vec![];
         (0..self.num_ops).for_each(|i| {
-            let addends = Self::wires_ith_op_addends(i)
-                .map(|j| vars.local_wires[j]);
+            let addends = Self::wires_ith_op_addends(i).map(|j| vars.local_wires[j]);
             let computed_sum = builder.add_many_extension(addends);
             let sum = vars.local_wires[Self::wire_ith_sum(i)];
             constraints.push(builder.sub_extension(computed_sum, sum));
@@ -107,22 +114,18 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
-            .map(|i| {
-                WitnessGeneratorRef::new(
-                    AddManyGenerator::<NUM_ADDENDS> {
-                        row,
-                        i,
-                    }
-                    .adapter(),
-                )
-            })
+            .map(|i| WitnessGeneratorRef::new(AddManyGenerator::<NUM_ADDENDS> { row, i }.adapter()))
             .collect()
     }
 
     fn num_wires(&self) -> usize {
-        self.num_ops *(1 + NUM_ADDENDS)
+        self.num_ops * (1 + NUM_ADDENDS)
     }
 
     fn num_constants(&self) -> usize {
@@ -138,8 +141,12 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize, const NUM_ADDENDS: usize> PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS>
-    for AddManyGate<NUM_ADDENDS>
+impl<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+        const NUM_ADDENDS: usize,
+    > PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for AddManyGate<NUM_ADDENDS>
 where
     F::Extension: TwoAdicField,
 {
@@ -147,11 +154,11 @@ where
         &self,
         vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<P>,
-    ) { 
+    ) {
         (0..self.num_ops).for_each(|i| {
             let computed_sum = Self::wires_ith_op_addends(i)
                 .map(|j| vars.local_wires[j])
-                .fold(P::zero(), |acc,i| acc + i);
+                .fold(P::zero(), |acc, i| acc + i);
             yield_constr.one(computed_sum - vars.local_wires[Self::wire_ith_sum(i)]);
         });
     }
@@ -163,8 +170,12 @@ pub struct AddManyGenerator<const NUM_ADDENDS: usize> {
     i: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize, const NUM_ADDENDS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for AddManyGenerator<NUM_ADDENDS>
+impl<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+        const NUM_ADDENDS: usize,
+    > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for AddManyGenerator<NUM_ADDENDS>
 where
     F::Extension: TwoAdicField,
 {
@@ -173,7 +184,9 @@ where
     }
 
     fn dependencies(&self) -> Vec<Target> {
-        AddManyGate::<NUM_ADDENDS>::wires_ith_op_addends(self.i).map(|j| Target::wire(self.row, j)).collect()
+        AddManyGate::<NUM_ADDENDS>::wires_ith_op_addends(self.i)
+            .map(|j| Target::wire(self.row, j))
+            .collect()
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
@@ -181,22 +194,26 @@ where
 
         let addends = AddManyGate::<NUM_ADDENDS>::wires_ith_op_addends(self.i).map(get_wire);
         let sum_target = Target::wire(self.row, AddManyGate::<NUM_ADDENDS>::wire_ith_sum(self.i));
-        let computed_sum = addends.fold(F::zero(), |acc,i| acc + i);
+        let computed_sum = addends.fold(F::zero(), |acc, i| acc + i);
         out_buffer.set_target(sum_target, computed_sum)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.i)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let i = src.read_usize()?;
-        Ok(Self {
-            row,
-            i,
-        })
+        Ok(Self { row, i })
     }
 }
 
@@ -226,4 +243,3 @@ mod tests {
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }
-

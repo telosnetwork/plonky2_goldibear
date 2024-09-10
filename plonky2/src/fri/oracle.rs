@@ -2,12 +2,11 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-use p3_field::{AbstractField, TwoAdicField};
+use p3_field::{AbstractField, PackedField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::fft::FftRootTable;
-use p3_field::PackedField;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use crate::fri::proof::FriProof;
 use crate::fri::prover::fri_proof;

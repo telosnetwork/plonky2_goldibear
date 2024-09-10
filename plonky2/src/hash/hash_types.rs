@@ -1,6 +1,5 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use static_assertions::const_assert;
 use std::mem::size_of;
 
 use anyhow::ensure;
@@ -8,6 +7,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, Field, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use static_assertions::const_assert;
 
 use crate::field::types::Sample;
 use crate::iop::target::Target;
@@ -47,15 +47,18 @@ impl RichField for Goldilocks {
         bytes
             .chunks(8)
             .take(Self::NUM_HASH_OUT_ELTS)
-            .map(|x|Goldilocks::from_canonical_u64(u64::from_le_bytes(x.try_into().unwrap())))
+            .map(|x| Goldilocks::from_canonical_u64(u64::from_le_bytes(x.try_into().unwrap())))
             .collect::<Vec<_>>()
     }
-    
+
     const EXP0: usize = 64;
-    
+
     const EXP1: usize = 32;
 }
-const_assert!(Goldilocks::ORDER_U64 == ((1u128 << Goldilocks::EXP0) - (1u128 << Goldilocks::EXP1) + 1u128) as u64);
+const_assert!(
+    Goldilocks::ORDER_U64
+        == ((1u128 << Goldilocks::EXP0) - (1u128 << Goldilocks::EXP1) + 1u128) as u64
+);
 impl RichField for BabyBear {
     const NUM_HASH_OUT_ELTS: usize = 8;
 
@@ -80,12 +83,14 @@ impl RichField for BabyBear {
             .map(|x| BabyBear::from_canonical_u32(u32::from_le_bytes(x.try_into().unwrap())))
             .collect::<Vec<_>>()
     }
-    
+
     const EXP0: usize = 31;
-    
+
     const EXP1: usize = 27;
 }
-const_assert!(BabyBear::ORDER_U64 == ((1u128 << BabyBear::EXP0) - (1u128 << BabyBear::EXP1) + 1u128) as u64);
+const_assert!(
+    BabyBear::ORDER_U64 == ((1u128 << BabyBear::EXP0) - (1u128 << BabyBear::EXP1) + 1u128) as u64
+);
 
 //pub const NUM_HASH_OUT_ELTS: usize = 4;
 
@@ -119,7 +124,9 @@ impl<F: Field, const NUM_HASH_OUT_ELTS: usize> HashOut<F, NUM_HASH_OUT_ELTS> {
     }
 }
 
-impl<F: Field, const NUM_HASH_OUT_ELTS: usize> From<[F; NUM_HASH_OUT_ELTS]> for HashOut<F, NUM_HASH_OUT_ELTS> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> From<[F; NUM_HASH_OUT_ELTS]>
+    for HashOut<F, NUM_HASH_OUT_ELTS>
+{
     fn from(elements: [F; NUM_HASH_OUT_ELTS]) -> Self {
         Self { elements }
     }
@@ -146,12 +153,18 @@ where
         R: rand::RngCore + ?Sized,
     {
         Self {
-            elements: (0..NUM_HASH_OUT_ELTS).map(|_|{F::sample(rng)}).collect::<Vec<F>>().try_into().unwrap(),
+            elements: (0..NUM_HASH_OUT_ELTS)
+                .map(|_| F::sample(rng))
+                .collect::<Vec<F>>()
+                .try_into()
+                .unwrap(),
         }
     }
 }
 
-impl<F: RichField, const NUM_HASH_OUT_ELTS: usize> GenericHashOut<F> for HashOut<F, NUM_HASH_OUT_ELTS> {
+impl<F: RichField, const NUM_HASH_OUT_ELTS: usize> GenericHashOut<F>
+    for HashOut<F, NUM_HASH_OUT_ELTS>
+{
     fn to_bytes(&self) -> Vec<u8> {
         self.elements
             .into_iter()
@@ -161,9 +174,7 @@ impl<F: RichField, const NUM_HASH_OUT_ELTS: usize> GenericHashOut<F> for HashOut
 
     fn from_bytes(bytes: &[u8]) -> Self {
         HashOut {
-            elements: F::hash_out_elements_from_bytes(bytes)
-                .try_into()
-                .unwrap()
+            elements: F::hash_out_elements_from_bytes(bytes).try_into().unwrap(),
         }
     }
 
@@ -200,7 +211,9 @@ impl<const NUM_HASH_OUT_ELTS: usize> HashOutTarget<NUM_HASH_OUT_ELTS> {
     }
 }
 
-impl<const NUM_HASH_OUT_ELTS: usize> From<[Target; NUM_HASH_OUT_ELTS]> for HashOutTarget<NUM_HASH_OUT_ELTS> {
+impl<const NUM_HASH_OUT_ELTS: usize> From<[Target; NUM_HASH_OUT_ELTS]>
+    for HashOutTarget<NUM_HASH_OUT_ELTS>
+{
     fn from(elements: [Target; NUM_HASH_OUT_ELTS]) -> Self {
         Self { elements }
     }
@@ -218,7 +231,9 @@ impl<const NUM_HASH_OUT_ELTS: usize> TryFrom<&[Target]> for HashOutTarget<NUM_HA
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MerkleCapTarget<const NUM_HASH_OUT_ELTS: usize>(pub Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>);
+pub struct MerkleCapTarget<const NUM_HASH_OUT_ELTS: usize>(
+    pub Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>,
+);
 
 /// Hash consisting of a byte array.
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
@@ -280,11 +295,9 @@ mod generic_arrays {
 
     use core::marker::PhantomData;
 
-    use serde::{
-        de::{SeqAccess, Visitor},
-        ser::SerializeTuple,
-        Deserialize, Deserializer, Serialize, Serializer,
-    };
+    use serde::de::{SeqAccess, Visitor};
+    use serde::ser::SerializeTuple;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     pub fn serialize<S: Serializer, T: Serialize, const N: usize>(
         data: &[T; N],
         ser: S,

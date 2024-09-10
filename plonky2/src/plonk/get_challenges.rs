@@ -121,7 +121,9 @@ where
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub fn get_challenges(
         &self,
-        public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
+        public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<
+            F,
+        >>::Hash,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<ProofChallenges<F, D>> {
@@ -166,7 +168,9 @@ where
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub(crate) fn get_challenges(
         &self,
-        public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
+        public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<
+            F,
+        >>::Hash,
         circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<ProofChallenges<F, D>> {
@@ -274,7 +278,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -285,7 +290,7 @@ where
         plonk_zs_partial_products_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         quotient_polys_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         openings: &OpeningSetTarget<D>,
-        commit_phase_merkle_caps: &[MerkleCapTarget< NUM_HASH_OUT_ELTS>],
+        commit_phase_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
         final_poly: &PolynomialCoeffsExtTarget<D>,
         pow_witness: Target,
         inner_circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
@@ -349,7 +354,9 @@ where
     }
 }
 
-impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>
+{
     pub(crate) fn get_challenges<
         F: RichField + HasExtension<D>,
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,

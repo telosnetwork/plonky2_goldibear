@@ -71,7 +71,11 @@ where
     F::Extension: TwoAdicField,
 {
     /// Compress the proof.
-    pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D, NUM_HASH_OUT_ELTS> {
+    pub fn compress(
+        self,
+        indices: &[usize],
+        params: &FriParams,
+    ) -> CompressedProof<F, C, D, NUM_HASH_OUT_ELTS> {
         let Proof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -366,7 +370,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D>
 where
     F::Extension: TwoAdicField,
 {
-    pub fn new<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const NUM_HASH_OUT_ELTS: usize>(
+    pub fn new<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         zeta: F::Extension,
         g: F::Extension,
         constants_sigmas_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,

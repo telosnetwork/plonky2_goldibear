@@ -17,7 +17,8 @@ use crate::plonk::vars::EvaluationTargets;
 use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -53,7 +54,9 @@ where
     }
 
     /// Recursively verifies an inner proof.
-    fn verify_proof_with_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+    fn verify_proof_with_challenges<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
         proof: &ProofTarget<D, NUM_HASH_OUT_ELTS>,
         public_inputs_hash: HashOutTarget<NUM_HASH_OUT_ELTS>,
@@ -151,7 +154,10 @@ where
         }
     }
 
-    fn add_virtual_proof(&mut self, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> ProofTarget<D, NUM_HASH_OUT_ELTS> {
+    fn add_virtual_proof(
+        &mut self,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> ProofTarget<D, NUM_HASH_OUT_ELTS> {
         let config = &common_data.config;
         let fri_params = &common_data.fri_params;
         let cap_height = fri_params.config.cap_height;
@@ -176,7 +182,10 @@ where
         }
     }
 
-    fn add_opening_set(&mut self, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> OpeningSetTarget<D> {
+    fn add_opening_set(
+        &mut self,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> OpeningSetTarget<D> {
         let config = &common_data.config;
         let num_challenges = config.num_challenges;
         let total_partial_products = num_challenges * common_data.num_partial_products;
@@ -220,7 +229,9 @@ mod tests {
     use crate::gates::noop::NoopGate;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::{CircuitConfig, VerifierOnlyCircuitData};
-    use crate::plonk::config::{KeccakGoldilocksConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig};
+    use crate::plonk::config::{
+        KeccakGoldilocksConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig,
+    };
     use crate::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
     use crate::plonk::prover::prove;
     use crate::util::timing::TimingTree;
@@ -235,8 +246,15 @@ mod tests {
         let config = CircuitConfig::standard_recursion_zk_config_gl();
 
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
         Ok(())
@@ -252,13 +270,19 @@ mod tests {
         let config = CircuitConfig::standard_recursion_zk_config_bb();
 
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
         Ok(())
     }
-
 
     #[test]
     fn test_recursive_verifier_one_lookup() -> Result<()> {
@@ -269,9 +293,17 @@ mod tests {
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_zk_config_gl();
 
-        let (proof, vd, common_data) = dummy_lookup_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 10)?;
         let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+            dummy_lookup_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 10)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
         Ok(())
@@ -287,8 +319,15 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config_gl();
 
         let (proof, vd, common_data) = dummy_two_luts_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config)?;
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
         Ok(())
@@ -303,9 +342,17 @@ mod tests {
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config_gl();
 
-        let (proof, vd, common_data) = dummy_too_many_rows_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config)?;
         let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+            dummy_too_many_rows_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
         Ok(())
@@ -326,13 +373,27 @@ mod tests {
         assert_eq!(common_data.degree_bits(), 14);
 
         // Shrink it to 2^13.
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, Some(13), false, false)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            Some(13),
+            false,
+            false,
+        )?;
         assert_eq!(common_data.degree_bits(), 13);
 
         // Shrink it to 2^12.
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         assert_eq!(common_data.degree_bits(), 12);
 
         test_serialization(&proof, &vd, &common_data)?;
@@ -356,21 +417,42 @@ mod tests {
 
         info!(" ****************  Genrating 1st Recursiv Proof ****************");
         // Shrink it to 2^13.
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, Some(13), true, true)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            Some(13),
+            true,
+            true,
+        )?;
         assert_eq!(common_data.degree_bits(), 13);
 
         info!(" ****************  Genrating 2nd Recursive Proof ****************");
         // Shrink it to 2^12.
-        let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
         //assert_eq!(common_data.degree_bits(), 12); ???
 
         info!(" ****************  Genrating 3rd Recursive Proof ****************");
         // Shrink it to 2^12.
-        let (proof, vd, common_data) =
-        recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
-     //assert_eq!(common_data.degree_bits(), 12); ???
+        let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            true,
+            true,
+        )?;
+        //assert_eq!(common_data.degree_bits(), 12); ???
 
         test_serialization(&proof, &vd, &common_data)?;
 
@@ -391,7 +473,8 @@ mod tests {
         let standard_config = CircuitConfig::standard_recursion_config_gl();
 
         // An initial dummy proof.
-        let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&standard_config, 4_000)?;
+        let (proof, vd, common_data) =
+            dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&standard_config, 4_000)?;
         assert_eq!(common_data.degree_bits(), 12);
 
         // A standard recursive proof.
@@ -467,12 +550,26 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config_gl();
         let (proof, vd, common_data) = dummy_proof::<F, PC, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
 
-        let (proof, vd, common_data) =
-            recursive_proof::<F, PC, PC, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, false, false)?;
+        let (proof, vd, common_data) = recursive_proof::<F, PC, PC, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            false,
+            false,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
-        let (proof, vd, common_data) =
-            recursive_proof::<F, KC, PC, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, false, false)?;
+        let (proof, vd, common_data) = recursive_proof::<F, KC, PC, D, NUM_HASH_OUT_ELTS>(
+            proof,
+            vd,
+            common_data,
+            &config,
+            None,
+            false,
+            false,
+        )?;
         test_serialization(&proof, &vd, &common_data)?;
 
         Ok(())

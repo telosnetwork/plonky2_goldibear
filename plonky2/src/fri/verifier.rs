@@ -80,8 +80,16 @@ pub fn verify_fri_proof<
 where
     F::Extension: TwoAdicField,
 {
-    unsafe {println!("TWO_TO_ONE_COUNTER before FRI verification = {}\n", TWO_TO_ONE_COUNTER);
-    println!("PERMUTE_COUNTER before FRI verification = {}\n", PERMUTE_COUNTER);}
+    unsafe {
+        println!(
+            "TWO_TO_ONE_COUNTER before FRI verification = {}\n",
+            TWO_TO_ONE_COUNTER
+        );
+        println!(
+            "PERMUTE_COUNTER before FRI verification = {}\n",
+            PERMUTE_COUNTER
+        );
+    }
     validate_fri_proof_shape::<F, C, D, NUM_HASH_OUT_ELTS>(proof, instance, params)?;
 
     // Size of the LDE domain.

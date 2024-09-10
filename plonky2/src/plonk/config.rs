@@ -80,7 +80,9 @@ pub trait Hasher<F: RichField>: Sized + Copy + Debug + Eq + PartialEq {
 }
 
 /// Trait for algebraic hash functions, built from a permutation using the sponge construction.
-pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>: Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>> {
+pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
+    Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>>
+{
     type AlgebraicPermutation: PlonkyPermutation<Target>;
 
     /// Circuit to conditionally swap two chunks of the inputs (useful in verifying Merkle proofs),

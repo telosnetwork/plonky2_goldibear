@@ -270,7 +270,9 @@ mod tests {
         let cap_height = log_n + 1; // Should panic if `cap_height > len_n`.
 
         let leaves = random_data::<F>(1 << log_n, 7);
-        let _ = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(leaves, cap_height);
+        let _ = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(
+            leaves, cap_height,
+        );
     }
 
     #[test]

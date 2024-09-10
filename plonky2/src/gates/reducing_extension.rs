@@ -65,7 +65,8 @@ impl<const D: usize> ReducingExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingExtensionGate<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingExtensionGate<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -73,12 +74,19 @@ where
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_coeffs)?;
         Ok(())
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized,
     {
@@ -96,7 +104,9 @@ where
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
+        );
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             constraints.push(acc * alpha + coeffs[i] - accs[i]);
@@ -150,7 +160,9 @@ where
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
+        );
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             let coeff = coeffs[i];
@@ -166,7 +178,11 @@ where
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         vec![WitnessGeneratorRef::new(
             ReducingGenerator {
                 row,
@@ -199,7 +215,8 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingExtensionGate<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ReducingGenerator<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ReducingGenerator<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -238,14 +255,28 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
-        <ReducingExtensionGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::serialize(&self.gate, dst, _common_data)
+        <ReducingExtensionGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::serialize(
+            &self.gate,
+            dst,
+            _common_data,
+        )
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
-        let gate = <ReducingExtensionGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(src, _common_data)?;
+        let gate = <ReducingExtensionGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(
+            src,
+            _common_data,
+        )?;
         Ok(Self { row, gate })
     }
 }

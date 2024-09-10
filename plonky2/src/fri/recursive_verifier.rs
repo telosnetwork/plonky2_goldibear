@@ -3,28 +3,28 @@ use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
 use p3_field::TwoAdicField;
-
 use plonky2_field::types::HasExtension;
 
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
+use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{ExtensionTarget, flatten_target};
+use crate::iop::ext_target::{flatten_target, ExtensionTarget};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::util::reducing::ReducingFactorTarget;
+use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::with_context;
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -73,10 +73,15 @@ where
             self.config.max_quotient_degree_factor,
         );
 
-        let interpolation_wires = <CosetInterpolationGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(&interpolation_gate);
+        let interpolation_wires =
+            <CosetInterpolationGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(
+                &interpolation_gate,
+            );
         let interpolation_routed_wires = interpolation_gate.num_routed_wires();
 
-        let min_wires = <RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(&random_access).max(interpolation_wires);
+        let min_wires =
+            <RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(&random_access)
+                .max(interpolation_wires);
         let min_routed_wires = random_access
             .num_routed_wires()
             .max(interpolation_routed_wires);
@@ -103,7 +108,9 @@ where
         );
     }
 
-    pub fn verify_fri_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>>(
+    pub fn verify_fri_proof<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
+    >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         openings: &FriOpeningsTarget<D>,
@@ -252,7 +259,7 @@ where
     }
 
     fn fri_verifier_query_round<
-        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
     >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
@@ -271,8 +278,12 @@ where
 
         // Note that this `low_bits` decomposition permits non-canonical binary encodings. Here we
         // verify that this has a negligible impact on soundness error.
-        let mut x_index_bits = self.low_bits(x_index, n_log, Self::are_noncanonical_indices_ok(&params.config));
-        
+        let mut x_index_bits = self.low_bits(
+            x_index,
+            n_log,
+            Self::are_noncanonical_indices_ok(&params.config),
+        );
+
         let cap_index =
             self.le_sum(x_index_bits[x_index_bits.len() - params.config.cap_height..].iter());
         with_context!(
@@ -379,7 +390,7 @@ where
     ///
     /// Here we compare the probabilities as a sanity check, to verify the claim above.
     fn are_noncanonical_indices_ok(config: &FriConfig) -> bool {
-        let num_ambiguous_elems =  (((1 << (F::bits() -1) ) - (F::ORDER_U64 >> 1)) << 1) -1;
+        let num_ambiguous_elems = (((1 << (F::bits() - 1)) - (F::ORDER_U64 >> 1)) << 1) - 1;
         let query_error = config.rate();
         let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER_U64 as f64);
         let max_ambiguous = query_error * 1e-5;

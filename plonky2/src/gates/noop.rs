@@ -17,7 +17,8 @@ use crate::util::serialization::{Buffer, IoResult};
 #[derive(Debug)]
 pub struct NoopGate;
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for NoopGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for NoopGate
 where
     F::Extension: TwoAdicField,
 {
@@ -33,7 +34,10 @@ where
         Ok(())
     }
 
-    fn deserialize(_src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        _src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         Ok(Self)
     }
 
@@ -41,7 +45,10 @@ where
         Vec::new()
     }
 
-    fn eval_unfiltered_base_batch(&self, _vars: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        _vars: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         Vec::new()
     }
 
@@ -53,7 +60,11 @@ where
         Vec::new()
     }
 
-    fn generators(&self, _row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        _row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         Vec::new()
     }
 

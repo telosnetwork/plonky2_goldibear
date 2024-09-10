@@ -3,18 +3,21 @@
 use core::ops::Range;
 use core::usize;
 
-use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, Field, PackedField, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
-use p3_field::PackedField;
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::util::strided_view::PackedStridedView;
 
 #[derive(Debug, Copy, Clone)]
-pub struct EvaluationVars<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-where
+pub struct EvaluationVars<
+    'a,
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
     F::Extension: TwoAdicField,
 {
     pub local_constants: &'a [F::Extension],
@@ -51,7 +54,8 @@ pub struct EvaluationVarsBasePacked<'a, P: PackedField, const NUM_HASH_OUT_ELTS:
     pub public_inputs_hash: &'a HashOut<P::Scalar, NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> EvaluationVars<'a, F, D, NUM_HASH_OUT_ELTS>
+impl<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationVars<'a, F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -66,7 +70,9 @@ where
     }
 }
 
-impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBaseBatch<'a, F, NUM_HASH_OUT_ELTS> {
+impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationVarsBaseBatch<'a, F, NUM_HASH_OUT_ELTS>
+{
     pub fn new(
         batch_size: usize,
         local_constants: &'a [F],
@@ -145,13 +151,17 @@ pub struct EvaluationVarsBaseBatchIter<'a, F: Field, const NUM_HASH_OUT_ELTS: us
     vars_batch: EvaluationVarsBaseBatch<'a, F, NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBaseBatchIter<'a, F, NUM_HASH_OUT_ELTS> {
+impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationVarsBaseBatchIter<'a, F, NUM_HASH_OUT_ELTS>
+{
     pub const fn new(vars_batch: EvaluationVarsBaseBatch<'a, F, NUM_HASH_OUT_ELTS>) -> Self {
         EvaluationVarsBaseBatchIter { i: 0, vars_batch }
     }
 }
 
-impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> Iterator for EvaluationVarsBaseBatchIter<'a, F, NUM_HASH_OUT_ELTS> {
+impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> Iterator
+    for EvaluationVarsBaseBatchIter<'a, F, NUM_HASH_OUT_ELTS>
+{
     type Item = EvaluationVarsBase<'a, F, NUM_HASH_OUT_ELTS>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.i < self.vars_batch.len() {
@@ -175,7 +185,9 @@ pub struct EvaluationVarsBaseBatchIterPacked<'a, P: PackedField, const NUM_HASH_
     vars_batch: EvaluationVarsBaseBatch<'a, P::Scalar, NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS> {
+impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS>
+{
     pub fn new_with_start(
         vars_batch: EvaluationVarsBaseBatch<'a, P::Scalar, NUM_HASH_OUT_ELTS>,
         start: usize,
@@ -188,7 +200,9 @@ impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBaseBatch
     }
 }
 
-impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> Iterator for EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS> {
+impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> Iterator
+    for EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS>
+{
     type Item = EvaluationVarsBasePacked<'a, P, NUM_HASH_OUT_ELTS>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.i + P::WIDTH <= self.vars_batch.len() {
@@ -216,13 +230,17 @@ impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> Iterator for Evaluation
     }
 }
 
-impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> ExactSizeIterator for EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS> {
+impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> ExactSizeIterator
+    for EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS>
+{
     fn len(&self) -> usize {
         (self.vars_batch.len() - self.i) / P::WIDTH
     }
 }
 
-impl<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize> EvaluationTargets<'a, D, NUM_HASH_OUT_ELTS> {
+impl<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationTargets<'a, D, NUM_HASH_OUT_ELTS>
+{
     pub fn remove_prefix(&mut self, num_selectors: usize) {
         self.local_constants = &self.local_constants[num_selectors..];
     }
@@ -235,7 +253,9 @@ pub struct EvaluationTargets<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     pub public_inputs_hash: &'a HashOutTarget<NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize> EvaluationTargets<'a, D, NUM_HASH_OUT_ELTS> {
+impl<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationTargets<'a, D, NUM_HASH_OUT_ELTS>
+{
     pub fn get_local_ext_algebra(&self, wire_range: Range<usize>) -> ExtensionAlgebraTarget<D> {
         debug_assert_eq!(wire_range.len(), D);
         let arr = self.local_wires[wire_range].try_into().unwrap();

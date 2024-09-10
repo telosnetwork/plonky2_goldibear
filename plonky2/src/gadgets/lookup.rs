@@ -48,7 +48,8 @@ pub const OTHER_TABLE: [u16; 256] = [
 /// This is a smaller lookup table with arbitrary values.
 pub const SMALLER_TABLE: [u16; 8] = [2, 24, 56, 100, 128, 16, 20, 49];
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {

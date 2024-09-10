@@ -9,9 +9,8 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, Field, TwoAdicField};
-
 use plonky2_field::extension_algebra::ExtensionAlgebra;
-use plonky2_field::types::{HasExtension, two_adic_subgroup};
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 
 use crate::field::interpolation::barycentric_weights;
 use crate::gates::gate::Gate;
@@ -185,23 +184,35 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for CosetInterpolationGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for CosetInterpolationGate<F, D>
 where
     F::Extension: TwoAdicField,
 {
     fn id(&self) -> String {
-        let arr = self.barycentric_weights.iter().map(|el| {el.as_canonical_u64()}).collect::<Vec<_>>();
+        let arr = self
+            .barycentric_weights
+            .iter()
+            .map(|el| el.as_canonical_u64())
+            .collect::<Vec<_>>();
         format!("{},{},{:?}<D={D}>", self.subgroup_bits, self.degree, arr)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.subgroup_bits)?;
         dst.write_usize(self.degree)?;
         dst.write_usize(self.barycentric_weights.len())?;
         dst.write_field_vec(&self.barycentric_weights)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let subgroup_bits = src.read_usize()?;
         let degree = src.read_usize()?;
         let length = src.read_usize()?;
@@ -215,7 +226,9 @@ where
     }
 
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         let shift = vars.local_wires[self.wire_shift()];
         let evaluation_point = vars.get_local_ext_algebra(self.wires_evaluation_point());
@@ -246,8 +259,11 @@ where
             constraints.extend((intermediate_eval - computed_eval).to_basefield_array());
             constraints.extend((intermediate_prod - computed_prod).to_basefield_array());
 
-            let start_index = 1 + (<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1) * (i + 1);
-            let end_index = (start_index + <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1).min(self.num_points());
+            let start_index =
+                1 + (<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1) * (i + 1);
+            let end_index = (start_index + <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self)
+                - 1)
+            .min(self.num_points());
             (computed_eval, computed_prod) = partial_interpolate_ext_algebra(
                 &domain[start_index..end_index],
                 &values[start_index..end_index],
@@ -312,8 +328,11 @@ where
                 .unwrap();
             yield_constr.many(basefield_array);
 
-            let start_index = 1 + (<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1) * (i + 1);
-            let end_index = (start_index + <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1).min(self.num_points());
+            let start_index =
+                1 + (<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1) * (i + 1);
+            let end_index = (start_index + <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self)
+                - 1)
+            .min(self.num_points());
             (computed_eval, computed_prod) = partial_interpolate(
                 &domain[start_index..end_index],
                 &values[start_index..end_index],
@@ -338,7 +357,9 @@ where
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         let shift = vars.local_wires[self.wire_shift()];
         let evaluation_point = vars.get_local_ext_algebra(self.wires_evaluation_point());
@@ -385,8 +406,11 @@ where
                     .to_ext_target_array(),
             );
 
-            let start_index = 1 + (<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1) * (i + 1);
-            let end_index = (start_index + <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1).min(self.num_points());
+            let start_index =
+                1 + (<Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self) - 1) * (i + 1);
+            let end_index = (start_index + <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(self)
+                - 1)
+            .min(self.num_points());
             (computed_eval, computed_prod) = partial_interpolate_ext_algebra_target(
                 builder,
                 &domain[start_index..end_index],
@@ -408,7 +432,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = InterpolationGenerator::<F, D>::new(row, self.clone());
         vec![WitnessGeneratorRef::new(gen.adapter())]
     }
@@ -458,8 +486,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for InterpolationGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for InterpolationGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -505,7 +533,8 @@ where
         let evaluation_point = get_local_ext(self.gate.wires_evaluation_point());
         let shift = get_local_wire(self.gate.wire_shift());
         let shifted_evaluation_point = evaluation_point * F::Extension::from_base(shift.inverse());
-        let degree = <CosetInterpolationGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(&self.gate);
+        let degree =
+            <CosetInterpolationGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::degree(&self.gate);
 
         out_buffer.set_ext_wires(
             self.gate.wires_shifted_evaluation_point().map(local_wire),
@@ -549,12 +578,19 @@ where
         out_buffer.set_ext_wires(evaluation_value_wires, computed_eval);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         self.gate.serialize(dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let gate = CosetInterpolationGate::deserialize(src, _common_data)?;
         Ok(Self::new(row, gate))
@@ -647,7 +683,11 @@ fn partial_interpolate_ext_algebra<F: HasExtension<D>, const D: usize>(
     )
 }
 
-fn partial_interpolate_ext_algebra_target<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+fn partial_interpolate_ext_algebra_target<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     domain: &[F],
     values: &[ExtensionAlgebraTarget<D>],
@@ -693,16 +733,14 @@ mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
-
     use plonky2_field::polynomial::PolynomialValues;
     use plonky2_util::log2_strict;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::HashOut;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     #[test]
     fn test_degree_and_wires_minimized() {
@@ -842,7 +880,6 @@ mod tests {
         test_low_degree::<Goldilocks, _, 2, 4>(CosetInterpolationGate::new(2));
     }
 
-
     #[test]
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
@@ -850,7 +887,9 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         for degree in 2..=4 {
-            test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(CosetInterpolationGate::with_max_degree(2, degree))?;
+            test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(
+                CosetInterpolationGate::with_max_degree(2, degree),
+            )?;
         }
         Ok(())
     }

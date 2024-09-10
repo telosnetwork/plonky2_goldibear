@@ -131,7 +131,10 @@ mod tests {
         let h = 10;
         let cap_height = 3;
         let vs = (0..1 << h).map(|_| vec![F::rand()]).collect::<Vec<_>>();
-        let mt = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(vs.clone(), cap_height);
+        let mt = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(
+            vs.clone(),
+            cap_height,
+        );
 
         let mut rng = OsRng;
         let k = rng.gen_range(1..=1 << h);

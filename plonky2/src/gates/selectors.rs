@@ -47,7 +47,11 @@ pub enum LookupSelectors {
 /// - {first_lut_row + 1} where we check the initial values of sum and RE (which are 0),
 /// - {last_lu_row} where we check that the last value of LDC is 0.
 /// Conceptually they're part of the selector ends lookups, but since we can have one polynomial for *all* LUTs it's here.
-pub(crate) fn selectors_lookup<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+pub(crate) fn selectors_lookup<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     _gates: &[GateRef<F, D, NUM_HASH_OUT_ELTS>],
     instances: &[GateInstance<F, D, NUM_HASH_OUT_ELTS>],
     lookup_rows: &[LookupWire],
@@ -81,7 +85,11 @@ where
 
 /// Returns selectors for checking the validity of the LUTs.
 /// Each selector equals one on its respective LUT's `last_lut_row`, and 0 elsewhere.
-pub(crate) fn selector_ends_lookups<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+pub(crate) fn selector_ends_lookups<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     lookup_rows: &[LookupWire],
     instances: &[GateInstance<F, D, NUM_HASH_OUT_ELTS>],
 ) -> Vec<PolynomialValues<F>>
@@ -115,7 +123,11 @@ where
 ///         k
 ///     else
 ///         UNUSED_SELECTOR
-pub(crate) fn selector_polynomials<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+pub(crate) fn selector_polynomials<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     gates: &[GateRef<F, D, NUM_HASH_OUT_ELTS>],
     instances: &[GateInstance<F, D, NUM_HASH_OUT_ELTS>],
     max_degree: usize,

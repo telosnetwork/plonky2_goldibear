@@ -12,11 +12,10 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use keccak_hash::keccak;
-use p3_field::TwoAdicField;
+use p3_field::{PackedField, TwoAdicField};
 use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
 
-use p3_field::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -84,7 +83,8 @@ impl LookupTableGate {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
 where
     F::Extension: TwoAdicField,
 {
@@ -96,7 +96,11 @@ where
         )
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_slots)?;
         dst.write_usize(self.last_lut_row)?;
         for (i, lut) in common_data.luts.iter().enumerate() {
@@ -109,7 +113,10 @@ where
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_slots = src.read_usize()?;
         let last_lut_row = src.read_usize()?;
         let lut_index = src.read_usize()?;
@@ -137,7 +144,10 @@ where
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
@@ -150,7 +160,11 @@ where
         vec![]
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_slots)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -184,7 +198,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize,  const NUM_HASH_OUT_ELTS: usize> PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
 where
     F::Extension: TwoAdicField,
 {
@@ -205,7 +220,8 @@ pub struct LookupTableGenerator {
     last_lut_row: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupTableGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupTableGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -237,7 +253,11 @@ where
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.slot_nb)?;
         dst.write_usize(self.num_slots)?;
@@ -251,7 +271,10 @@ where
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let slot_nb = src.read_usize()?;
         let num_slots = src.read_usize()?;

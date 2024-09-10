@@ -56,7 +56,8 @@ impl<const D: usize> ArithmeticExtensionGate<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticExtensionGate<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticExtensionGate<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -64,11 +65,18 @@ where
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_ops)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_ops = src.read_usize()?;
         Ok(Self { num_ops })
     }
@@ -145,7 +153,11 @@ where
         constraints
     }
 
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
+    fn generators(
+        &self,
+        row: usize,
+        local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -189,8 +201,8 @@ where
     i: usize,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for ArithmeticExtensionGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ArithmeticExtensionGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -234,14 +246,21 @@ where
         out_buffer.set_extension_target(output_target, computed_output)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_field(self.const_0)?;
         dst.write_field(self.const_1)?;
         dst.write_usize(self.i)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let const_0 = src.read_field()?;
         let const_1 = src.read_field()?;
@@ -267,8 +286,9 @@ mod tests {
 
     #[test]
     fn low_degree() {
-        let gate =
-            ArithmeticExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
+        let gate = ArithmeticExtensionGate::new_from_config(
+            &CircuitConfig::standard_recursion_config_gl(),
+        );
         test_low_degree::<Goldilocks, _, 2, 4>(gate);
     }
 
@@ -278,8 +298,9 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let gate =
-            ArithmeticExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
+        let gate = ArithmeticExtensionGate::new_from_config(
+            &CircuitConfig::standard_recursion_config_gl(),
+        );
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

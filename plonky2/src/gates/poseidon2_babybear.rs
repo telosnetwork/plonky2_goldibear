@@ -8,18 +8,16 @@ use alloc::{
 use core::marker::PhantomData;
 use core::usize;
 
-use itertools::Itertools;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use super::{apply_mat4::ApplyMat4Gate, poseidon2_internal_permutation::Poseidon2InternalPermutationGate};
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::poseidon2_babybear::{
     EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS, N_FULL_ROUNDS_TOTAL,
-    N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_RATE, SPONGE_WIDTH,
+    N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -32,7 +30,8 @@ use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 const SBOX_EXP: u64 = 7;
-pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15];
+pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] =
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15];
 /// Evaluates a full Poseidon permutation with 12 state elements.
 ///
 /// This also has some extra features to make it suitable for efficiently verifying Merkle proofs.

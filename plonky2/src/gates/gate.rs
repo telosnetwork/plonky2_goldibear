@@ -51,7 +51,8 @@ use crate::util::serialization::{Buffer, IoResult};
 ///
 /// Note however that extending the number of wires necessary for a custom gate comes at a price, and may
 /// impact the overall performances when generating proofs for a circuit containing them.
-pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>: 'static + Send + Sync
+pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
+    'static + Send + Sync
 where
     F::Extension: TwoAdicField,
 {
@@ -61,10 +62,17 @@ where
     fn id(&self) -> String;
 
     /// Serializes this custom gate to the targeted byte buffer, with the provided [`CommonCircuitData`].
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()>;
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()>;
 
     /// Deserializes the bytes in the provided buffer into this custom gate, given some [`CommonCircuitData`].
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized;
 
@@ -114,8 +122,15 @@ where
         })
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>) -> Vec<F> {
-        let mut res = vec![F::zero(); vars_base.len() * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)];
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
+        let mut res = vec![
+            F::zero();
+            vars_base.len()
+                * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)
+        ];
         for (i, vars_base_one) in vars_base.iter().enumerate() {
             self.eval_unfiltered_base_one(
                 vars_base_one,
@@ -220,7 +235,11 @@ where
     /// The generators used to populate the witness.
     ///
     /// **Note**: This should return exactly 1 generator per operation in the gate.
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>;
+    fn generators(
+        &self,
+        row: usize,
+        local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>;
 
     /// The number of wires used by this gate.
     ///
@@ -260,14 +279,20 @@ where
 }
 
 /// A wrapper trait over a `Gate`, to allow for gate serialization.
-pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>: Gate<F, D, NUM_HASH_OUT_ELTS>
+pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
+    Gate<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
     fn as_any(&self) -> &dyn Any;
 }
 
-impl<T: Gate<F, D, NUM_HASH_OUT_ELTS>, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> AnyGate<F, D, NUM_HASH_OUT_ELTS> for T
+impl<
+        T: Gate<F, D, NUM_HASH_OUT_ELTS>,
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > AnyGate<F, D, NUM_HASH_OUT_ELTS> for T
 where
     F::Extension: TwoAdicField,
 {
@@ -278,9 +303,12 @@ where
 
 /// A wrapper around an `Arc<AnyGate>` which implements `PartialEq`, `Eq` and `Hash` based on gate IDs.
 #[derive(Clone)]
-pub struct GateRef<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(pub Arc<dyn AnyGate<F, D, NUM_HASH_OUT_ELTS>>);
+pub struct GateRef<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    pub Arc<dyn AnyGate<F, D, NUM_HASH_OUT_ELTS>>,
+);
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> GateRef<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -289,7 +317,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq for GateRef<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -298,7 +327,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Hash for GateRef<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Hash
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -307,12 +337,15 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq for GateRef<F, D, NUM_HASH_OUT_ELTS> where
-    F::Extension: TwoAdicField
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    F::Extension: TwoAdicField,
 {
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug for GateRef<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -321,7 +354,8 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Serialize for GateRef<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Serialize
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -340,8 +374,11 @@ pub struct CurrentSlot<F: RichField + HasExtension<D>, const D: usize> {
 
 /// A gate along with any constants used to configure it.
 #[derive(Clone, Debug)]
-pub struct GateInstance<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-where
+pub struct GateInstance<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
     F::Extension: TwoAdicField,
 {
     pub gate_ref: GateRef<F, D, NUM_HASH_OUT_ELTS>,
@@ -350,8 +387,11 @@ where
 
 /// Map each gate to a boolean prefix used to construct the gate's selector polynomial.
 #[derive(Debug, Clone)]
-pub struct PrefixedGate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-where
+pub struct PrefixedGate<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
     F::Extension: TwoAdicField,
 {
     pub gate: GateRef<F, D, NUM_HASH_OUT_ELTS>,
@@ -368,7 +408,11 @@ fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_se
         .product()
 }
 
-fn compute_filter_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+fn compute_filter_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     row: usize,
     group_range: Range<usize>,

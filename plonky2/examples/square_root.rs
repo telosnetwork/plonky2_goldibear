@@ -33,8 +33,8 @@ where
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for SquareRootGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SquareRootGenerator<F, D>
 where
     F::Extension: TwoAdicField,
 {
@@ -55,12 +55,19 @@ where
         out_buffer.set_target(self.x, x);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.x)?;
         dst.write_target(self.x_squared)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let x = src.read_target()?;
         let x_squared = src.read_target()?;
         Ok(Self {
@@ -72,11 +79,17 @@ where
 }
 
 #[derive(Default)]
-pub struct CustomGeneratorSerializer<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+pub struct CustomGeneratorSerializer<
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> {
     pub _phantom: PhantomData<C>,
 }
 
-impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS> for CustomGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
+impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>
+    for CustomGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,

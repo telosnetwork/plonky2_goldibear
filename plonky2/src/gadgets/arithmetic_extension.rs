@@ -4,9 +4,9 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use itertools::Itertools;
 use core::borrow::Borrow;
 
+use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
@@ -22,7 +22,8 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
@@ -555,8 +556,8 @@ pub struct QuotientGeneratorExtension<const D: usize> {
     quotient: ExtensionTarget<D>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>
-    for QuotientGeneratorExtension<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientGeneratorExtension<D>
 where
     F::Extension: TwoAdicField,
 {
@@ -577,13 +578,20 @@ where
         out_buffer.set_extension_target(self.quotient, quotient)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target_ext(self.numerator)?;
         dst.write_target_ext(self.denominator)?;
         dst.write_target_ext(self.quotient)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let numerator = src.read_target_ext()?;
         let denominator = src.read_target_ext()?;
         let quotient = src.read_target_ext()?;
@@ -631,7 +639,8 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
     F::Extension: TwoAdicField,
 {
