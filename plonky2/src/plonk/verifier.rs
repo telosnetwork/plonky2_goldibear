@@ -6,6 +6,7 @@ use plonky2_field::types::HasExtension;
 
 use crate::fri::verifier::verify_fri_proof;
 use crate::hash::hash_types::RichField;
+use crate::hash::poseidon2_babybear::TWO_TO_ONE_COUNTER;
 use crate::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
 use crate::plonk::config::{GenericConfig, Hasher};
 use crate::plonk::plonk_common::reduce_with_powers;

@@ -20,6 +20,7 @@ use crate::gates::lookup::LookupGate;
 use crate::gates::lookup_table::LookupTableGate;
 use crate::gates::selectors::LookupSelectors;
 use crate::hash::hash_types::RichField;
+use crate::hash::poseidon2_babybear::{PERMUTE_COUNTER, TWO_TO_ONE_COUNTER};
 use crate::iop::challenger::Challenger;
 use crate::iop::generator::generate_partial_witness;
 use crate::iop::target::Target;
@@ -129,13 +130,18 @@ where
     C::InnerHasher: Hasher<F>,
     F::Extension: TwoAdicField,
 {
+    unsafe {TWO_TO_ONE_COUNTER = 0;}
+    unsafe {PERMUTE_COUNTER = 0;}
     let partition_witness = timed!(
         timing,
         &format!("run {} generators", prover_data.generators.len()),
         generate_partial_witness(inputs, prover_data, common_data)
     );
 
-    prove_with_partition_witness(prover_data, common_data, partition_witness, timing)
+    let proof = prove_with_partition_witness(prover_data, common_data, partition_witness, timing);
+    unsafe {println!("TWO_TO_ONE_COUNTER = {}", TWO_TO_ONE_COUNTER);}
+    unsafe {println!("PERMUTE_COUNTER = {}", PERMUTE_COUNTER);}
+    proof
 }
 
 pub fn prove_with_partition_witness<

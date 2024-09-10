@@ -8,7 +8,6 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -27,7 +26,7 @@ use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// Poseidon MDS Gate
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct PoseidonMdsGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
 impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F, D>
@@ -119,45 +118,13 @@ where
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionAlgebraTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionAlgebraTarget<D>; SPONGE_WIDTH] {
-        let use_mds_gate = builder.config.num_routed_wires
-            >= <PoseidonMdsGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(
-                &PoseidonMdsGate::<F, D>::new(),
-            );
-        
         let mut result = [builder.zero_ext_algebra(); SPONGE_WIDTH];
-        if use_mds_gate {
-            let gate = Self::new();
-            for i in 0..D {
-                let state_i: Vec<ExtensionTarget<D>> =
-                    (0..SPONGE_WIDTH).map(|j| state[j].0[i]).collect();
-                let (row, col) = builder.find_slot(gate.clone(), &[], &[]);
-                (0..SPONGE_WIDTH).for_each(|j| {
-                    builder.connect_extension(
-                        state_i[j],
-                        ExtensionTarget::<D>(
-                            Self::wires_input(col)
-                                .map(|k| Target::wire(row, k))
-                                .collect_vec()
-                                .try_into()
-                                .unwrap(),
-                        ),
-                    );
-                    result[j].0[i] = ExtensionTarget::<D>(
-                        Self::wires_output(col)
-                            .map(|k| Target::wire(row, k))
-                            .collect_vec()
-                            .try_into()
-                            .unwrap(),
-                    );
-                })
-            }
-            result
-        } else {
-            for r in 0..SPONGE_WIDTH {
-                result[r] = Self::mds_row_shf_algebra_circuit(builder, r, state);
-            }
-            result
+
+        for r in 0..SPONGE_WIDTH {
+            result[r] = Self::mds_row_shf_algebra_circuit(builder, r, state);
         }
+
+        result
     }
 }
 

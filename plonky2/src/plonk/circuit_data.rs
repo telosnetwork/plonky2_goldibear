@@ -14,6 +14,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, vec, vec::Vec};
+use p3_baby_bear::BabyBear;
 use core::ops::{Range, RangeFrom};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
@@ -32,12 +33,14 @@ use crate::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
 };
-use crate::gates::gate::GateRef;
+use crate::gates::gate::{Gate, GateRef};
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
+use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::gates::selectors::SelectorsInfo;
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
+use crate::hash::poseidon2_babybear::{PERMUTE_COUNTER, TWO_TO_ONE_COUNTER};
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{generate_partial_witness, WitnessGeneratorRef};
 use crate::iop::target::Target;
@@ -106,8 +109,10 @@ impl CircuitConfig {
         }
     }
     pub fn standard_recursion_config_bb() -> Self {
+        println!("num_wires: {}", Poseidon2BabyBearGate::<BabyBear,4>::end() + 1);
         Self {
-            num_wires: 246, num_routed_wires: 160,
+            //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
+            num_wires: 2 * Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
             ..Self::standard_recursion_config()
         }
     }
@@ -240,7 +245,13 @@ where
     }
 
     pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>) -> Result<()> {
-        verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common)
+        unsafe {
+            TWO_TO_ONE_COUNTER = 0;
+            PERMUTE_COUNTER = 0;  
+        }
+        let res = verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common);
+        unsafe {println!("TWO_TO_ONE_COUNTER = {}\n PERMUTE_COUNTER = {}\n",TWO_TO_ONE_COUNTER, PERMUTE_COUNTER);}
+        res
     }
 
     pub fn verify_compressed(
@@ -341,12 +352,21 @@ where
     where
         F::Extension: TwoAdicField,
     {
-        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
+        unsafe {
+            TWO_TO_ONE_COUNTER = 0;
+            PERMUTE_COUNTER = 0;
+        }
+        let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
             inputs,
             &mut TimingTree::default(),
-        )
+        );
+        unsafe {
+            println!("TWO_TO_ONE_COUNTER = {}", TWO_TO_ONE_COUNTER);
+            println!("PERMUTE_COUNTER = {}", PERMUTE_COUNTER);
+        }
+        proof
     }
 }
 

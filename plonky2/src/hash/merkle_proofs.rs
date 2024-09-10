@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleCap;
+use crate::hash::poseidon2_babybear::PERMUTE_COUNTER;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::VerifierCircuitTarget;

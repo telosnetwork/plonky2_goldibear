@@ -349,20 +349,28 @@ mod tests {
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config_bb();
-
+        info!(" ****************  Genrating Dummy Proof ****************");
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
         assert_eq!(common_data.degree_bits(), 14);
 
+        info!(" ****************  Genrating 1st Recursiv Proof ****************");
         // Shrink it to 2^13.
         let (proof, vd, common_data) =
-            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, Some(13), false, false)?;
+            recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, Some(13), true, true)?;
         assert_eq!(common_data.degree_bits(), 13);
 
+        info!(" ****************  Genrating 2nd Recursive Proof ****************");
         // Shrink it to 2^12.
         let (proof, vd, common_data) =
             recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
         //assert_eq!(common_data.degree_bits(), 12); ???
+
+        info!(" ****************  Genrating 3rd Recursive Proof ****************");
+        // Shrink it to 2^12.
+        let (proof, vd, common_data) =
+        recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(proof, vd, common_data, &config, None, true, true)?;
+     //assert_eq!(common_data.degree_bits(), 12); ???
 
         test_serialization(&proof, &vd, &common_data)?;
 

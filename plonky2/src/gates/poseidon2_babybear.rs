@@ -32,10 +32,7 @@ use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 const SBOX_EXP: u64 = 7;
-pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23,
-];
-
+pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15];
 /// Evaluates a full Poseidon permutation with 12 state elements.
 ///
 /// This also has some extra features to make it suitable for efficiently verifying Merkle proofs.
@@ -110,7 +107,7 @@ where
     }
 
     /// End of wire indices, exclusive.
-    const fn end() -> usize {
+    pub(crate) const fn end() -> usize {
         Self::START_FULL_1 + SPONGE_WIDTH * HALF_N_FULL_ROUNDS
     }
 }
@@ -168,7 +165,7 @@ where
             state[i] = vars.local_wires[input_lhs] + delta_i;
             state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
         }
-        for i in SPONGE_RATE..SPONGE_WIDTH {
+        for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
         permute_external_mut(&mut state);
@@ -251,7 +248,7 @@ where
             state[i] = vars.local_wires[input_lhs] + delta_i;
             state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
         }
-        for i in SPONGE_RATE..SPONGE_WIDTH {
+        for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
 
@@ -327,7 +324,7 @@ where
             state[i + SPONGE_CAPACITY] =
                 builder.sub_extension(vars.local_wires[input_rhs], delta_i);
         }
-        for i in SPONGE_RATE..SPONGE_WIDTH {
+        for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
             state[i] = vars.local_wires[Self::wire_input(i)];
         }
         permute_external_mut_circuit(builder, &mut state);
@@ -715,29 +712,26 @@ fn apply_mat4_circuit<
 ) where
     F::Extension: TwoAdicField,
 {
-    let gate = ApplyMat4Gate::<F, D>::new_from_config(&builder.config);
-    let (row, op) = builder.find_slot(gate, &[], &[]);
-    (0..4).for_each(|i| {
-        builder.connect_extension(
-            x[i],
-            ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_input(op, i))
-        )
-    });
-    *x = [0, 1, 2, 3].map(|i| {
-        ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_output(op, i))
-    });
-    /*
+    // let gate = ApplyMat4Gate::<F, D>::new_from_config(&builder.config);
+    // let (row, op) = builder.find_slot(gate, &[], &[]);
+    // (0..4).for_each(|i| {
+    //     builder.connect_extension(
+    //         x[i],
+    //         ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_input(op, i))
+    //     )
+    // });
+    // *x = [0, 1, 2, 3].map(|i| {
+    //     ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_output(op, i))
+    // });
     let t01 = builder.add_extension(x[0], x[1]); //x[0].clone() + x[1].clone();
     let t23 = builder.add_extension(x[2], x[3]); //x[2].clone() + x[3].clone();
     let t0123 = builder.add_extension(t01, t23); //t01.clone() + t23.clone();
     let t01123 = builder.add_extension(t0123, x[1]); //t0123.clone() + x[1].clone();
     let t01233 = builder.add_extension(t0123, x[3]); //t0123.clone() + x[3].clone();
-                                                     // The order here is important. Need to overwrite x[0] and x[2] after x[1] and x[3].
     x[3] = builder.mul_const_add_extension(F::two(), x[0], t01233); //t01233.clone() + x[0].double(); // 3*x[0] + x[1] + x[2] + 2*x[3]
     x[1] = builder.mul_const_add_extension(F::two(), x[2], t01123); //t01123.clone() + x[2].double(); // x[0] + 2*x[1] + 3*x[2] + x[3]
     x[0] = builder.add_extension(t01123, t01); //t01123 + t01; // 2*x[0] + 3*x[1] + x[2] + x[3]
     x[2] = builder.add_extension(t01233, t23); //t01233 + t23; // x[0] + x[1] + 2*x[2] + 3*x[3]
-    */
 }
 
 fn apply_mat4<AF>(x: &mut [AF; 4])
@@ -883,7 +877,7 @@ mod tests {
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
-        let config = CircuitConfig::standard_recursion_config_gl();
+        let config = CircuitConfig::standard_recursion_config_bb();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
