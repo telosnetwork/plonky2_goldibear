@@ -28,6 +28,7 @@ use crate::gates::gate::{CurrentSlot, Gate, GateInstance, GateRef};
 use crate::gates::lookup::{Lookup, LookupGate};
 use crate::gates::lookup_table::LookupTable;
 use crate::gates::noop::NoopGate;
+use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::gates::public_input::PublicInputGate;
 use crate::gates::selectors::{selector_ends_lookups, selector_polynomials, selectors_lookup};
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -184,7 +185,7 @@ pub struct CircuitBuilder<
     pub(crate) arithmetic_results: HashMap<ExtensionArithmeticOperation<F, D>, ExtensionTarget<D>>,
 
     /// Map between gate type and the current gate of this type with available slots.
-    current_slots: HashMap<GateRef<F, D, NUM_HASH_OUT_ELTS>, CurrentSlot<F, D>>,
+    pub(crate) current_slots: HashMap<GateRef<F, D, NUM_HASH_OUT_ELTS>, CurrentSlot<F, D>>,
 
     /// List of constant generators used to fill the constant wires.
     constant_generators: Vec<ConstantGenerator<F>>,
@@ -827,8 +828,10 @@ where
         let num_gates = self.num_gates();
         let num_ops = gate.num_ops();
         let gate_ref = GateRef::new(gate.clone());
+        let gate_ref_bis = GateRef::new(gate.clone());
+        assert_eq!(gate_ref.clone(), gate_ref_bis.clone());
         let gate_slot = self.current_slots.entry(gate_ref.clone()).or_default();
-        let slot = gate_slot.current_slot.get(params);
+        let slot = gate_slot.current_slot.get::<[F]>(params);
         let (gate_idx, slot_idx) = if let Some(&s) = slot {
             s
         } else {
@@ -1065,6 +1068,13 @@ where
         }
     }
 
+    fn finalize_gates(&mut self) {
+        for gate_ref in self.gates.clone() {
+            gate_ref.0.finalize(self)
+        }
+    }
+    
+
     /// Builds a "full circuit", with both prover and verifier data.
     pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
@@ -1089,6 +1099,7 @@ where
     where
         F::Extension: TwoAdicField,
     {
+        self.finalize_gates();
         let mut timing = TimingTree::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]

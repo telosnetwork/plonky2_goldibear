@@ -76,7 +76,12 @@ where
     where
         Self: Sized;
 
+    /// Some gates might need to be filled up in order to avoid error in constraints verification
+    fn finalize(&self, _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) {
+    
+    }
     /// Defines and evaluates the constraints that enforce the statement represented by this gate.
+    
     /// Constraints must be defined in the extension of this custom gate base field.
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension>;
 

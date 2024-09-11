@@ -107,18 +107,23 @@ impl CircuitConfig {
             ..Self::standard_recursion_config()
         }
     }
-    pub fn standard_recursion_config_bb() -> Self {
-        println!(
-            "num_wires: {}",
-            Poseidon2BabyBearGate::<BabyBear, 4>::end() + 1
-        );
+    pub fn standard_recursion_config_bb_wide() -> Self {
         Self {
             //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
-            num_wires: 2 * Poseidon2BabyBearGate::<BabyBear, 4>::end() + 1,
+            num_wires: 334,
             num_routed_wires: 160,
             ..Self::standard_recursion_config()
         }
     }
+    pub fn standard_recursion_config_bb_narrow() -> Self {
+        Self {
+            //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
+            num_wires: 167,
+            num_routed_wires: 160,
+            ..Self::standard_recursion_config()
+        }
+    }
+
     fn standard_recursion_config() -> Self {
         Self {
             num_wires: 0,
@@ -162,7 +167,7 @@ impl CircuitConfig {
     pub fn standard_recursion_zk_config_bb() -> Self {
         CircuitConfig {
             zero_knowledge: true,
-            ..Self::standard_recursion_config_bb()
+            ..Self::standard_recursion_config_bb_wide()
         }
     }
 }

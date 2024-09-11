@@ -6,14 +6,16 @@ use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use p3_poseidon2;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_symmetric::Permutation;
-use plonky2_field::types::HasExtension;
+use plonky2_field::types::{HasExtension, Sample};
 
 use super::hash_types::{HashOut, RichField};
 use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::iop::target::{BoolTarget, Target};
+use crate::iop::witness::{PartialWitness, WitnessWrite};
 use crate::plonk::circuit_builder::CircuitBuilder;
-use crate::plonk::config::{AlgebraicHasher, Hasher};
+use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
+use crate::plonk::config::{AlgebraicHasher, Hasher, Poseidon2BabyBearConfig};
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
@@ -201,24 +203,47 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
         <F as HasExtension<D>>::Extension: TwoAdicField,
     {
         let gate_type: Poseidon2BabyBearGate<F, D> = Poseidon2BabyBearGate::<F, D>::new();
-        let gate = builder.add_gate(gate_type, vec![]);
+        let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);
 
-        let swap_wire = Poseidon2BabyBearGate::<F, D>::WIRE_SWAP;
-        let swap_wire = Target::wire(gate, swap_wire);
+        let swap_wire = Poseidon2BabyBearGate::<F, D>::wire_swap(op);
+        let swap_wire = Target::wire(row, swap_wire);
         builder.connect(swap.target, swap_wire);
 
         // Route input wires.
         let inputs = inputs.as_ref();
         for i in 0..SPONGE_WIDTH {
-            let in_wire = Poseidon2BabyBearGate::<F, D>::wire_input(i);
-            let in_wire = Target::wire(gate, in_wire);
+            let in_wire = Poseidon2BabyBearGate::<F, D>::wire_input(op, i);
+            let in_wire = Target::wire(row, in_wire);
             builder.connect(inputs[i], in_wire);
         }
 
         // Collect output wires.
         Self::AlgebraicPermutation::new(
             (0..SPONGE_WIDTH)
-                .map(|i| Target::wire(gate, Poseidon2BabyBearGate::<F, D>::wire_output(i))),
+                .map(|i| Target::wire(row, Poseidon2BabyBearGate::<F, D>::wire_output(op, i))),
         )
     }
+}
+
+#[test]
+fn test_poseidon2_babybear() {
+    type F = BabyBear;
+    const D: usize = 4;
+    const NUM_HASH_OUT_ELTS: usize = 8;
+    type H = Poseidon2BabyBearHash;
+    type C = Poseidon2BabyBearConfig;
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(
+        CircuitConfig::standard_recursion_config_bb_wide(),
+    );
+    let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
+    let vec_target = builder.add_virtual_targets(NUM_HASH_OUT_ELTS * 3);
+    builder.hash_or_noop::<H>(vec_target.clone());
+    // builder.hash_or_noop::<H>(vec_target.clone());
+
+    let mut pw = PartialWitness::<F>::new();
+    pw.set_target_arr(&vec_target, &vec);
+    let data: CircuitData<F,C,D,NUM_HASH_OUT_ELTS> = builder.build();
+    let proof = data.prove(pw);
+    data.verify(proof.unwrap()).unwrap();
+
 }

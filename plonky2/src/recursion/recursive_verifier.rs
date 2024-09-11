@@ -409,7 +409,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = 8;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig::standard_recursion_config_bb();
+        let config = CircuitConfig::standard_recursion_config_bb_wide();
         info!(" ****************  Genrating Dummy Proof ****************");
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
