@@ -106,6 +106,7 @@ pub mod default {
     use p3_field::TwoAdicField;
     use plonky2_field::types::HasExtension;
 
+    use crate::gates::add_many::AddManyGate;
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
     use crate::gates::base_sum::BaseSumGate;
@@ -160,7 +161,8 @@ pub mod default {
             RandomAccessGate<F, D>,
             ReducingExtensionGate<D>,
             ReducingGate<D>,
-            Poseidon2BabyBearGate<F,D>
+            Poseidon2BabyBearGate<F,D>,
+            AddManyGate
         }
     }
 }

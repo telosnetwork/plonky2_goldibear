@@ -20,8 +20,7 @@ use crate::plonk::vars::{
 };
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-/// A gate which can decompose a number into base B little-endian limbs.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct AddManyGate {
     pub num_addends: usize,
     pub num_ops: usize,
@@ -56,7 +55,7 @@ where
     F::Extension: TwoAdicField,
 {
     fn id(&self) -> String {
-        format!("{self:?} + Number of addends: {}", self.num_addends)
+        format!("{self:?}")
     }
 
     fn serialize(
