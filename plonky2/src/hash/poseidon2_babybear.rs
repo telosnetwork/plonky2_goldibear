@@ -22,8 +22,6 @@ pub(crate) const SPONGE_RATE: usize = 8;
 pub(crate) const SPONGE_CAPACITY: usize = 8;
 pub const SPONGE_WIDTH: usize = 16;
 
-pub static mut TWO_TO_ONE_COUNTER: usize = 20;
-pub static mut PERMUTE_COUNTER: usize = 0;
 
 #[rustfmt::skip]
 pub(crate) const EXTERNAL_CONSTANTS: [[u32; SPONGE_WIDTH]; N_FULL_ROUNDS_TOTAL] = [
@@ -152,7 +150,6 @@ impl<T: Copy + Debug + Default + Eq + Permuter31 + Send + Sync> PlonkyPermutatio
 
 impl<F: RichField> Permuter31 for F {
     fn permute(input: [Self; SPONGE_WIDTH]) -> [Self; SPONGE_WIDTH] {
-        unsafe { PERMUTE_COUNTER += 1 };
         let mut res = input
             .map(|x| <F as PrimeField64>::as_canonical_u64(&x))
             .map(BabyBear::from_canonical_u64);
@@ -175,13 +172,7 @@ impl<F: RichField> Hasher<F> for Poseidon2BabyBearHash {
     }
 
     fn two_to_one(left: Self::Hash, right: Self::Hash) -> Self::Hash {
-        unsafe {
-            TWO_TO_ONE_COUNTER += 1;
-        }
         let res = compress::<F, Self::Permutation, 8>(left, right);
-        unsafe {
-            PERMUTE_COUNTER -= 1;
-        }
         res
     }
 }
@@ -225,6 +216,10 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
 
 #[test]
 fn test_poseidon2_babybear() {
+    use crate::iop::witness::{PartialWitness, WitnessWrite};
+    use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
+    use plonky2_field::types::Sample;
+    use crate::plonk::config::Poseidon2BabyBearConfig;
     type F = BabyBear;
     const D: usize = 4;
     const NUM_HASH_OUT_ELTS: usize = 8;

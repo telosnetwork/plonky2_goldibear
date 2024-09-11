@@ -212,14 +212,14 @@ where
         match num_addends {
             ADD_MANY_THRESHOLD => {
                 let gate_type =
-                    AddManyGate::<ADD_MANY_THRESHOLD>::new_from_config::<F>(&self.config);
+                    AddManyGate::new_from_config::<F>(&self.config, ADD_MANY_THRESHOLD);
                 let (row, i) = self.find_slot(gate_type, &[], &[]);
-                let addends_indices = AddManyGate::<ADD_MANY_THRESHOLD>::wires_ith_op_addends(i);
+                let addends_indices = AddManyGate::wires_ith_op_addends(gate_type.num_addends, i);
                 addends
                     .iter()
                     .zip(addends_indices)
                     .for_each(|(&target, idx)| self.connect(target, Target::wire(row, idx)));
-                Target::wire(row, AddManyGate::<ADD_MANY_THRESHOLD>::wire_ith_sum(i))
+                Target::wire(row, AddManyGate::wire_ith_sum(gate_type.num_addends, i))
             }
 
             0..ADD_MANY_THRESHOLD => addends

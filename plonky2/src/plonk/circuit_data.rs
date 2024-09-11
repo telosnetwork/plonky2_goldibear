@@ -38,7 +38,6 @@ use crate::gates::lookup_table::LookupTable;
 use crate::gates::selectors::SelectorsInfo;
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
-use crate::hash::poseidon2_babybear::{PERMUTE_COUNTER, TWO_TO_ONE_COUNTER};
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{generate_partial_witness, WitnessGeneratorRef};
 use crate::iop::target::Target;
@@ -261,18 +260,8 @@ where
         &self,
         proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()> {
-        unsafe {
-            TWO_TO_ONE_COUNTER = 0;
-            PERMUTE_COUNTER = 0;
-        }
         let res =
             verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common);
-        unsafe {
-            println!(
-                "TWO_TO_ONE_COUNTER = {}\n PERMUTE_COUNTER = {}\n",
-                TWO_TO_ONE_COUNTER, PERMUTE_COUNTER
-            );
-        }
         res
     }
 
@@ -377,20 +366,12 @@ where
     where
         F::Extension: TwoAdicField,
     {
-        unsafe {
-            TWO_TO_ONE_COUNTER = 0;
-            PERMUTE_COUNTER = 0;
-        }
         let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
             inputs,
             &mut TimingTree::default(),
         );
-        unsafe {
-            println!("TWO_TO_ONE_COUNTER = {}", TWO_TO_ONE_COUNTER);
-            println!("PERMUTE_COUNTER = {}", PERMUTE_COUNTER);
-        }
         proof
     }
 }

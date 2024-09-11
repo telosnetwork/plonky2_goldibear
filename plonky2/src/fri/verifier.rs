@@ -14,7 +14,6 @@ use crate::fri::{FriConfig, FriParams};
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
 use crate::hash::merkle_tree::MerkleCap;
-use crate::hash::poseidon2_babybear::{PERMUTE_COUNTER, TWO_TO_ONE_COUNTER};
 use crate::plonk::config::{GenericConfig, Hasher};
 use crate::util::reducing::ReducingFactor;
 use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place};
@@ -80,16 +79,6 @@ pub fn verify_fri_proof<
 where
     F::Extension: TwoAdicField,
 {
-    unsafe {
-        println!(
-            "TWO_TO_ONE_COUNTER before FRI verification = {}\n",
-            TWO_TO_ONE_COUNTER
-        );
-        println!(
-            "PERMUTE_COUNTER before FRI verification = {}\n",
-            PERMUTE_COUNTER
-        );
-    }
     validate_fri_proof_shape::<F, C, D, NUM_HASH_OUT_ELTS>(proof, instance, params)?;
 
     // Size of the LDE domain.
