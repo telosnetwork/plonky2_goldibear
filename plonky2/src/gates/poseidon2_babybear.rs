@@ -8,14 +8,14 @@ use alloc::{
 use core::marker::PhantomData;
 use core::usize;
 
-use itertools::Itertools;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::{gates::gate::Gate, hash::poseidon2_babybear::Poseidon2BabyBearHash, iop::target::BoolTarget};
+use crate::{gates::gate::Gate, hash::poseidon2_babybear::Poseidon2BabyBearHash};
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
+use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::poseidon2_babybear::{
     EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS, N_FULL_ROUNDS_TOTAL,
     N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
@@ -27,10 +27,9 @@ use crate::iop::wire::Wire;
 use crate::iop::witness::{PartitionWitness, Witness, WitnessWrite};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::{CircuitConfig, CommonCircuitData};
+use crate::plonk::config::AlgebraicHasher;
 use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
-
-use super::gate::GateRef;
 
 const SBOX_EXP: u64 = 7;
 pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] =
@@ -163,17 +162,32 @@ where
         Ok(Poseidon2BabyBearGate::new())
     }
 
-    fn finalize(&self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) {
-        let gate_ref: GateRef<F, D, NUM_HASH_OUT_ELTS> = GateRef::new(self.clone());
-        let gate_slot = builder.current_slots.entry(gate_ref.clone()).or_default();
-        let slot = gate_slot.current_slot.get::<[F]>(&[]);
-        if let Some(&(gate_idx, mut slot_idx)) = slot {
-            let zero = builder.zero();
-            while slot_idx < self.num_ops -1 {
-                slot_idx += 1;
-                builder.add_simple_generator(Poseidon2BabyBearGenerator::<F,D> {row: gate_idx, op: slot_idx, _phantom: PhantomData})
+    fn complete_wires(&self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>, gate_idx: usize, slot_idx: usize) -> bool {
+        let zero = builder.zero();
+        let inputs: [Target; SPONGE_WIDTH] = [zero; SPONGE_WIDTH];
+        let mut slot_idx = slot_idx.clone();
+        let res = slot_idx < self.num_ops;
+        while slot_idx < self.num_ops {
+            let swap_wire = Self::wire_swap(slot_idx);
+            let swap_wire = Target::wire(gate_idx, swap_wire);
+            builder.connect(zero, swap_wire);
+
+            // Route input wires.
+            let inputs = inputs.as_ref();
+            for i in 0..SPONGE_WIDTH {
+                let in_wire = Self::wire_input(slot_idx, i);
+                let in_wire = Target::wire(gate_idx, in_wire);
+                builder.connect(inputs[i], in_wire);
             }
+
+            // Collect output wires.
+            <Poseidon2BabyBearHash as AlgebraicHasher<F, 8>>::AlgebraicPermutation::new(
+                (0..SPONGE_WIDTH)
+                    .map(|i| Target::wire(gate_idx, Self::wire_output(slot_idx, i))),
+            );
+            slot_idx += 1;
         }
+        res
     }
 
     fn eval_unfiltered(

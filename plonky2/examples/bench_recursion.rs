@@ -411,7 +411,7 @@ fn main() -> Result<()> {
         CircuitConfig::standard_recursion_config_gl(),
     )?;
     do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(
-        CircuitConfig::standard_recursion_config_bb(),
+        CircuitConfig::standard_recursion_config_bb_wide(),
     )
 }
 fn do_bench<

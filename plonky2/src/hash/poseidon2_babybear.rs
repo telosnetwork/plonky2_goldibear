@@ -6,16 +6,14 @@ use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use p3_poseidon2;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_symmetric::Permutation;
-use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::types::HasExtension;
 
 use super::hash_types::{HashOut, RichField};
 use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::iop::target::{BoolTarget, Target};
-use crate::iop::witness::{PartialWitness, WitnessWrite};
 use crate::plonk::circuit_builder::CircuitBuilder;
-use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
-use crate::plonk::config::{AlgebraicHasher, Hasher, Poseidon2BabyBearConfig};
+use crate::plonk::config::{AlgebraicHasher, Hasher};
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;

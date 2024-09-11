@@ -28,7 +28,6 @@ use crate::gates::gate::{CurrentSlot, Gate, GateInstance, GateRef};
 use crate::gates::lookup::{Lookup, LookupGate};
 use crate::gates::lookup_table::LookupTable;
 use crate::gates::noop::NoopGate;
-use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::gates::public_input::PublicInputGate;
 use crate::gates::selectors::{selector_ends_lookups, selector_polynomials, selectors_lookup};
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -1068,9 +1067,14 @@ where
         }
     }
 
-    fn finalize_gates(&mut self) {
-        for gate_ref in self.gates.clone() {
-            gate_ref.0.finalize(self)
+    fn complete_gates_wires(&mut self) {
+        for (gate_ref, gate_slot) in self.current_slots.clone().iter() {
+            for (params, (gate_idx, slot_idx)) in &gate_slot.current_slot {
+                if gate_ref.0.complete_wires(self, *gate_idx, *slot_idx) {
+                    let current_slot = &mut self.current_slots.get_mut(&gate_ref.clone()).unwrap().current_slot;
+                    current_slot.remove(params);
+                }
+            }
         }
     }
     
@@ -1099,7 +1103,7 @@ where
     where
         F::Extension: TwoAdicField,
     {
-        self.finalize_gates();
+        self.complete_gates_wires();
         let mut timing = TimingTree::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]
