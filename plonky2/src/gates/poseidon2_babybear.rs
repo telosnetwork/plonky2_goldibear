@@ -8,17 +8,18 @@ use alloc::{
 use core::marker::PhantomData;
 use core::usize;
 
+use itertools::Itertools;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
-use crate::{gates::gate::Gate, hash::poseidon2_babybear::Poseidon2BabyBearHash};
+use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::poseidon2_babybear::{
-    EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS, N_FULL_ROUNDS_TOTAL,
-    N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
+    Poseidon2BabyBearHash, EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS,
+    N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -31,6 +32,8 @@ use crate::plonk::config::AlgebraicHasher;
 use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
+const USE_INTERNAL_PERMUTATION_GATE: bool = true;
+const USE_EXTERNAL_PERMUTATION_GATE: bool = true;
 const SBOX_EXP: u64 = 7;
 pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] =
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15];
@@ -111,10 +114,12 @@ where
         );
         debug_assert!(round < HALF_N_FULL_ROUNDS);
         debug_assert!(i < SPONGE_WIDTH);
-        self.start_full_0(op)  + SPONGE_WIDTH * (round - 1) + i
+        self.start_full_0(op) + SPONGE_WIDTH * (round - 1) + i
     }
 
-    const fn start_partial(&self, op: usize) -> usize {self.start_full_0(op)  + SPONGE_WIDTH * (HALF_N_FULL_ROUNDS - 1)}
+    const fn start_partial(&self, op: usize) -> usize {
+        self.start_full_0(op) + SPONGE_WIDTH * (HALF_N_FULL_ROUNDS - 1)
+    }
 
     /// A wire which stores the input of the S-box of the `round`-th round of the partial rounds.
     const fn wire_partial_sbox(&self, op: usize, round: usize) -> usize {
@@ -122,7 +127,9 @@ where
         self.start_partial(op) + round
     }
 
-    const fn start_full_1(&self, op: usize) -> usize {self.start_partial(op) + N_PARTIAL_ROUNDS}
+    const fn start_full_1(&self, op: usize) -> usize {
+        self.start_partial(op) + N_PARTIAL_ROUNDS
+    }
 
     /// A wire which stores the input of the `i`-th S-box of the `round`-th round of the second set
     /// of full rounds.
@@ -162,7 +169,12 @@ where
         Ok(Poseidon2BabyBearGate::new())
     }
 
-    fn complete_wires(&self, builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>, gate_idx: usize, slot_idx: usize) -> bool {
+    fn complete_wires(
+        &self,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        gate_idx: usize,
+        slot_idx: usize,
+    ) -> bool {
         let zero = builder.zero();
         let inputs: [Target; SPONGE_WIDTH] = [zero; SPONGE_WIDTH];
         let mut slot_idx = slot_idx.clone();
@@ -182,8 +194,7 @@ where
 
             // Collect output wires.
             <Poseidon2BabyBearHash as AlgebraicHasher<F, 8>>::AlgebraicPermutation::new(
-                (0..SPONGE_WIDTH)
-                    .map(|i| Target::wire(gate_idx, Self::wire_output(slot_idx, i))),
+                (0..SPONGE_WIDTH).map(|i| Target::wire(gate_idx, Self::wire_output(slot_idx, i))),
             );
             slot_idx += 1;
         }
@@ -470,11 +481,12 @@ where
     }
 
     fn num_constraints(&self) -> usize {
-        self.num_ops * (SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1)
-            + N_PARTIAL_ROUNDS
-            + SPONGE_WIDTH
-            + 1
-            + SPONGE_CAPACITY)
+        self.num_ops
+            * (SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1)
+                + N_PARTIAL_ROUNDS
+                + SPONGE_WIDTH
+                + 1
+                + SPONGE_CAPACITY)
     }
 }
 
@@ -523,10 +535,7 @@ where
         let gate = Poseidon2BabyBearGate::<F, D>::new();
         for i in 0..SPONGE_CAPACITY {
             let delta_i = swap_value * (state[i + SPONGE_CAPACITY] - state[i]);
-            out_buffer.set_wire(
-                local_wire(gate.wire_delta(self.op, i)),
-                delta_i,
-            );
+            out_buffer.set_wire(local_wire(gate.wire_delta(self.op, i)), delta_i);
         }
 
         if swap_value == F::one() {
@@ -545,10 +554,7 @@ where
 
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
-                    out_buffer.set_wire(
-                        local_wire(gate.wire_full_sbox_0(self.op, r, i)),
-                        state[i],
-                    );
+                    out_buffer.set_wire(local_wire(gate.wire_full_sbox_0(self.op, r, i)), state[i]);
                 }
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
@@ -562,10 +568,7 @@ where
             round_ctr += 1;
             state[0] += F::from_canonical_u32(INTERNAL_CONSTANTS[r]);
 
-            out_buffer.set_wire(
-                local_wire(gate.wire_partial_sbox(self.op, r)),
-                state[0],
-            );
+            out_buffer.set_wire(local_wire(gate.wire_partial_sbox(self.op, r)), state[0]);
             state[0] = state[0].exp_const_u64::<SBOX_EXP>();
             permute_internal_mut(&mut state);
         }
@@ -575,11 +578,7 @@ where
 
             for i in 0..SPONGE_WIDTH {
                 out_buffer.set_wire(
-                    local_wire(gate.wire_full_sbox_1(
-                        self.op,
-                        r - HALF_N_FULL_ROUNDS,
-                        i,
-                    )),
+                    local_wire(gate.wire_full_sbox_1(self.op, r - HALF_N_FULL_ROUNDS, i)),
                     state[i],
                 )
             }
@@ -665,42 +664,45 @@ fn permute_internal_mut_circuit<
 ) where
     F::Extension: TwoAdicField,
 {
-    // let gate = Poseidon2InternalPermutationGate::<F, D>::new();
-    // let row = builder.add_gate(gate, vec![]);
-    // (0..SPONGE_WIDTH).for_each(|i| {
-    //     builder.connect_extension(
-    //         state[i],
-    //         ExtensionTarget::<D>::from_range(row, Poseidon2InternalPermutationGate::<F,D>::wires_input(i))
-    //     )
-    // });
-    // *state = (0..SPONGE_WIDTH).map(|i| {
-    //     ExtensionTarget::<D>::from_range(row, Poseidon2InternalPermutationGate::<F,D>::wires_output(i))
-    // }).collect_vec().try_into().unwrap();
-    state
-        .iter_mut()
-        .for_each(|x| *x = builder.mul_const_extension(F::from_canonical_u32(943718400), *x));
-    let part_sum = builder.add_many_extension(state[1..].into_iter());
-    let full_sum = builder.add_extension(part_sum, state[0]);
-    state[0] = builder.sub_extension(part_sum, state[0]);
-    (0..SPONGE_WIDTH - 1).for_each(|i| {
-        let shift = F::from_canonical_usize(1 << INTERNAL_DIAG_SHIFTS[i]);
-        state[i + 1] = builder.mul_const_add_extension(shift, state[i + 1], full_sum);
+    if USE_INTERNAL_PERMUTATION_GATE {
+        let gate =
+            super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F, D>::new();
+        let row = builder.add_gate(gate, vec![]);
+        (0..SPONGE_WIDTH).for_each(|i| {
+        builder.connect_extension(
+            state[i],
+            ExtensionTarget::<D>::from_range(row, super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F,D>::wires_input(i))
+        )
     });
+        *state =
+            (0..SPONGE_WIDTH)
+                .map(|i| {
+                    ExtensionTarget::<D>::from_range(
+                        row,
+                        super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<
+                            F,
+                            D,
+                        >::wires_output(i),
+                    )
+                })
+                .collect_vec()
+                .try_into()
+                .unwrap();
+    } else {
+        state
+            .iter_mut()
+            .for_each(|x| *x = builder.mul_const_extension(F::from_canonical_u32(943718400), *x));
+        let part_sum = builder.add_many_extension(state[1..].into_iter());
+        let full_sum = builder.add_extension(part_sum, state[0]);
+        state[0] = builder.sub_extension(part_sum, state[0]);
+        (0..SPONGE_WIDTH - 1).for_each(|i| {
+            let shift = F::from_canonical_usize(1 << INTERNAL_DIAG_SHIFTS[i]);
+            state[i + 1] = builder.mul_const_add_extension(shift, state[i + 1], full_sum);
+        });
+    }
 }
 
-// /// Implements multiplication by the diffusion matrix 1 + Diag(vec) using a delayed reduction strategy.
-// fn permute_state(state: &mut [MontyField31<FP>; WIDTH]) {
-//     let part_sum: u64 = state.iter().skip(1).map(|x| x.value as u64).sum();
-//     let full_sum = part_sum + (state[0].value as u64);
-//     let s0 = part_sum + (-state[0]).value as u64;
-//     state[0] = MontyField31::new_monty(monty_reduce::<FP>(s0));
 
-//     for i in 0..Self::INTERNAL_DIAG_SHIFTS.as_ref().len() {
-//         let si =
-//             full_sum + ((state[i + 1].value as u64) << Self::INTERNAL_DIAG_SHIFTS.as_ref()[i]);
-//         state[i + 1] = MontyField31::new_monty(monty_reduce::<FP>(si));
-//     }
-// }
 fn permute_internal_mut<AF: AbstractField>(state: &mut [AF; SPONGE_WIDTH]) {
     state
         .iter_mut()
@@ -795,26 +797,35 @@ fn apply_mat4_circuit<
 ) where
     F::Extension: TwoAdicField,
 {
-    // let gate = ApplyMat4Gate::<F, D>::new_from_config(&builder.config);
-    // let (row, op) = builder.find_slot(gate, &[], &[]);
-    // (0..4).for_each(|i| {
-    //     builder.connect_extension(
-    //         x[i],
-    //         ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_input(op, i))
-    //     )
-    // });
-    // *x = [0, 1, 2, 3].map(|i| {
-    //     ExtensionTarget::<D>::from_range(row, ApplyMat4Gate::<F,D>::wires_output(op, i))
-    // });
-    let t01 = builder.add_extension(x[0], x[1]); //x[0].clone() + x[1].clone();
-    let t23 = builder.add_extension(x[2], x[3]); //x[2].clone() + x[3].clone();
-    let t0123 = builder.add_extension(t01, t23); //t01.clone() + t23.clone();
-    let t01123 = builder.add_extension(t0123, x[1]); //t0123.clone() + x[1].clone();
-    let t01233 = builder.add_extension(t0123, x[3]); //t0123.clone() + x[3].clone();
-    x[3] = builder.mul_const_add_extension(F::two(), x[0], t01233); //t01233.clone() + x[0].double(); // 3*x[0] + x[1] + x[2] + 2*x[3]
-    x[1] = builder.mul_const_add_extension(F::two(), x[2], t01123); //t01123.clone() + x[2].double(); // x[0] + 2*x[1] + 3*x[2] + x[3]
-    x[0] = builder.add_extension(t01123, t01); //t01123 + t01; // 2*x[0] + 3*x[1] + x[2] + x[3]
-    x[2] = builder.add_extension(t01233, t23); //t01233 + t23; // x[0] + x[1] + 2*x[2] + 3*x[3]
+    if USE_EXTERNAL_PERMUTATION_GATE {
+        let gate = super::apply_mat4::ApplyMat4Gate::<F, D>::new_from_config(&builder.config);
+        let (row, op) = builder.find_slot(gate, &[], &[]);
+        (0..4).for_each(|i| {
+            builder.connect_extension(
+                x[i],
+                ExtensionTarget::<D>::from_range(
+                    row,
+                    super::apply_mat4::ApplyMat4Gate::<F, D>::wires_input(op, i),
+                ),
+            )
+        });
+        *x = [0, 1, 2, 3].map(|i| {
+            ExtensionTarget::<D>::from_range(
+                row,
+                super::apply_mat4::ApplyMat4Gate::<F, D>::wires_output(op, i),
+            )
+        });
+    } else {
+        let t01 = builder.add_extension(x[0], x[1]); //x[0].clone() + x[1].clone();
+        let t23 = builder.add_extension(x[2], x[3]); //x[2].clone() + x[3].clone();
+        let t0123 = builder.add_extension(t01, t23); //t01.clone() + t23.clone();
+        let t01123 = builder.add_extension(t0123, x[1]); //t0123.clone() + x[1].clone();
+        let t01233 = builder.add_extension(t0123, x[3]); //t0123.clone() + x[3].clone();
+        x[3] = builder.mul_const_add_extension(F::two(), x[0], t01233); //t01233.clone() + x[0].double(); // 3*x[0] + x[1] + x[2] + 2*x[3]
+        x[1] = builder.mul_const_add_extension(F::two(), x[2], t01123); //t01123.clone() + x[2].double(); // x[0] + 2*x[1] + 3*x[2] + x[3]
+        x[0] = builder.add_extension(t01123, t01); //t01123 + t01; // 2*x[0] + 3*x[1] + x[2] + x[3]
+        x[2] = builder.add_extension(t01233, t23); //t01233 + t23; // x[0] + x[1] + 2*x[2] + 3*x[3]
+    }
 }
 
 fn apply_mat4<AF>(x: &mut [AF; 4])

@@ -116,7 +116,7 @@ impl CircuitConfig {
         Self {
             //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
             num_wires: 167,
-            num_routed_wires: 160,
+            num_routed_wires: 128,
             ..Self::standard_recursion_config()
         }
     }
