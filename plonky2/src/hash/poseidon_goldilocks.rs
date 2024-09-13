@@ -89,8 +89,8 @@ impl<T: Copy + Debug + Default + Eq + Permuter64 + Send + Sync> PlonkyPermutatio
     }
 }
 
-const SPONGE_RATE: usize = 8;
-const SPONGE_CAPACITY: usize = 4;
+pub const SPONGE_RATE: usize = 8;
+pub const SPONGE_CAPACITY: usize = 4;
 pub const SPONGE_WIDTH: usize = SPONGE_RATE + SPONGE_CAPACITY;
 
 // The number of full rounds and partial rounds is given by the
@@ -102,7 +102,7 @@ pub const SPONGE_WIDTH: usize = SPONGE_RATE + SPONGE_CAPACITY;
 pub(crate) const N_PARTIAL_ROUNDS: usize = 22;
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
-const N_ROUNDS: usize = N_FULL_ROUNDS_TOTAL + N_PARTIAL_ROUNDS;
+pub const N_ROUNDS: usize = N_FULL_ROUNDS_TOTAL + N_PARTIAL_ROUNDS;
 const MAX_WIDTH: usize = 12; // we only have width 8 and 12, and 12 is bigger. :)
 /// Note that these work for the Goldilocks field, but not necessarily others. See
 /// `generate_constants` about how these were generated. We include enough for a width of 12;
@@ -875,7 +875,7 @@ impl PoseidonGoldilocks {
     }
 
     #[inline]
-    fn full_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
+    pub fn full_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
         for _ in 0..HALF_N_FULL_ROUNDS {
             Self::constant_layer(state, *round_ctr);
             Self::sbox_layer(state);
@@ -885,7 +885,7 @@ impl PoseidonGoldilocks {
     }
 
     #[inline]
-    fn partial_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
+    pub fn partial_rounds<F: RichField>(state: &mut [F; SPONGE_WIDTH], round_ctr: &mut usize) {
         Self::partial_first_constant_layer(state);
         *state = Self::mds_partial_layer_init(state);
 
