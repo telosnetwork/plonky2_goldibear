@@ -389,7 +389,7 @@ where
     /// Thus ambiguous elements contribute a negligible amount to soundness error.
     ///
     /// Here we compare the probabilities as a sanity check, to verify the claim above.
-    fn are_noncanonical_indices_ok(config: &FriConfig) -> bool {
+    pub fn are_noncanonical_indices_ok(config: &FriConfig) -> bool {
         let num_ambiguous_elems = (((1 << (F::bits() - 1)) - (F::ORDER_U64 >> 1)) << 1) - 1;
         let query_error = config.rate();
         let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER_U64 as f64);
