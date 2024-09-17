@@ -22,9 +22,15 @@ unroll = { workspace = true }
 # Local dependencies
 plonky2_util = { version = "0.2.0", path = "../util", default-features = false }
 p3-field = { workspace = true }
+p3-monty-31 = { workspace = true }
 p3-goldilocks = { workspace = true }
 p3-baby-bear = { workspace = true }
 
 # Display math equations properly in documentation
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", ".cargo/katex-header.html"]
+
+[dev-dependencies]
+p3-field-testing = { workspace = true }
+p3-dft = { workspace = true }
+serde_json = { version = "1.0", features = [] }

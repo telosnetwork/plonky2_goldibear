@@ -10,6 +10,7 @@ use p3_field::{
 use p3_goldilocks::Goldilocks;
 use rand::rngs::OsRng;
 use rand::RngCore;
+use crate::p3_risc0_baby_bear::P3Risc0BabyBear;
 
 pub fn two_adic_subgroup<F: TwoAdicField>(n_log: usize) -> Vec<F> {
     let generator = F::two_adic_generator(n_log);
@@ -81,6 +82,16 @@ impl Sample for Goldilocks {
 }
 
 impl Sample for BabyBear {
+    fn sample<R>(rng: &mut R) -> Self
+    where
+        R: RngCore + ?Sized,
+    {
+        use rand::Rng;
+        Self::from_canonical_u32(rng.gen_range(0..Self::ORDER_U32))
+    }
+}
+
+impl Sample for P3Risc0BabyBear {
     fn sample<R>(rng: &mut R) -> Self
     where
         R: RngCore + ?Sized,

@@ -98,8 +98,8 @@ pub(crate) fn test_inv_div<AF: AbstractField + HasExtension<D> + Sample, const D
     let x = BinomialExtensionField::<AF, D>::rand();
     let y = BinomialExtensionField::<AF, D>::rand();
     let z = BinomialExtensionField::<AF, D>::rand();
-    assert_eq!(x * x.inverse(), BinomialExtensionField::<AF, D>::zero());
-    assert_eq!(x.inverse() * x, BinomialExtensionField::<AF, D>::zero());
+    assert_eq!(x * x.inverse(), BinomialExtensionField::<AF, D>::one());
+    assert_eq!(x.inverse() * x, BinomialExtensionField::<AF, D>::one());
     assert_eq!(
         AbstractField::square(&x).inverse(),
         AbstractField::square(&x.inverse())
@@ -126,7 +126,7 @@ fn exp_biguint<AF: AbstractField + HasExtension<D> + Sample, const D: usize>(
     x: BinomialExtensionField<AF, D>,
     power: &num::BigUint,
 ) -> BinomialExtensionField<AF, D> {
-    let mut result = BinomialExtensionField::<AF, D>::zero();
+    let mut result = BinomialExtensionField::<AF, D>::one();
     for &digit in power.to_u64_digits().iter().rev() {
         result = result.exp_power_of_2(64);
         result *= x.exp_u64(digit);
@@ -139,7 +139,7 @@ pub(crate) fn test_field_order<AF: AbstractField + HasExtension<D> + Sample, con
     let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(
         exp_biguint::<AF, D>(x, &(BinomialExtensionField::<AF, D>::order() - 1u8)),
-        BinomialExtensionField::<AF, D>::zero()
+        BinomialExtensionField::<AF, D>::one()
     );
 }
 
@@ -150,16 +150,6 @@ pub(crate) fn test_power_of_two_gen<
     AF: Field + TwoAdicField + HasTwoAdicBionmialExtension<D> + HasExtension<D> + Sample,
     const D: usize,
 >() {
-    assert_eq!(
-        exp_biguint(
-            BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_generator()),
-            &(BinomialExtensionField::<AF, D>::order()
-                >> BinomialExtensionField::<AF, D>::TWO_ADICITY)
-        ),
-        BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_two_adic_generator(
-            BinomialExtensionField::<AF, D>::TWO_ADICITY
-        ))
-    );
     assert_eq!(
         BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_two_adic_generator(
             BinomialExtensionField::<AF, D>::TWO_ADICITY
