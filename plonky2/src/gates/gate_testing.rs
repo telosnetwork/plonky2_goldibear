@@ -2,7 +2,7 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
-use p3_field::{AbstractExtensionField, TwoAdicField};
+use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
@@ -150,7 +150,10 @@ where
     let wires = F::Extension::rand_vec(gate.num_wires());
     let constants = F::Extension::rand_vec(gate.num_constants());
 
-    let config = CircuitConfig::standard_recursion_config_gl();
+    let config = match F::ORDER_U64 {
+        p3_baby_bear::BabyBear::ORDER_U64 => CircuitConfig::standard_recursion_config_bb_wide(),
+        _ => CircuitConfig::standard_recursion_config_gl(),
+    };
     let mut pw = PartialWitness::new();
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
