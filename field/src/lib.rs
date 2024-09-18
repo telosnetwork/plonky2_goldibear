@@ -33,4 +33,4 @@ pub mod zero_poly_coset;
 
 #[cfg(test)]
 mod prime_field_testing;
-mod p3_risc0_baby_bear;
+pub mod p3_risc0_baby_bear;
