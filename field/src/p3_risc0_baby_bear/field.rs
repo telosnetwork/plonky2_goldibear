@@ -5,6 +5,8 @@ use p3_monty_31::{
 };
 
 /// The prime field `2^31 - 2^27 + 1`, a.k.a. the Baby Bear field.
+/// This implementation differs from the Plonky3 one because the binomial used to extend babybear in
+/// Risc0 is x^4 + 11 instead of x^4 - 11 used in Plonky3 :-(
 pub type P3Risc0BabyBear = MontyField31<P3Risc0BabyBearParameters>;
 
 #[derive(Copy, Clone, Default, Debug, Eq, Hash, PartialEq)]
@@ -225,15 +227,15 @@ mod tests {
         assert_eq!(m2, m2_deserialized);
     }
 
-    test_field!(crate::p3_risc0_baby_bear::P3Risc0BabyBear);
-    test_two_adic_field!(crate::p3_risc0_baby_bear::P3Risc0BabyBear);
+    test_field!(crate::field::P3Risc0BabyBear);
+    test_two_adic_field!(crate::field::P3Risc0BabyBear);
 
-    test_field_dft!(radix2dit, crate::p3_risc0_baby_bear::P3Risc0BabyBear, p3_dft::Radix2Dit<_>);
-    test_field_dft!(bowers, crate::p3_risc0_baby_bear::P3Risc0BabyBear, p3_dft::Radix2Bowers);
-    test_field_dft!(parallel, crate::p3_risc0_baby_bear::P3Risc0BabyBear, p3_dft::Radix2DitParallel);
+    test_field_dft!(radix2dit, crate::field::P3Risc0BabyBear, p3_dft::Radix2Dit<_>);
+    test_field_dft!(bowers, crate::field::P3Risc0BabyBear, p3_dft::Radix2Bowers);
+    test_field_dft!(parallel, crate::field::P3Risc0BabyBear, p3_dft::Radix2DitParallel);
     test_field_dft!(
         recur_dft,
-        crate::p3_risc0_baby_bear::P3Risc0BabyBear,
+        crate::field::P3Risc0BabyBear,
         p3_monty_31::dft::RecursiveDft<_>
     );
 }
@@ -244,7 +246,7 @@ mod test_quartic_extension {
     use p3_field::extension::BinomialExtensionField;
     use p3_field::{AbstractExtensionField, AbstractField};
     use p3_field_testing::{test_field, test_two_adic_extension_field};
-    use crate::p3_risc0_baby_bear::P3Risc0BabyBear;
+    use crate::field::P3Risc0BabyBear;
 
 
     type F = P3Risc0BabyBear;
@@ -273,7 +275,7 @@ mod test_quartic_extension {
 mod test_quintic_extension {
     use p3_field::extension::BinomialExtensionField;
     use p3_field_testing::{test_field, test_two_adic_extension_field};
-    use crate::p3_risc0_baby_bear::P3Risc0BabyBear;
+    use crate::field::P3Risc0BabyBear;
 
 
     type F = P3Risc0BabyBear;

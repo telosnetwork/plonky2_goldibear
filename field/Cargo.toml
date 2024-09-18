@@ -33,4 +33,7 @@ rustdoc-args = ["--html-in-header", ".cargo/katex-header.html"]
 [dev-dependencies]
 p3-field-testing = { workspace = true }
 p3-dft = { workspace = true }
+p3-poseidon2 = { workspace = true }
+p3-symmetric = { workspace = true }
+rand_xoshiro = "0.6.0"
 serde_json = { version = "1.0", features = [] }

@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(incomplete_features)]
 #![allow(clippy::len_without_is_empty)]
 #![allow(clippy::needless_range_loop)]
@@ -5,6 +6,14 @@
 #![deny(missing_debug_implementations)]
 #![feature(specialization)]
 #![cfg_attr(not(test), no_std)]
+#![cfg_attr(
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx512f"
+    ),
+    feature(stdarch_x86_avx512)
+)]
+
 extern crate alloc;
 
 pub mod batch_util;
