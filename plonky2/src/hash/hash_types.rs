@@ -8,6 +8,7 @@ use p3_field::{AbstractField, Field, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use static_assertions::const_assert;
+use plonky2_field::p3_risc0_baby_bear::P3Risc0BabyBear;
 
 use crate::field::types::Sample;
 use crate::iop::target::Target;
@@ -92,6 +93,38 @@ const_assert!(
     BabyBear::ORDER_U64 == ((1u128 << BabyBear::EXP0) - (1u128 << BabyBear::EXP1) + 1u128) as u64
 );
 
+impl RichField for P3Risc0BabyBear {
+    const NUM_HASH_OUT_ELTS: usize = 8;
+
+    fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self> {
+        let mut buf = [0; size_of::<u32>()];
+        reader.read_exact(&mut buf)?;
+        Ok(P3Risc0BabyBear::from_canonical_u32(u32::from_le_bytes(buf)))
+    }
+
+    fn write_to_buffer<T: Write + ?Sized>(&self, writer: &mut T) -> IoResult<()> {
+        writer.write_all(&self.as_canonical_u32().to_le_bytes())
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.as_canonical_u32().to_le_bytes().to_vec()
+    }
+
+    fn hash_out_elements_from_bytes(bytes: &[u8]) -> Vec<Self> {
+        bytes
+            .chunks(4)
+            .take(Self::NUM_HASH_OUT_ELTS)
+            .map(|x| P3Risc0BabyBear::from_canonical_u32(u32::from_le_bytes(x.try_into().unwrap())))
+            .collect::<Vec<_>>()
+    }
+
+    const EXP0: usize = 31;
+
+    const EXP1: usize = 27;
+}
+const_assert!(
+    P3Risc0BabyBear::ORDER_U64 == ((1u128 << P3Risc0BabyBear::EXP0) - (1u128 << P3Risc0BabyBear::EXP1) + 1u128) as u64
+);
 //pub const NUM_HASH_OUT_ELTS: usize = 4;
 
 /// Represents a ~256 bit hash output.
