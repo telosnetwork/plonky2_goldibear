@@ -98,7 +98,7 @@ impl BinomialExtensionData<4> for P3Risc0BabyBearParameters {
 
     type ArrayLike = [[P3Risc0BabyBear; 4]; 2];
     const TWO_ADIC_EXTENSION_GENERATORS: Self::ArrayLike =
-        P3Risc0BabyBear::new_2d_array([[0, 0, 1996171314, 0], [0, 0, 0, 124907976]]);
+        P3Risc0BabyBear::new_2d_array([[0, 0, 1180255778, 0], [0, 0, 0, 829377698]]);
 }
 
 impl BinomialExtensionData<5> for P3Risc0BabyBearParameters {
