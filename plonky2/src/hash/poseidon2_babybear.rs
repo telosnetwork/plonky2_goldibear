@@ -229,12 +229,13 @@ fn test_poseidon2_babybear() {
         CircuitConfig::standard_recursion_config_bb_wide(),
     );
     let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
+    let res = H::hash_or_noop(&vec);
     let vec_target = builder.add_virtual_targets(NUM_HASH_OUT_ELTS * 3);
-    builder.hash_or_noop::<H>(vec_target.clone());
-    // builder.hash_or_noop::<H>(vec_target.clone());
+    let res_target = builder.hash_or_noop::<H>(vec_target.clone());
 
     let mut pw = PartialWitness::<F>::new();
     pw.set_target_arr(&vec_target, &vec);
+    pw.set_hash_target(res_target, res);
     let data: CircuitData<F,C,D,NUM_HASH_OUT_ELTS> = builder.build();
     let proof = data.prove(pw);
     data.verify(proof.unwrap()).unwrap();

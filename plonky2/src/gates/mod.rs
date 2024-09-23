@@ -37,6 +37,7 @@ pub mod lookup_table;
 pub mod multiplication_extension;
 pub mod noop;
 pub mod packed_util;
+pub mod poseidon2_risc0_babybear;
 pub mod poseidon2_babybear;
 pub mod poseidon2_internal_permutation;
 pub mod poseidon_goldilocks;
