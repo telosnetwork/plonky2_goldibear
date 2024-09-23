@@ -28,7 +28,10 @@ pub struct AddManyGate {
 
 impl AddManyGate {
     pub const fn new(num_addends: usize, num_ops: usize) -> Self {
-        Self { num_addends, num_ops }
+        Self {
+            num_addends,
+            num_ops,
+        }
     }
 
     pub fn new_from_config<F: PrimeField64>(config: &CircuitConfig, num_addends: usize) -> Self {
@@ -46,11 +49,8 @@ impl AddManyGate {
     }
 }
 
-impl<
-        F: RichField + HasExtension<D>,
-        const D: usize,
-        const NUM_HASH_OUT_ELTS: usize,
-    > Gate<F, D, NUM_HASH_OUT_ELTS> for AddManyGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for AddManyGate
 where
     F::Extension: TwoAdicField,
 {
@@ -73,7 +73,10 @@ where
     ) -> IoResult<Self> {
         let num_addends = src.read_usize()?;
         let num_ops = src.read_usize()?;
-        Ok(Self { num_addends, num_ops })
+        Ok(Self {
+            num_addends,
+            num_ops,
+        })
     }
 
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
@@ -82,7 +85,8 @@ where
             let computed_sum = Self::wires_ith_op_addends(self.num_addends, i)
                 .map(|j| vars.local_wires[j])
                 .fold(F::Extension::zero(), |acc, i| acc + i);
-            constraints.push(computed_sum - vars.local_wires[Self::wire_ith_sum(self.num_addends, i)]);
+            constraints
+                .push(computed_sum - vars.local_wires[Self::wire_ith_sum(self.num_addends, i)]);
         });
         constraints
     }
@@ -96,7 +100,8 @@ where
             let computed_sum = Self::wires_ith_op_addends(self.num_addends, i)
                 .map(|j| vars.local_wires[j])
                 .fold(F::zero(), |acc, i| acc + i);
-            yield_constr.one(computed_sum - vars.local_wires[Self::wire_ith_sum(self.num_addends, i)]);
+            yield_constr
+                .one(computed_sum - vars.local_wires[Self::wire_ith_sum(self.num_addends, i)]);
         });
     }
 
@@ -107,7 +112,8 @@ where
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints: Vec<ExtensionTarget<D>> = vec![];
         (0..self.num_ops).for_each(|i| {
-            let addends = Self::wires_ith_op_addends(self.num_addends, i).map(|j| vars.local_wires[j]);
+            let addends =
+                Self::wires_ith_op_addends(self.num_addends, i).map(|j| vars.local_wires[j]);
             let computed_sum = builder.add_many_extension(addends);
             let sum = vars.local_wires[Self::wire_ith_sum(self.num_addends, i)];
             constraints.push(builder.sub_extension(computed_sum, sum));
@@ -121,7 +127,16 @@ where
         _local_constants: &[F],
     ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
-            .map(|i| WitnessGeneratorRef::new(AddManyGenerator {num_addends: self.num_addends, row, i }.adapter()))
+            .map(|i| {
+                WitnessGeneratorRef::new(
+                    AddManyGenerator {
+                        num_addends: self.num_addends,
+                        row,
+                        i,
+                    }
+                    .adapter(),
+                )
+            })
             .collect()
     }
 
@@ -142,11 +157,8 @@ where
     }
 }
 
-impl<
-        F: RichField + HasExtension<D>,
-        const D: usize,
-        const NUM_HASH_OUT_ELTS: usize,
-    > PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for AddManyGate
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for AddManyGate
 where
     F::Extension: TwoAdicField,
 {
@@ -159,7 +171,8 @@ where
             let computed_sum = Self::wires_ith_op_addends(self.num_addends, i)
                 .map(|j| vars.local_wires[j])
                 .fold(P::zero(), |acc, i| acc + i);
-            yield_constr.one(computed_sum - vars.local_wires[Self::wire_ith_sum(self.num_addends, i)]);
+            yield_constr
+                .one(computed_sum - vars.local_wires[Self::wire_ith_sum(self.num_addends, i)]);
         });
     }
 }
@@ -171,11 +184,8 @@ pub struct AddManyGenerator {
     i: usize,
 }
 
-impl<
-        F: RichField + HasExtension<D>,
-        const D: usize,
-        const NUM_HASH_OUT_ELTS: usize,
-    > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for AddManyGenerator
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for AddManyGenerator
 where
     F::Extension: TwoAdicField,
 {
@@ -193,7 +203,10 @@ where
         let get_wire = |wire: usize| -> F { witness.get_target(Target::wire(self.row, wire)) };
 
         let addends = AddManyGate::wires_ith_op_addends(self.num_addends, self.i).map(get_wire);
-        let sum_target = Target::wire(self.row, AddManyGate::wire_ith_sum(self.num_addends, self.i));
+        let sum_target = Target::wire(
+            self.row,
+            AddManyGate::wire_ith_sum(self.num_addends, self.i),
+        );
         let computed_sum = addends.fold(F::zero(), |acc, i| acc + i);
         out_buffer.set_target(sum_target, computed_sum)
     }
@@ -215,7 +228,11 @@ where
         let num_addends = src.read_usize()?;
         let row = src.read_usize()?;
         let i = src.read_usize()?;
-        Ok(Self { num_addends, row, i })
+        Ok(Self {
+            num_addends,
+            row,
+            i,
+        })
     }
 }
 
@@ -224,15 +241,17 @@ mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
 
+    use super::AddManyGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
-    use super::AddManyGate;
-
     #[test]
     fn low_degree() {
-        let gate = AddManyGate::new_from_config::<Goldilocks>(&CircuitConfig::standard_recursion_config_gl(), 32);
+        let gate = AddManyGate::new_from_config::<Goldilocks>(
+            &CircuitConfig::standard_recursion_config_gl(),
+            32,
+        );
         test_low_degree::<Goldilocks, _, 2, 4>(gate);
     }
 
@@ -242,7 +261,8 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = 4;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let gate = AddManyGate::new_from_config::<F>( &CircuitConfig::standard_recursion_config_gl(), 32);
+        let gate =
+            AddManyGate::new_from_config::<F>(&CircuitConfig::standard_recursion_config_gl(), 32);
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

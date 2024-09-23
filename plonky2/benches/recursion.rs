@@ -1,21 +1,24 @@
 use anyhow::anyhow;
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use log::{info, Level};
 use p3_baby_bear::BabyBear;
 use p3_field::TwoAdicField;
 use p3_goldilocks::Goldilocks;
-use tynm::type_name;
-
 use plonky2::gates::noop::NoopGate;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2::plonk::circuit_data::{CircuitConfig, CircuitData, CommonCircuitData, VerifierCircuitTarget, VerifierOnlyCircuitData};
-use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig};
+use plonky2::plonk::circuit_data::{
+    CircuitConfig, CircuitData, CommonCircuitData, VerifierCircuitTarget, VerifierOnlyCircuitData,
+};
+use plonky2::plonk::config::{
+    AlgebraicHasher, GenericConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig,
+};
 use plonky2::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use plonky2::plonk::prover::prove;
 use plonky2::util::timing::TimingTree;
 use plonky2_field::types::HasExtension;
+use tynm::type_name;
 
 mod allocator;
 
@@ -28,7 +31,7 @@ type ProofTuple<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> = (
 /// Creates a dummy proof which should have `2 ** log2_size` rows.
 fn dummy_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
@@ -66,14 +69,18 @@ where
 
 fn get_recursive_circuit_data<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
-    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
     input_proof_common_circuit_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     config: &CircuitConfig,
-) -> (ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>, VerifierCircuitTarget<NUM_HASH_OUT_ELTS >, CircuitData<F, C,  D, NUM_HASH_OUT_ELTS>)
+) -> (
+    ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+    VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+    CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+)
 where
     InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
@@ -81,17 +88,26 @@ where
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let input_proof_target = builder.add_virtual_proof_with_pis(input_proof_common_circuit_data);
 
-    let input_proof_verifier_data_target = builder.add_virtual_verifier_data(input_proof_common_circuit_data.config.fri_config.cap_height);
+    let input_proof_verifier_data_target = builder
+        .add_virtual_verifier_data(input_proof_common_circuit_data.config.fri_config.cap_height);
 
-    builder.verify_proof::<InnerC>(&input_proof_target, &input_proof_verifier_data_target, input_proof_common_circuit_data);
+    builder.verify_proof::<InnerC>(
+        &input_proof_target,
+        &input_proof_verifier_data_target,
+        input_proof_common_circuit_data,
+    );
     builder.print_gate_counts(0);
 
     let circuit_data = builder.build::<C>();
-    (input_proof_target, input_proof_verifier_data_target, circuit_data)
+    (
+        input_proof_target,
+        input_proof_verifier_data_target,
+        circuit_data,
+    )
 }
 fn recursive_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
@@ -99,21 +115,24 @@ fn recursive_proof<
     input_verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
 
     input_proof_target: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
-    input_proof_verifier_data_target: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS >,
-    circuit_data: &CircuitData<F, C,  D, NUM_HASH_OUT_ELTS>,
+    input_proof_verifier_data_target: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+    circuit_data: &CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
-
     let mut pw = PartialWitness::new();
-    pw.set_proof_with_pis_target(&input_proof_target, input_proof);
-    pw.set_verifier_data_target(&input_proof_verifier_data_target, input_verifier_data);
+    pw.set_proof_with_pis_target(input_proof_target, input_proof);
+    pw.set_verifier_data_target(input_proof_verifier_data_target, input_verifier_data);
 
     let mut timing = TimingTree::new("prove", Level::Info);
-    let proof =
-        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&circuit_data.prover_only, &circuit_data.common, pw, &mut timing)?;
+    let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
+        &circuit_data.prover_only,
+        &circuit_data.common,
+        pw,
+        &mut timing,
+    )?;
     //timing.print();
 
     Ok(proof)
@@ -121,42 +140,49 @@ where
 
 pub(crate) fn bench_recursion<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
->(c: &mut Criterion, config: &CircuitConfig)
-where
+>(
+    c: &mut Criterion,
+    config: &CircuitConfig,
+) where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     let inner = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(config, 12).unwrap();
     let (_, _, common_data) = &inner;
     info!(
-            "Initial proof degree {} = 2^{}",
-            common_data.degree(),
-            common_data.degree_bits()
-        );
+        "Initial proof degree {} = 2^{}",
+        common_data.degree(),
+        common_data.degree_bits()
+    );
 
     // Recursively verify the proof
-    let (inner_proof_target, inner_proof_verifier_data_target, middle_circuit_data) = get_recursive_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(&inner.2, config);
+    let (inner_proof_target, inner_proof_verifier_data_target, middle_circuit_data) =
+        get_recursive_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(&inner.2, config);
     let middle_proof = recursive_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
         &inner.0,
         &inner.1,
         &inner_proof_target,
         &inner_proof_verifier_data_target,
         &middle_circuit_data,
-    ).unwrap();
+    )
+    .unwrap();
     info!(
-            "Single recursion proof degree {} = 2^{}",
-            common_data.degree(),
-            common_data.degree_bits()
+        "Single recursion proof degree {} = 2^{}",
+        common_data.degree(),
+        common_data.degree_bits()
+    );
+    let (middle_proof_target, middle_proof_verifier_data_target, outer_circuit_data) =
+        get_recursive_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+            &middle_circuit_data.common,
+            config,
         );
-    let (middle_proof_target, middle_proof_verifier_data_target, outer_circuit_data) = get_recursive_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(&middle_circuit_data.common, config);
 
-    let mut group = c.benchmark_group(&format!("recursion<{}>", type_name::<F>()));
+    let mut group = c.benchmark_group(format!("recursion<{}>", type_name::<F>()));
     group.sample_size(20);
-    group.bench_function(&format!("recursive_proof<{}>", type_name::<F>()), |b| {
-
+    group.bench_function(format!("recursive_proof<{}>", type_name::<F>()), |b| {
         b.iter(|| {
             let _outer_proof = recursive_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
                 &middle_proof,
@@ -164,7 +190,8 @@ where
                 &middle_proof_target,
                 &middle_proof_verifier_data_target,
                 &outer_circuit_data,
-            ).unwrap();
+            )
+            .unwrap();
             info!(
                 "Double recursion proof degree {} = 2^{}",
                 common_data.degree(),
@@ -176,42 +203,53 @@ where
 
 pub(crate) fn bench_merge<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
->(c: &mut Criterion, config: &CircuitConfig)
-where
+>(
+    c: &mut Criterion,
+    config: &CircuitConfig,
+) where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     let inner = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(config, 12).unwrap();
     let (_, _, common_data) = &inner;
     info!(
-            "Initial proof degree {} = 2^{}",
-            common_data.degree(),
-            common_data.degree_bits()
-        );
+        "Initial proof degree {} = 2^{}",
+        common_data.degree(),
+        common_data.degree_bits()
+    );
 
     // Recursively verify the proof
-    let (inner_proof_target, inner_proof_verifier_data_target, middle_circuit_data) = get_recursive_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(&inner.2, config);
+    let (inner_proof_target, inner_proof_verifier_data_target, middle_circuit_data) =
+        get_recursive_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(&inner.2, config);
     let middle_proof = recursive_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
         &inner.0,
         &inner.1,
         &inner_proof_target,
         &inner_proof_verifier_data_target,
         &middle_circuit_data,
-    ).unwrap();
+    )
+    .unwrap();
     info!(
-            "Single recursion proof degree {} = 2^{}",
-            common_data.degree(),
-            common_data.degree_bits()
-        );
-    let (middle_proof_target_one, middle_proof_target_two , middle_proof_verifier_data_target, outer_circuit_data) = get_merge_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(&middle_circuit_data.common, config);
+        "Single recursion proof degree {} = 2^{}",
+        common_data.degree(),
+        common_data.degree_bits()
+    );
+    let (
+        middle_proof_target_one,
+        middle_proof_target_two,
+        middle_proof_verifier_data_target,
+        outer_circuit_data,
+    ) = get_merge_circuit_data::<F, C, C, D, NUM_HASH_OUT_ELTS>(
+        &middle_circuit_data.common,
+        config,
+    );
 
-    let mut group = c.benchmark_group(&format!("recursion<{}>", type_name::<F>()));
+    let mut group = c.benchmark_group(format!("recursion<{}>", type_name::<F>()));
     group.sample_size(20);
-    group.bench_function(&format!("merge_proofs<{}>", type_name::<F>()), |b| {
-
+    group.bench_function(format!("merge_proofs<{}>", type_name::<F>()), |b| {
         b.iter(|| {
             let _outer_proof = merge_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
                 &middle_proof,
@@ -220,7 +258,8 @@ where
                 &middle_proof_target_two,
                 &middle_proof_verifier_data_target,
                 &outer_circuit_data,
-            ).unwrap();
+            )
+            .unwrap();
             info!(
                 "Double recursion proof degree {} = 2^{}",
                 common_data.degree(),
@@ -231,34 +270,55 @@ where
 }
 fn get_merge_circuit_data<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
-    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
     input_proof_common_circuit_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     config: &CircuitConfig,
-) -> (ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>, ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>, VerifierCircuitTarget<NUM_HASH_OUT_ELTS >, CircuitData<F, C,  D, NUM_HASH_OUT_ELTS>)
+) -> (
+    ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+    ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+    VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+    CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+)
 where
     InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
-    let input_proof_target_one = builder.add_virtual_proof_with_pis(input_proof_common_circuit_data);
-    let input_proof_target_two = builder.add_virtual_proof_with_pis(input_proof_common_circuit_data);
+    let input_proof_target_one =
+        builder.add_virtual_proof_with_pis(input_proof_common_circuit_data);
+    let input_proof_target_two =
+        builder.add_virtual_proof_with_pis(input_proof_common_circuit_data);
 
-    let input_proof_verifier_data_target = builder.add_virtual_verifier_data(input_proof_common_circuit_data.config.fri_config.cap_height);
+    let input_proof_verifier_data_target = builder
+        .add_virtual_verifier_data(input_proof_common_circuit_data.config.fri_config.cap_height);
 
-    builder.verify_proof::<InnerC>(&input_proof_target_one, &input_proof_verifier_data_target, input_proof_common_circuit_data);
-    builder.verify_proof::<InnerC>(&input_proof_target_two, &input_proof_verifier_data_target, input_proof_common_circuit_data);
+    builder.verify_proof::<InnerC>(
+        &input_proof_target_one,
+        &input_proof_verifier_data_target,
+        input_proof_common_circuit_data,
+    );
+    builder.verify_proof::<InnerC>(
+        &input_proof_target_two,
+        &input_proof_verifier_data_target,
+        input_proof_common_circuit_data,
+    );
     builder.print_gate_counts(0);
 
     let circuit_data = builder.build::<C>();
-    (input_proof_target_one, input_proof_target_two, input_proof_verifier_data_target, circuit_data)
+    (
+        input_proof_target_one,
+        input_proof_target_two,
+        input_proof_verifier_data_target,
+        circuit_data,
+    )
 }
 fn merge_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F=F, FE=F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >(
@@ -267,22 +327,25 @@ fn merge_proof<
 
     input_proof_target_one: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
     input_proof_target_two: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
-    input_proof_verifier_data_target: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS >,
-    circuit_data: &CircuitData<F, C,  D, NUM_HASH_OUT_ELTS>,
+    input_proof_verifier_data_target: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+    circuit_data: &CircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     F::Extension: TwoAdicField,
 {
-
     let mut pw = PartialWitness::new();
-    pw.set_proof_with_pis_target(&input_proof_target_one, input_proof);
-    pw.set_proof_with_pis_target(&input_proof_target_two, input_proof);
-    pw.set_verifier_data_target(&input_proof_verifier_data_target, input_verifier_data);
+    pw.set_proof_with_pis_target(input_proof_target_one, input_proof);
+    pw.set_proof_with_pis_target(input_proof_target_two, input_proof);
+    pw.set_verifier_data_target(input_proof_verifier_data_target, input_verifier_data);
 
     let mut timing = TimingTree::new("prove", Level::Info);
-    let proof =
-        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&circuit_data.prover_only, &circuit_data.common, pw, &mut timing)?;
+    let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
+        &circuit_data.prover_only,
+        &circuit_data.common,
+        pw,
+        &mut timing,
+    )?;
     //timing.print();
 
     Ok(proof)

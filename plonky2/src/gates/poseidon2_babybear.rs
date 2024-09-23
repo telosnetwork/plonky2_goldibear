@@ -674,20 +674,19 @@ fn permute_internal_mut_circuit<
             ExtensionTarget::<D>::from_range(row, super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F,D>::wires_input(i))
         )
     });
-        *state =
-            (0..SPONGE_WIDTH)
-                .map(|i| {
-                    ExtensionTarget::<D>::from_range(
+        *state = (0..SPONGE_WIDTH)
+            .map(|i| {
+                ExtensionTarget::<D>::from_range(
                         row,
                         super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<
                             F,
                             D,
                         >::wires_output(i),
                     )
-                })
-                .collect_vec()
-                .try_into()
-                .unwrap();
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
     } else {
         state
             .iter_mut()
@@ -701,7 +700,6 @@ fn permute_internal_mut_circuit<
         });
     }
 }
-
 
 fn permute_internal_mut<AF: AbstractField>(state: &mut [AF; SPONGE_WIDTH]) {
     state

@@ -5,19 +5,20 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use crate::{field::types::HasExtension, gates::gate::Gate, hash::poseidon2_risc0_babybear::M_INT_DIAG_HZN};
 use core::marker::PhantomData;
 use core::usize;
 
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 
+use crate::field::types::HasExtension;
+use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::poseidon2_risc0_babybear::{
     Poseidon2R0BabyBearHash, EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS,
-    N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
+    M_INT_DIAG_HZN, N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -658,44 +659,49 @@ fn permute_internal_mut_circuit<
     F::Extension: TwoAdicField,
 {
     if USE_INTERNAL_PERMUTATION_GATE {
-    //     let gate =
-    //         super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F, D>::new();
-    //     let row = builder.add_gate(gate, vec![]);
-    //     (0..SPONGE_WIDTH).for_each(|i| {
-    //     builder.connect_extension(
-    //         state[i],
-    //         ExtensionTarget::<D>::from_range(row, super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F,D>::wires_input(i))
-    //     )
-    // });
-    //     *state =
-    //         (0..SPONGE_WIDTH)
-    //             .map(|i| {
-    //                 ExtensionTarget::<D>::from_range(
-    //                     row,
-    //                     super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<
-    //                         F,
-    //                         D,
-    //                     >::wires_output(i),
-    //                 )
-    //             })
-    //             .collect_vec()
-    //             .try_into()
-    //             .unwrap();
+        //     let gate =
+        //         super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F, D>::new();
+        //     let row = builder.add_gate(gate, vec![]);
+        //     (0..SPONGE_WIDTH).for_each(|i| {
+        //     builder.connect_extension(
+        //         state[i],
+        //         ExtensionTarget::<D>::from_range(row, super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F,D>::wires_input(i))
+        //     )
+        // });
+        //     *state =
+        //         (0..SPONGE_WIDTH)
+        //             .map(|i| {
+        //                 ExtensionTarget::<D>::from_range(
+        //                     row,
+        //                     super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<
+        //                         F,
+        //                         D,
+        //                     >::wires_output(i),
+        //                 )
+        //             })
+        //             .collect_vec()
+        //             .try_into()
+        //             .unwrap();
     } else {
         let zero = builder.zero_extension();
-        let sum = state.iter().fold(zero, |acc, x| builder.add_extension(acc, *x));
+        let sum = state
+            .iter()
+            .fold(zero, |acc, x| builder.add_extension(acc, *x));
         for i in 0..SPONGE_WIDTH {
-            state[i] = builder.mul_const_add_extension(F::from_canonical_u32(M_INT_DIAG_HZN[i]), state[i], sum);
+            state[i] = builder.mul_const_add_extension(
+                F::from_canonical_u32(M_INT_DIAG_HZN[i]),
+                state[i],
+                sum,
+            );
         }
     }
 }
 
-
 fn permute_internal_mut<AF: AbstractField>(state: &mut [AF; SPONGE_WIDTH]) {
     let sum: AF = state.iter().fold(AF::zero(), |acc, x| acc + x.clone());
-        for i in 0..SPONGE_WIDTH {
-            state[i] = sum.clone() + AF::from_canonical_u32(M_INT_DIAG_HZN[i]) * state[i].clone();
-        }
+    for i in 0..SPONGE_WIDTH {
+        state[i] = sum.clone() + AF::from_canonical_u32(M_INT_DIAG_HZN[i]) * state[i].clone();
+    }
 }
 
 fn permute_external_mut<AF: AbstractField, const WIDTH: usize>(state: &mut [AF; WIDTH]) {
@@ -832,12 +838,11 @@ where
 mod tests {
     use anyhow::Result;
     use p3_baby_bear::BabyBear;
-    
-    use crate::field::types::Sample;
-    use crate::hash::poseidon2_risc0_babybear::Permuter31R0;
 
     use super::*;
+    use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::poseidon2_risc0_babybear::Permuter31R0;
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;

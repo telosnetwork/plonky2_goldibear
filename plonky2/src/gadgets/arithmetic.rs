@@ -211,8 +211,7 @@ where
         let num_addends = addends.len();
         match num_addends {
             ADD_MANY_THRESHOLD => {
-                let gate_type =
-                    AddManyGate::new_from_config::<F>(&self.config, ADD_MANY_THRESHOLD);
+                let gate_type = AddManyGate::new_from_config::<F>(&self.config, ADD_MANY_THRESHOLD);
                 let (row, i) = self.find_slot(gate_type, &[], &[]);
                 let addends_indices = AddManyGate::wires_ith_op_addends(gate_type.num_addends, i);
                 addends

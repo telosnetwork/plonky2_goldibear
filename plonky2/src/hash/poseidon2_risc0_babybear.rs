@@ -4,19 +4,18 @@ use std::marker::PhantomData;
 use lazy_static::lazy_static;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
-use crate::field::types::HasExtension;
-use crate::gates::poseidon2_risc0_babybear::Poseidon2R0BabyBearGate;
 use p3_poseidon2;
 use p3_poseidon2::{DiffusionPermutation, Poseidon2, Poseidon2ExternalMatrixHL};
 use p3_symmetric::Permutation;
 
+use super::hash_types::RichField;
+use crate::field::types::HasExtension;
+use crate::gates::poseidon2_risc0_babybear::Poseidon2R0BabyBearGate;
 use crate::hash::hash_types::HashOut;
 use crate::hash::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
-
-use super::hash_types::RichField;
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
@@ -24,7 +23,6 @@ pub(crate) const N_PARTIAL_ROUNDS: usize = 21;
 pub(crate) const SPONGE_RATE: usize = 16;
 pub(crate) const SPONGE_CAPACITY: usize = 8;
 pub const SPONGE_WIDTH: usize = 24;
-
 
 #[rustfmt::skip]
 pub(crate) const EXTERNAL_CONSTANTS: [[u32; SPONGE_WIDTH]; N_FULL_ROUNDS_TOTAL] = [
@@ -80,11 +78,7 @@ pub struct DiffusionMatrixBabyBearR0<F: AbstractField> {
     _phantom: PhantomData<F>,
 }
 
-
-impl<F: AbstractField> DiffusionMatrixBabyBearR0<F> {
-}
-
-
+impl<F: AbstractField> DiffusionMatrixBabyBearR0<F> {}
 
 pub const M_INT_DIAG_HZN: &[u32; 24] = &[
     0x409133f0, 0x1667a8a1, 0x06a6c7b6, 0x6f53160e, 0x273b11d1, 0x03176c5d, 0x72f9bbf9, 0x73ceba91,
@@ -92,8 +86,9 @@ pub const M_INT_DIAG_HZN: &[u32; 24] = &[
     0x2fc5fbec, 0x770d61b0, 0x5715aae9, 0x03ef0e90, 0x75b6c770, 0x242adf5f, 0x00d0ca4c, 0x36c0e388,
 ];
 
-
-impl<F: Clone + AbstractField + Sync, const WIDTH: usize> Permutation<[F; WIDTH]> for DiffusionMatrixBabyBearR0<F> {
+impl<F: Clone + AbstractField + Sync, const WIDTH: usize> Permutation<[F; WIDTH]>
+    for DiffusionMatrixBabyBearR0<F>
+{
     fn permute_mut(&self, input: &mut [F; WIDTH]) {
         let sum: F = input.iter().fold(F::zero(), |acc, x| acc + x.clone());
         for i in 0..SPONGE_WIDTH {
@@ -102,8 +97,9 @@ impl<F: Clone + AbstractField + Sync, const WIDTH: usize> Permutation<[F; WIDTH]
     }
 }
 
-impl <F: Clone + AbstractField + Sync, const WIDTH: usize> DiffusionPermutation<F, WIDTH> for DiffusionMatrixBabyBearR0<F> {
-
+impl<F: Clone + AbstractField + Sync, const WIDTH: usize> DiffusionPermutation<F, WIDTH>
+    for DiffusionMatrixBabyBearR0<F>
+{
 }
 
 lazy_static! {
@@ -227,7 +223,7 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
     where
         F: HasExtension<D>,
         <F as HasExtension<D>>::Extension: TwoAdicField,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let gate_type: Poseidon2R0BabyBearGate<F, D> = Poseidon2R0BabyBearGate::<F, D>::new();
         let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);
@@ -256,10 +252,12 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
 mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::AbstractField;
-    use crate::{field::types::Sample, plonk::config::Hasher};
-    use crate::plonk::circuit_builder::CircuitBuilder;
     use p3_symmetric::Permutation;
+
     use super::{poseidon2_r0, Poseidon2R0BabyBearHash, SPONGE_WIDTH};
+    use crate::field::types::Sample;
+    use crate::plonk::circuit_builder::CircuitBuilder;
+    use crate::plonk::config::Hasher;
 
     #[test]
     fn test_against_r0_values() {
@@ -268,15 +266,16 @@ mod tests {
             0x00000007, 0x00000008, 0x00000009, 0x0000000A, 0x0000000B, 0x0000000C, 0x0000000D,
             0x0000000E, 0x0000000F, 0x00000010, 0x00000011, 0x00000012, 0x00000013, 0x00000014,
             0x00000015, 0x00000016, 0x00000017,
-        ].map(BabyBear::from_canonical_u32);
-
+        ]
+        .map(BabyBear::from_canonical_u32);
 
         let expected: [BabyBear; SPONGE_WIDTH] = [
             0x2ed3e23d, 0x12921fb0, 0x0e659e79, 0x61d81dc9, 0x32bae33b, 0x62486ae3, 0x1e681b60,
             0x24b91325, 0x2a2ef5b9, 0x50e8593e, 0x5bc818ec, 0x10691997, 0x35a14520, 0x2ba6a3c5,
             0x279d47ec, 0x55014e81, 0x5953a67f, 0x2f403111, 0x6b8828ff, 0x1801301f, 0x2749207a,
             0x3dc9cf21, 0x3c985ba2, 0x57a99864,
-        ].map(BabyBear::from_canonical_u32);
+        ]
+        .map(BabyBear::from_canonical_u32);
 
         poseidon2_r0.permute_mut(input);
 
@@ -306,10 +305,8 @@ mod tests {
         let mut pw = PartialWitness::<F>::new();
         pw.set_target_arr(&vec_target, &vec);
         pw.set_hash_target(res_target, res);
-        let data: CircuitData<F,C,D,NUM_HASH_OUT_ELTS> = builder.build();
+        let data: CircuitData<F, C, D, NUM_HASH_OUT_ELTS> = builder.build();
         let proof = data.prove(pw);
         data.verify(proof.unwrap()).unwrap();
-
     }
-
 }

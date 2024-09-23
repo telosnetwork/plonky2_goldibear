@@ -165,8 +165,9 @@ where
             //         );
             //     });
             // }
-            let two = builder.constant_ext_algebra(ExtensionAlgebra::<F,D>::from_base(F::Extension::two()));
-            let t01 = builder.add_ext_algebra( x[0], x[1]);
+            let two = builder
+                .constant_ext_algebra(ExtensionAlgebra::<F, D>::from_base(F::Extension::two()));
+            let t01 = builder.add_ext_algebra(x[0], x[1]);
             let t23 = builder.add_ext_algebra(x[2], x[3]);
             let t0123 = builder.add_ext_algebra(t01, t23);
             let t01123 = builder.add_ext_algebra(t0123, x[1]);
@@ -174,7 +175,7 @@ where
             x[3] = builder.mul_add_ext_algebra(x[0], two, t01233);
             x[1] = builder.mul_add_ext_algebra(x[2], two, t01123);
             x[0] = builder.add_ext_algebra(t01123, t01);
-            x[2] = builder.add_ext_algebra( t01233, t23);
+            x[2] = builder.add_ext_algebra(t01233, t23);
             constraints.extend_from_slice(
                 &(0..4)
                     .map(|i| vars.get_local_ext_algebra(Self::wires_output(op, i)))

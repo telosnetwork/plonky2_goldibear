@@ -22,7 +22,6 @@ pub(crate) const SPONGE_RATE: usize = 8;
 pub(crate) const SPONGE_CAPACITY: usize = 8;
 pub const SPONGE_WIDTH: usize = 16;
 
-
 #[rustfmt::skip]
 pub(crate) const EXTERNAL_CONSTANTS: [[u32; SPONGE_WIDTH]; N_FULL_ROUNDS_TOTAL] = [
     [
@@ -216,9 +215,10 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
 
 #[test]
 fn test_poseidon2_babybear() {
+    use plonky2_field::types::Sample;
+
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
-    use plonky2_field::types::Sample;
     use crate::plonk::config::Poseidon2BabyBearConfig;
     type F = BabyBear;
     const D: usize = 4;
@@ -236,8 +236,7 @@ fn test_poseidon2_babybear() {
     let mut pw = PartialWitness::<F>::new();
     pw.set_target_arr(&vec_target, &vec);
     pw.set_hash_target(res_target, res);
-    let data: CircuitData<F,C,D,NUM_HASH_OUT_ELTS> = builder.build();
+    let data: CircuitData<F, C, D, NUM_HASH_OUT_ELTS> = builder.build();
     let proof = data.prove(pw);
     data.verify(proof.unwrap()).unwrap();
-
 }

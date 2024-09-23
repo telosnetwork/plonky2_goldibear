@@ -413,7 +413,6 @@ fn main() -> Result<()> {
     do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(
         CircuitConfig::standard_recursion_config_gl(),
     )
-
 }
 fn do_bench<
     F: RichField + HasExtension<D>,

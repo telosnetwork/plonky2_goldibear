@@ -1071,13 +1071,16 @@ where
         for (gate_ref, gate_slot) in self.current_slots.clone().iter() {
             for (params, (gate_idx, slot_idx)) in &gate_slot.current_slot {
                 if gate_ref.0.complete_wires(self, *gate_idx, *slot_idx) {
-                    let current_slot = &mut self.current_slots.get_mut(&gate_ref.clone()).unwrap().current_slot;
+                    let current_slot = &mut self
+                        .current_slots
+                        .get_mut(&gate_ref.clone())
+                        .unwrap()
+                        .current_slot;
                     current_slot.remove(params);
                 }
             }
         }
     }
-    
 
     /// Builds a "full circuit", with both prover and verifier data.
     pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(

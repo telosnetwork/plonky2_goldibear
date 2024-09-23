@@ -78,9 +78,16 @@ where
 
     /// Some gates might need to be filled up in order to avoid error in constraints verification
     /// The method returns true if it filled up the remaining wires, otherwise return false
-    fn complete_wires(&self, _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>, _gate_idx: usize, _slot_idx: usize) -> bool { false }
+    fn complete_wires(
+        &self,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        _gate_idx: usize,
+        _slot_idx: usize,
+    ) -> bool {
+        false
+    }
     /// Defines and evaluates the constraints that enforce the statement represented by this gate.
-    
+
     /// Constraints must be defined in the extension of this custom gate base field.
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension>;
 
