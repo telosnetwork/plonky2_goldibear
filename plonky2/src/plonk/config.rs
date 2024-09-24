@@ -64,11 +64,14 @@ pub trait Hasher<F: RichField>: Sized + Copy + Debug + Eq + PartialEq {
     /// Hash the slice if necessary to reduce its length to ~256 bits. If it already fits, this is a
     /// no-op.
     fn hash_or_noop(inputs: &[F]) -> Self::Hash {
-        if inputs.len() * 8 <= Self::HASH_SIZE {
+        if inputs.len() <= F::NUM_HASH_OUT_ELTS {
             let mut inputs_bytes = vec![0u8; Self::HASH_SIZE];
-            for i in 0..inputs.len() {
-                inputs_bytes[i * 8..(i + 1) * 8]
-                    .copy_from_slice(&inputs[i].as_canonical_u64().to_le_bytes());
+            let mut idx = 0;
+            for el in inputs {
+                for b in el.to_bytes() {
+                    inputs_bytes[idx] = b;
+                    idx += 1;
+                }
             }
             Self::Hash::from_bytes(&inputs_bytes)
         } else {
