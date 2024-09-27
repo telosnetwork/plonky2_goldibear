@@ -18,7 +18,7 @@ use plonky2_field::types::HasExtension;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::hash::hash_types::{HashOut, RichField};
+use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::keccak::KeccakHash;
 use crate::hash::poseidon2_babybear::Poseidon2BabyBearHash;
@@ -98,6 +98,67 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     where
         F: RichField + HasExtension<D>,
         F::Extension: TwoAdicField;
+
+    fn hash_or_noop_circuit<const D: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        inputs: Vec<Target>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS>
+    where
+        F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
+    {
+        let zero = builder.zero();
+        if inputs.len() <= NUM_HASH_OUT_ELTS {
+            HashOutTarget::from_partial(&inputs, zero)
+        } else {
+            Self::hash_n_to_hash_no_pad_circuit::<D>(builder, inputs)
+        }
+    }
+
+    fn hash_n_to_hash_no_pad_circuit<const D: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        inputs: Vec<Target>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS>
+    where
+        F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
+    {
+        HashOutTarget::from_vec(Self::hash_n_to_m_no_pad_circuit::<D>(builder, inputs, NUM_HASH_OUT_ELTS))
+    }
+
+    fn hash_n_to_m_no_pad_circuit<const D: usize>(
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        inputs: Vec<Target>,
+        num_outputs: usize,
+    ) -> Vec<Target>
+    where
+        F: RichField + HasExtension<D>,
+        F::Extension: TwoAdicField
+    {
+        let zero = builder.zero();
+        let mut state = Self::AlgebraicPermutation::new(core::iter::repeat(zero));
+
+        // Absorb all input chunks.
+        for input_chunk in inputs.chunks(Self::AlgebraicPermutation::RATE) {
+            // Overwrite the first r elements with the inputs. This differs from a standard sponge,
+            // where we would xor or add in the inputs. This is a well-known variant, though,
+            // sometimes called "overwrite mode".
+            state.set_from_slice(input_chunk, 0);
+            state = builder.permute::<Self>(state);
+        }
+
+        // Squeeze until we have the desired number of outputs.
+        let mut outputs = Vec::with_capacity(num_outputs);
+        loop {
+            for &s in state.squeeze() {
+                outputs.push(s);
+                if outputs.len() == num_outputs {
+                    return outputs;
+                }
+            }
+            state = builder.permute::<Self>(state);
+        }
+    }
 }
 
 /// Generic configuration trait.

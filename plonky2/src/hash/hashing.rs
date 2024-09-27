@@ -20,19 +20,14 @@ where
         &mut self,
         inputs: Vec<Target>,
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
-        let zero = self.zero();
-        if inputs.len() <= NUM_HASH_OUT_ELTS {
-            HashOutTarget::from_partial(&inputs, zero)
-        } else {
-            self.hash_n_to_hash_no_pad::<H>(inputs)
-        }
+        H::hash_or_noop_circuit(self, inputs)
     }
 
     pub fn hash_n_to_hash_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         inputs: Vec<Target>,
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
-        HashOutTarget::from_vec(self.hash_n_to_m_no_pad::<H>(inputs, NUM_HASH_OUT_ELTS))
+        H::hash_n_to_hash_no_pad_circuit(self, inputs)
     }
 
     pub fn hash_n_to_m_no_pad<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
@@ -40,29 +35,7 @@ where
         inputs: Vec<Target>,
         num_outputs: usize,
     ) -> Vec<Target> {
-        let zero = self.zero();
-        let mut state = H::AlgebraicPermutation::new(core::iter::repeat(zero));
-
-        // Absorb all input chunks.
-        for input_chunk in inputs.chunks(H::AlgebraicPermutation::RATE) {
-            // Overwrite the first r elements with the inputs. This differs from a standard sponge,
-            // where we would xor or add in the inputs. This is a well-known variant, though,
-            // sometimes called "overwrite mode".
-            state.set_from_slice(input_chunk, 0);
-            state = self.permute::<H>(state);
-        }
-
-        // Squeeze until we have the desired number of outputs.
-        let mut outputs = Vec::with_capacity(num_outputs);
-        loop {
-            for &s in state.squeeze() {
-                outputs.push(s);
-                if outputs.len() == num_outputs {
-                    return outputs;
-                }
-            }
-            state = self.permute::<H>(state);
-        }
+        H::hash_n_to_m_no_pad_circuit(self, inputs, num_outputs)
     }
 }
 
