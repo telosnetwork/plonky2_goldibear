@@ -68,18 +68,18 @@ where
     }
     /***************** START ROUTED WIRES ***********************/
     /// The wire index for the `i`th input to the permutation.
-    pub(crate) const fn wire_input(op: usize, i: usize) -> usize {
+    pub const fn wire_input(op: usize, i: usize) -> usize {
         ROUTED_WIRES_PER_OP * op + i
     }
 
     /// The wire index for the `i`th output to the permutation.
-    pub(crate) const fn wire_output(op: usize, i: usize) -> usize {
+    pub const fn wire_output(op: usize, i: usize) -> usize {
         ROUTED_WIRES_PER_OP * op + SPONGE_WIDTH + i
     }
 
     /// If this is set to 1, the first four inputs will be swapped with the next four inputs. This
     /// is useful for ordering hashes in Merkle proofs. Otherwise, this should be set to 0.
-    pub(crate) const fn wire_swap(op: usize) -> usize {
+    pub const fn wire_swap(op: usize) -> usize {
         ROUTED_WIRES_PER_OP * op + 2 * SPONGE_WIDTH
     }
 
