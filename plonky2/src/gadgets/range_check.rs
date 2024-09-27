@@ -42,7 +42,7 @@ where
             let lo_bits_sum = self.add_many(lo_bits.into_iter().map(|b| b.target));
             let hi_bits_sum = self.add_many(hi_bits.into_iter().map(|b| b.target));
             let hi_bits_sum_minus_exp0_plus_exp1 =
-                self.add_const(hi_bits_sum, F::from_canonical_usize(F::EXP1 - F::EXP0));
+                self.add_const(hi_bits_sum, F::from_canonical_usize(F::EXP0 - F::EXP1));
             let y = self.inverse_or_zero(hi_bits_sum_minus_exp0_plus_exp1);
             let maybe_0 = self.arithmetic(
                 F::one(),

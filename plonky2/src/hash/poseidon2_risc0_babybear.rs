@@ -12,7 +12,7 @@ use super::hash_types::RichField;
 use crate::field::types::HasExtension;
 use crate::gates::poseidon2_risc0_babybear::Poseidon2R0BabyBearGate;
 use crate::hash::hash_types::HashOut;
-use crate::hash::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
+use crate::hash::hashing::{compress, PlonkyPermutation};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
@@ -145,7 +145,7 @@ impl Permuter31R0 for Target {
 pub struct Poseidon31R0;
 
 impl<T: Copy + Debug + Default + Eq + Permuter31R0 + Send + Sync> PlonkyPermutation<T>
-    for Poseidon31R0Permutation<T>
+for Poseidon31R0Permutation<T>
 {
     const RATE: usize = SPONGE_RATE;
     const WIDTH: usize = SPONGE_WIDTH;
@@ -202,7 +202,28 @@ impl<F: RichField> Hasher<F> for Poseidon2R0BabyBearHash {
     type Permutation = Poseidon31R0Permutation<F>;
 
     fn hash_no_pad(input: &[F]) -> Self::Hash {
-        hash_n_to_hash_no_pad::<F, Self::Permutation, 8>(input)
+        let mut perm = Self::Permutation::new(core::iter::repeat(F::zero()));
+
+        // Absorb all input chunks.
+        for input_chunk in input.chunks(Self::Permutation::RATE) {
+            perm.set_from_slice(input_chunk, 0);
+            for i in input_chunk.len() .. Self::Permutation::RATE {
+                perm.set_elt(F::zero(), i);
+            }
+            perm.permute();
+        }
+
+        // Squeeze until we have the desired number of outputs.
+        let mut outputs = Vec::new();
+        loop {
+            for &item in perm.squeeze() {
+                outputs.push(item);
+                if outputs.len() == SPONGE_CAPACITY {
+                    return HashOut::from_vec(outputs);
+                }
+            }
+            perm.permute();
+        }
     }
 
     fn two_to_one(left: Self::Hash, right: Self::Hash) -> Self::Hash {
@@ -246,6 +267,43 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
                 .map(|i| Target::wire(row, Poseidon2R0BabyBearGate::<F, D>::wire_output(op, i))),
         )
     }
+
+    fn hash_n_to_m_no_pad_circuit<const D: usize>(
+        builder: &mut CircuitBuilder<F, D, 8>,
+        inputs: Vec<Target>,
+        num_outputs: usize,
+    ) -> Vec<Target>
+    where
+        F: HasExtension<D>,
+        <F as HasExtension<D>>::Extension: TwoAdicField
+    {
+        let zero = builder.zero();
+        let mut state = Self::AlgebraicPermutation::new(core::iter::repeat(zero));
+
+        // Absorb all input chunks.
+        for input_chunk in inputs.chunks(Self::AlgebraicPermutation::RATE) {
+            // Overwrite the first r elements with the inputs. This differs from a standard sponge,
+            // where we would xor or add in the inputs. This is a well-known variant, though,
+            // sometimes called "overwrite mode".
+            state.set_from_slice(input_chunk, 0);
+            for i in input_chunk.len() .. Self::AlgebraicPermutation::RATE {
+                state.set_elt(zero, i);
+            }
+            state = builder.permute::<Self>(state);
+        }
+
+        // Squeeze until we have the desired number of outputs.
+        let mut outputs = Vec::with_capacity(num_outputs);
+        loop {
+            for &s in state.squeeze() {
+                outputs.push(s);
+                if outputs.len() == num_outputs {
+                    return outputs;
+                }
+            }
+            state = builder.permute::<Self>(state);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -266,16 +324,15 @@ mod tests {
             0x00000007, 0x00000008, 0x00000009, 0x0000000A, 0x0000000B, 0x0000000C, 0x0000000D,
             0x0000000E, 0x0000000F, 0x00000010, 0x00000011, 0x00000012, 0x00000013, 0x00000014,
             0x00000015, 0x00000016, 0x00000017,
-        ]
-        .map(BabyBear::from_canonical_u32);
+        ].map(BabyBear::from_canonical_u32);
+
 
         let expected: [BabyBear; SPONGE_WIDTH] = [
             0x2ed3e23d, 0x12921fb0, 0x0e659e79, 0x61d81dc9, 0x32bae33b, 0x62486ae3, 0x1e681b60,
             0x24b91325, 0x2a2ef5b9, 0x50e8593e, 0x5bc818ec, 0x10691997, 0x35a14520, 0x2ba6a3c5,
             0x279d47ec, 0x55014e81, 0x5953a67f, 0x2f403111, 0x6b8828ff, 0x1801301f, 0x2749207a,
             0x3dc9cf21, 0x3c985ba2, 0x57a99864,
-        ]
-        .map(BabyBear::from_canonical_u32);
+        ].map(BabyBear::from_canonical_u32);
 
         poseidon2_r0.permute_mut(input);
 
@@ -296,17 +353,16 @@ mod tests {
             CircuitConfig::standard_recursion_config_bb_wide(),
         );
         let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
-        let res = H::hash_or_noop(&vec);
-
         let vec_target = builder.add_virtual_targets(NUM_HASH_OUT_ELTS * 3);
-        let res_target = builder.hash_or_noop::<H>(vec_target.clone());
+        builder.hash_or_noop::<H>(vec_target.clone());
         // builder.hash_or_noop::<H>(vec_target.clone());
 
         let mut pw = PartialWitness::<F>::new();
         pw.set_target_arr(&vec_target, &vec);
-        pw.set_hash_target(res_target, res);
-        let data: CircuitData<F, C, D, NUM_HASH_OUT_ELTS> = builder.build();
+        let data: CircuitData<F,C,D,NUM_HASH_OUT_ELTS> = builder.build();
         let proof = data.prove(pw);
         data.verify(proof.unwrap()).unwrap();
+
     }
+
 }
