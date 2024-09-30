@@ -5,7 +5,6 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_debug_implementations)]
 #![feature(specialization)]
-#![cfg_attr(not(test), no_std)]
 #![cfg_attr(
     all(
         target_arch = "x86_64",

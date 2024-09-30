@@ -105,7 +105,7 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let zero = builder.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {
@@ -121,9 +121,13 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
-        HashOutTarget::from_vec(Self::hash_n_to_m_no_pad_circuit::<D>(builder, inputs, NUM_HASH_OUT_ELTS))
+        HashOutTarget::from_vec(Self::hash_n_to_m_no_pad_circuit::<D>(
+            builder,
+            inputs,
+            NUM_HASH_OUT_ELTS,
+        ))
     }
 
     fn hash_n_to_m_no_pad_circuit<const D: usize>(
@@ -133,7 +137,7 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     ) -> Vec<Target>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField
+        F::Extension: TwoAdicField,
     {
         let zero = builder.zero();
         let mut state = Self::AlgebraicPermutation::new(core::iter::repeat(zero));
