@@ -2,6 +2,7 @@
 use alloc::vec;
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::coset_interpolation::CosetInterpolationGate;
@@ -48,12 +49,14 @@ mod tests {
     use alloc::vec::Vec;
 
     use anyhow::Result;
-    use p3_field::{cyclic_subgroup_coset_known_order, AbstractExtensionField, TwoAdicField};
+    use p3_field::{AbstractExtensionField, cyclic_subgroup_coset_known_order, TwoAdicField};
+
     use plonky2_field::types::HasExtension;
 
     use crate::field::interpolation::interpolant;
     use crate::field::types::Sample;
     use crate::gates::coset_interpolation::CosetInterpolationGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
@@ -64,7 +67,7 @@ mod tests {
     fn test_interpolate() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
         let config = CircuitConfig::standard_recursion_config_gl();

@@ -9,6 +9,7 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
@@ -312,13 +313,14 @@ where
 mod tests {
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = PoseidonMdsGate::<F, D>::new();
         test_low_degree::<F, PoseidonMdsGate<F, D>, D, NUM_HASH_OUT_ELTS>(gate)
@@ -328,7 +330,7 @@ mod tests {
     fn eval_fns() -> anyhow::Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = PoseidonMdsGate::new();
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)

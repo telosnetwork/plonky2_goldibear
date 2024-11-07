@@ -4,6 +4,7 @@
 use alloc::{vec, vec::Vec};
 
 use p3_field::{Field, PackedField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::fri::oracle::SALT_SIZE;

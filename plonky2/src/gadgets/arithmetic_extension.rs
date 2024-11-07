@@ -8,6 +8,7 @@ use core::borrow::Borrow;
 
 use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
@@ -665,10 +666,12 @@ pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + HasExtension<D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+
     use plonky2_field::extension_algebra::ExtensionAlgebra;
     use plonky2_field::types::HasExtension;
 
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::ext_target::ExtensionAlgebraTarget;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
@@ -680,7 +683,7 @@ mod tests {
     fn test_mul_many() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
@@ -717,7 +720,7 @@ mod tests {
     fn test_div_extension() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
@@ -745,7 +748,7 @@ mod tests {
     fn test_mul_algebra() -> Result<()> {
         const D: usize = 2;
         type C = KeccakGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
 

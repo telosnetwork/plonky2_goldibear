@@ -3,10 +3,10 @@ use core::ops::Range;
 
 use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
-use super::gate::Gate;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -14,6 +14,8 @@ use crate::iop::target::Target;
 use crate::iop::witness::{PartitionWitness, Witness, WitnessWrite};
 use crate::plonk::circuit_data::{CircuitConfig, CommonCircuitData};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
+
+use super::gate::Gate;
 
 /// Apply Mat4 Gate
 #[derive(Clone, Debug, Default)]
@@ -294,6 +296,7 @@ mod tests {
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
 
@@ -307,7 +310,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)

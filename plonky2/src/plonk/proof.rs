@@ -9,10 +9,12 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::ensure;
 use p3_field::TwoAdicField;
-use plonky2_field::types::HasExtension;
-use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
+use plonky2_field::types::HasExtension;
+use plonky2_maybe_rayon::*;
+
+use crate::fri::FriParams;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -20,7 +22,6 @@ use crate::fri::proof::{
 use crate::fri::structure::{
     FriOpeningBatch, FriOpeningBatchTarget, FriOpenings, FriOpeningsTarget,
 };
-use crate::fri::FriParams;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::ext_target::ExtensionTarget;
@@ -522,23 +523,26 @@ mod tests {
     use anyhow::Result;
     use itertools::Itertools;
     use p3_field::AbstractField;
+
     use plonky2_field::types::Sample;
 
-    use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
     use crate::gates::lookup_table::LookupTable;
     use crate::gates::noop::NoopGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::PoseidonGoldilocksConfig;
     use crate::plonk::verifier::verify;
 
+    use super::*;
+
     #[test]
     fn test_proof_compression() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let mut config = CircuitConfig::standard_recursion_config_gl();
@@ -577,7 +581,7 @@ mod tests {
     fn test_proof_compression_lookup() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 

@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -231,10 +232,11 @@ mod tests {
 
     use anyhow::Result;
     use p3_field::{AbstractField, PrimeField64, TwoAdicField};
+
     use plonky2_field::types::HasExtension;
 
     use crate::gates::noop::NoopGate;
-    use crate::hash::hash_types::{HashOutTarget, RichField};
+    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOutTarget, RichField};
     use crate::hash::hashing::hash_n_to_hash_no_pad;
     use crate::hash::poseidon_goldilocks::{Poseidon64Hash, Poseidon64Permutation};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
@@ -288,7 +290,7 @@ mod tests {
     fn test_cyclic_recursion() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config_gl();

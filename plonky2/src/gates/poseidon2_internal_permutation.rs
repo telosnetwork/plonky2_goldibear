@@ -9,10 +9,10 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
-use super::poseidon2_babybear::INTERNAL_DIAG_SHIFTS;
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -25,6 +25,8 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
+
+use super::poseidon2_babybear::INTERNAL_DIAG_SHIFTS;
 
 /// Poseidon2 BabyBear internal
 #[derive(Clone, Debug, Default)]
@@ -305,13 +307,14 @@ where
 mod tests {
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::poseidon2_internal_permutation::Poseidon2InternalPermutationGate;
+    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
 
     #[test]
     fn low_degree() {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = Poseidon2InternalPermutationGate::<F, D>::new();
         test_low_degree::<F, Poseidon2InternalPermutationGate<F, D>, D, NUM_HASH_OUT_ELTS>(gate)
@@ -321,7 +324,7 @@ mod tests {
     fn eval_fns() -> anyhow::Result<()> {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = Poseidon2InternalPermutationGate::new();
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)

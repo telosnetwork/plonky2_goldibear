@@ -1,4 +1,4 @@
-use log::{log, Level};
+use log::{Level, log};
 #[cfg(feature = "timing")]
 use web_time::{Duration, Instant};
 

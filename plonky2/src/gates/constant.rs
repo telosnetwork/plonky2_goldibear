@@ -2,8 +2,9 @@
 use alloc::{format, string::String, vec, vec::Vec};
 
 use p3_field::{PackedField, TwoAdicField};
-use plonky2_field::types::HasExtension;
 use serde::{Deserialize, Serialize};
+
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -158,6 +159,7 @@ mod tests {
 
     use crate::gates::constant::ConstantGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
@@ -172,7 +174,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let num_consts = CircuitConfig::standard_recursion_config_gl().num_constants;
         let gate = ConstantGate { num_consts };

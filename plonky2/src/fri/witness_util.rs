@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::fri::proof::{FriProof, FriProofTarget};

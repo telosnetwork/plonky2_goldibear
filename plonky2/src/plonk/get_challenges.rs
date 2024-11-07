@@ -3,9 +3,9 @@ use alloc::{vec, vec::Vec};
 
 use hashbrown::HashSet;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
-use super::circuit_builder::NUM_COINS_LOOKUP;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::proof::{CompressedFriProof, FriChallenges, FriProof, FriProofTarget};
 use crate::fri::verifier::{compute_evaluation, fri_combine_initial, PrecomputedReducedOpenings};
@@ -23,6 +23,8 @@ use crate::plonk::proof::{
     ProofWithPublicInputs, ProofWithPublicInputsTarget,
 };
 use crate::util::reverse_bits;
+
+use super::circuit_builder::NUM_COINS_LOOKUP;
 
 fn get_challenges<
     F: RichField + HasExtension<D>,

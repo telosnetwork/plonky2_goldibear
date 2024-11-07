@@ -6,6 +6,7 @@ use alloc::{
 };
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::base_sum::BaseSumGate;

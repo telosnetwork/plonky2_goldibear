@@ -2,13 +2,14 @@
 use alloc::vec::Vec;
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::{FriConfig, FriParams};
+use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleTree;

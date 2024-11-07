@@ -8,16 +8,17 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
-use log::{debug, info, warn, Level};
+use log::{debug, info, Level, warn};
 use p3_field::{AbstractExtensionField, Field, TwoAdicField};
-use plonky2_field::types::{two_adic_subgroup, HasExtension};
+
+use plonky2_field::types::{HasExtension, two_adic_subgroup};
 use plonky2_util::ceil_div_usize;
 
 use crate::field::cosets::get_unique_coset_shifts;
 use crate::field::fft::fft_root_table;
 use crate::field::polynomial::PolynomialValues;
-use crate::fri::oracle::PolynomialBatch;
 use crate::fri::{FriConfig, FriParams};
+use crate::fri::oracle::PolynomialBatch;
 use crate::gadgets::arithmetic::BaseArithmeticOperation;
 use crate::gadgets::arithmetic_extension::ExtensionArithmeticOperation;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
@@ -48,10 +49,10 @@ use crate::plonk::copy_constraint::CopyConstraint;
 use crate::plonk::permutation_argument::Forest;
 use crate::plonk::plonk_common::PlonkOracle;
 use crate::timed;
+use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 use crate::util::context_tree::ContextTree;
 use crate::util::partial_products::num_partial_products;
 use crate::util::timing::TimingTree;
-use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 
 /// Number of random coins needed for lookups (for each challenge).
 /// A coin is a randomly sampled extension field element from the verifier,
@@ -101,7 +102,7 @@ pub struct LookupWire {
 ///
 /// // Define parameters for this circuit
 /// const D: usize = 2;
-/// const NUM_HASH_OUT_ELTS: usize = 4;
+/// const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 /// type C = PoseidonGoldilocksConfig;
 /// type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 ///

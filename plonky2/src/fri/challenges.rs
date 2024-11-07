@@ -1,12 +1,13 @@
 use core::usize;
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
+use crate::fri::FriConfig;
 use crate::fri::proof::{FriChallenges, FriChallengesTarget};
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
-use crate::fri::FriConfig;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;

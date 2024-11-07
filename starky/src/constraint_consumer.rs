@@ -6,9 +6,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
+use p3_field::{PackedField, TwoAdicField};
+use plonky2::field::types::HasExtension;
 
-use plonky2::field::extension::BinomiallyExtendable;
-use plonky2::field::packed::PackedField;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
 use plonky2::iop::target::Target;

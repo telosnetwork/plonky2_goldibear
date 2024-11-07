@@ -3,6 +3,7 @@ use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
 
 use p3_field::{AbstractExtensionField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -318,6 +319,7 @@ mod tests {
     use alloc::vec::Vec;
 
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::challenger::{Challenger, RecursiveChallenger};
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::target::Target;
@@ -330,7 +332,7 @@ mod tests {
     fn no_duplicate_challenges() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let mut challenger =
             Challenger::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>::new();
@@ -354,7 +356,7 @@ mod tests {
     fn test_consistency() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         // These are mostly arbitrary, but we want to test some rounds with enough inputs/outputs to

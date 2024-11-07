@@ -4,6 +4,7 @@ use core::ops::Range;
 use core::usize;
 
 use p3_field::{AbstractExtensionField, Field, PackedField, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 

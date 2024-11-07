@@ -4,6 +4,7 @@ use core::iter;
 
 use itertools::Itertools;
 use p3_field::{Field, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;

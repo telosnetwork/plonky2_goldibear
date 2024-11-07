@@ -7,12 +7,12 @@ use core::mem::swap;
 
 use anyhow::{ensure, Result};
 use hashbrown::HashMap;
+use p3_field::{AbstractExtensionField, AbstractField, batch_multiplicative_inverse, TwoAdicField};
 use p3_field::extension::HasTwoAdicBionmialExtension;
-use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField, TwoAdicField};
-use plonky2_field::types::{two_adic_subgroup, HasExtension};
+
+use plonky2_field::types::{HasExtension, two_adic_subgroup};
 use plonky2_maybe_rayon::*;
 
-use super::circuit_builder::{LookupChallenges, LookupWire};
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::fri::oracle::PolynomialBatch;
@@ -32,9 +32,11 @@ use crate::plonk::proof::{OpeningSet, Proof, ProofWithPublicInputs};
 use crate::plonk::vanishing_poly::{eval_vanishing_poly_base_batch, get_lut_poly};
 use crate::plonk::vars::EvaluationVarsBaseBatch;
 use crate::timed;
+use crate::util::{ceil_div_usize, log2_ceil, transpose};
 use crate::util::partial_products::{partial_products_and_z_gx, quotient_chunk_products};
 use crate::util::timing::TimingTree;
-use crate::util::{ceil_div_usize, log2_ceil, transpose};
+
+use super::circuit_builder::{LookupChallenges, LookupWire};
 
 /// Set all the lookup gate wires (including multiplicities) and pad unused LU slots.
 /// Warning: rows are in descending order: the first gate to appear is the last LU gate, and

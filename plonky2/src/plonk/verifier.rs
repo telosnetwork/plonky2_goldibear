@@ -2,6 +2,7 @@
 
 use anyhow::{ensure, Result};
 use p3_field::{AbstractField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::fri::verifier::verify_fri_proof;

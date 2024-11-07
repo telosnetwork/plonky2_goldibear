@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 

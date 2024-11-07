@@ -7,7 +7,7 @@ use alloc::{vec, vec::Vec};
 
 use itertools::Itertools;
 
-use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
+use plonky2::field::types::HasExtension;
 use plonky2::fri::oracle::PolynomialBatch;
 use plonky2::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -28,7 +28,7 @@ use crate::lookup::GrandProductChallengeSet;
 
 /// Merkle caps and openings that form the proof of a single STARK.
 #[derive(Debug, Clone)]
-pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> {
+pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// Merkle cap of LDEs of trace values.
     pub trace_cap: MerkleCap<F, C::Hasher>,
     /// Optional merkle cap of LDEs of permutation Z values, if any.
@@ -41,7 +41,7 @@ pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F,
     pub opening_proof: FriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize> StarkProof<F, C, D> {
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProof<F, C, D, NUM_HASH_OUT_ELTS> {
     /// Recover the length of the trace from a STARK proof and a STARK config.
     pub fn recover_degree_bits(&self, config: &StarkConfig) -> usize {
         let initial_merkle_proof = &self.opening_proof.query_round_proofs[0]
@@ -56,20 +56,20 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extensio
 /// Circuit version of [`StarkProof`].
 /// Merkle caps and openings that form the proof of a single STARK.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StarkProofTarget<const D: usize> {
+pub struct StarkProofTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// `Target` for the Merkle cap trace values LDEs.
-    pub trace_cap: MerkleCapTarget,
+    pub trace_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
     /// Optional `Target` for the Merkle cap of lookup helper and CTL columns LDEs, if any.
-    pub auxiliary_polys_cap: Option<MerkleCapTarget>,
+    pub auxiliary_polys_cap: Option<MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
     /// `Target` for the Merkle cap of quotient polynomial evaluations LDEs.
-    pub quotient_polys_cap: Option<MerkleCapTarget>,
+    pub quotient_polys_cap: Option<MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
     /// `Target`s for the purported values of each polynomial at the challenge point.
     pub openings: StarkOpeningSetTarget<D>,
     /// `Target`s for the batch FRI argument for all openings.
-    pub opening_proof: FriProofTarget<D>,
+    pub opening_proof: FriProofTarget<D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<const D: usize> StarkProofTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProofTarget<D, NUM_HASH_OUT_ELTS> {
     /// Serializes a STARK proof.
     pub fn to_buffer(&self, buffer: &mut Vec<u8>) -> IoResult<()> {
         buffer.write_target_merkle_cap(&self.trace_cap)?;
@@ -126,7 +126,7 @@ impl<const D: usize> StarkProofTarget<D> {
 #[derive(Debug, Clone)]
 pub struct StarkProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F>,
     const D: usize,
 > {
     /// A STARK proof.

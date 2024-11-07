@@ -4,6 +4,7 @@ use core::borrow::Borrow;
 
 use itertools::Itertools;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::base_sum::BaseSumGate;
@@ -144,20 +145,22 @@ where
 mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
-    use rand::rngs::OsRng;
     use rand::Rng;
+    use rand::rngs::OsRng;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
-    use super::*;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
 
+    use super::*;
+
     #[test]
     fn test_split_base() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config_gl();
         let pw = PartialWitness::new();
@@ -186,7 +189,7 @@ mod tests {
     fn test_base_sum() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config_gl();
         let pw = PartialWitness::new();

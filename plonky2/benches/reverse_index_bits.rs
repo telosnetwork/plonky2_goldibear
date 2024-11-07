@@ -1,9 +1,10 @@
-mod allocator;
-
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use p3_goldilocks::Goldilocks;
+
 use plonky2::field::types::Sample;
 use plonky2_util::{reverse_index_bits, reverse_index_bits_in_place};
+
+mod allocator;
 
 type F = Goldilocks;
 

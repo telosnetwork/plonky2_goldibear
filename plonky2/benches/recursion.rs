@@ -1,9 +1,11 @@
 use anyhow::anyhow;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use log::{info, Level};
 use p3_baby_bear::BabyBear;
 use p3_field::TwoAdicField;
 use p3_goldilocks::Goldilocks;
+use tynm::type_name;
+
 use plonky2::gates::noop::NoopGate;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
@@ -18,7 +20,6 @@ use plonky2::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use plonky2::plonk::prover::prove;
 use plonky2::util::timing::TimingTree;
 use plonky2_field::types::HasExtension;
-use tynm::type_name;
 
 mod allocator;
 

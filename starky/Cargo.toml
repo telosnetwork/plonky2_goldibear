@@ -26,9 +26,11 @@ log = { workspace = true }
 num-bigint = { version = "0.4.3", default-features = false }
 
 # Local dependencies
-plonky2 = { version = "0.2.1", path = "../plonky2", default-features = false }
-plonky2_maybe_rayon = { version = "0.2.0", path = "../maybe_rayon", default-features = false }
-plonky2_util = { version = "0.2.0", path = "../util", default-features = false }
+plonky2 = { path = "../plonky2", default-features = false }
+plonky2_maybe_rayon = { path = "../maybe_rayon", default-features = false }
+plonky2_util = { path = "../util", default-features = false }
+p3-field = { workspace = true }
+p3-goldilocks =  { workspace = true }
 
 [dev-dependencies]
 env_logger = { version = "0.9.0", default-features = false }

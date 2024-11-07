@@ -10,8 +10,9 @@ use std::sync::Arc;
 
 use hashbrown::HashMap;
 use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field, TwoAdicField};
-use plonky2_field::types::HasExtension;
 use serde::{Serialize, Serializer};
+
+use plonky2_field::types::HasExtension;
 
 use crate::field::batch_util::batch_multiply_inplace;
 use crate::gates::selectors::UNUSED_SELECTOR;

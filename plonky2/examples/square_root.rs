@@ -5,7 +5,7 @@ use p3_field::{PrimeField64, TwoAdicField};
 use plonky2::gates::arithmetic_base::ArithmeticBaseGenerator;
 use plonky2::gates::poseidon_goldilocks::PoseidonGenerator;
 use plonky2::gates::poseidon_goldilocks_mds::PoseidonMdsGenerator;
-use plonky2::hash::hash_types::RichField;
+use plonky2::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, RichField};
 use plonky2::iop::generator::{
     ConstantGenerator, GeneratedValues, RandomValueGenerator, SimpleGenerator,
 };
@@ -112,7 +112,7 @@ where
 /// "I know the square root of this field element."
 fn main() -> Result<()> {
     const D: usize = 2;
-    const NUM_HASH_OUT_ELTS: usize = 4;
+    const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 

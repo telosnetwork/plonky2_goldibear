@@ -3,8 +3,9 @@ use alloc::{vec, vec::Vec};
 use core::ops::Range;
 
 use p3_field::TwoAdicField;
-use plonky2_field::types::HasExtension;
 use serde::Serialize;
+
+use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialValues;
 use crate::gates::gate::{GateInstance, GateRef};

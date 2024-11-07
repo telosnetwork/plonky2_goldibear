@@ -7,6 +7,7 @@ use alloc::{
 use core::borrow::Borrow;
 
 use p3_field::{PrimeField64, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::add_many::AddManyGate;

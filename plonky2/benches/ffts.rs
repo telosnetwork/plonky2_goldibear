@@ -1,12 +1,14 @@
-mod allocator;
-
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use p3_baby_bear::BabyBear;
 use p3_field::TwoAdicField;
 use p3_goldilocks::Goldilocks;
+use tynm::type_name;
+
 use plonky2::field::polynomial::PolynomialCoeffs;
 use plonky2_field::types::Sample;
-use tynm::type_name;
+
+mod allocator;
+
 pub(crate) fn bench_ffts<F: TwoAdicField + Sample>(c: &mut Criterion) {
     let mut group = c.benchmark_group(format!("fft<{}>", type_name::<F>()));
 

@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 
 use itertools::Itertools;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::fri::proof::{
@@ -355,20 +356,22 @@ mod tests {
     use hashbrown::HashMap;
     use p3_field::PrimeField64;
 
-    use super::*;
     use crate::field::types::Sample;
     use crate::gates::noop::NoopGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::PoseidonGoldilocksConfig;
     use crate::recursion::dummy_circuit::{dummy_circuit, dummy_proof};
+
+    use super::*;
 
     #[test]
     fn test_conditional_recursive_verifier() -> Result<()> {
         init_logger();
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config_gl();
 

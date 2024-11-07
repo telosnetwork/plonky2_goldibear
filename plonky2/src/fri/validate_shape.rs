@@ -1,10 +1,11 @@
 use anyhow::ensure;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
+use crate::fri::FriParams;
 use crate::fri::proof::{FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::structure::FriInstanceInfo;
-use crate::fri::FriParams;
 use crate::hash::hash_types::RichField;
 use crate::plonk::config::GenericConfig;
 use crate::plonk::plonk_common::salt_size;

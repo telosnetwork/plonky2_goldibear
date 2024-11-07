@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use core::fmt::Debug;
 
 use p3_field::{Field, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};

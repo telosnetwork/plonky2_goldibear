@@ -26,8 +26,10 @@ pub trait RichField: PrimeField64 + Sample + TwoAdicField {
     fn hash_out_elements_from_bytes(bytes: &[u8]) -> Vec<Self>;
 }
 
+pub const GOLDILOCKS_NUM_HASH_OUT_ELTS: usize = 4;
+
 impl RichField for Goldilocks {
-    const NUM_HASH_OUT_ELTS: usize = 4;
+    const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
     fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self> {
         let mut buf = [0; size_of::<u64>()];
@@ -59,8 +61,11 @@ const_assert!(
     Goldilocks::ORDER_U64
         == ((1u128 << Goldilocks::EXP0) - (1u128 << Goldilocks::EXP1) + 1u128) as u64
 );
+
+pub const BABYBEAR_NUM_HASH_OUT_ELTS: usize = 8;
+
 impl RichField for BabyBear {
-    const NUM_HASH_OUT_ELTS: usize = 8;
+    const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
 
     fn read_from_buffer<T: Read + ?Sized>(reader: &mut T) -> IoResult<Self> {
         let mut buf = [0; size_of::<u32>()];
@@ -91,7 +96,7 @@ impl RichField for BabyBear {
 const_assert!(
     BabyBear::ORDER_U64 == ((1u128 << BabyBear::EXP0) - (1u128 << BabyBear::EXP1) + 1u128) as u64
 );
-//pub const NUM_HASH_OUT_ELTS: usize = 4;
+//pub const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
 /// Represents a ~256 bit hash output.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
@@ -291,12 +296,12 @@ impl<'de, const N: usize> Deserialize<'de> for BytesHash<N> {
 }
 
 mod generic_arrays {
-
     use core::marker::PhantomData;
 
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use serde::de::{SeqAccess, Visitor};
     use serde::ser::SerializeTuple;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
     pub fn serialize<S: Serializer, T: Serialize, const N: usize>(
         data: &[T; N],
         ser: S,

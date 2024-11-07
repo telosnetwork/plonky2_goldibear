@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use core::ops::Range;
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;

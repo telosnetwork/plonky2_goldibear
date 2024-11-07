@@ -3,6 +3,7 @@ use alloc::{string::String, vec::Vec};
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, PackedField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -138,6 +139,7 @@ mod tests {
 
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::public_input::PublicInputGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
@@ -149,7 +151,7 @@ mod tests {
     fn eval_fns() -> anyhow::Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(PublicInputGate)
     }

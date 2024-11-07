@@ -1,4 +1,5 @@
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -47,6 +48,7 @@ mod tests {
     use anyhow::Result;
 
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
@@ -57,7 +59,7 @@ mod tests {
     fn test_select() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
         let config = CircuitConfig::standard_recursion_config_gl();

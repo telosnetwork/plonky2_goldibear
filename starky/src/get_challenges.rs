@@ -1,5 +1,5 @@
-use plonky2::field::extension::BinomiallyExtendable;
 use plonky2::field::polynomial::PolynomialCoeffs;
+use plonky2::field::types::HasExtension;
 use plonky2::fri::proof::{FriProof, FriProofTarget};
 use plonky2::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use plonky2::hash::hash_types::{MerkleCapTarget, RichField};
@@ -23,7 +23,7 @@ use crate::proof::*;
 /// or not by the challenger. Observing it here could be redundant in a
 /// multi-STARK system where trace caps would have already been observed
 /// before proving individually each STARK.
-fn get_challenges<F, C, const D: usize>(
+fn get_challenges<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     challenger: &mut Challenger<F, C::Hasher>,
     challenges: Option<&GrandProductChallengeSet<F>>,
     trace_cap: Option<&MerkleCap<F, C::Hasher>>,
@@ -38,7 +38,7 @@ fn get_challenges<F, C, const D: usize>(
 ) -> StarkProofChallenges<F, D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F>,
 {
     let num_challenges = config.num_challenges;
 
@@ -71,7 +71,7 @@ where
         lookup_challenge_set,
         stark_alphas,
         stark_zeta,
-        fri_challenges: challenger.fri_challenges::<C, D>(
+        fri_challenges: challenger.fri_challenges::<C, D, NUM_HASH_OUT_ELTS>(
             commit_phase_merkle_caps,
             final_poly,
             pow_witness,
@@ -164,15 +164,15 @@ where
 
 /// Circuit version of `get_challenges`, with the same flexibility around
 /// `trace_cap` being passed as an `Option`.
-fn get_challenges_target<F, C, const D: usize>(
+fn get_challenges_target<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
-    challenger: &mut RecursiveChallenger<F, C::Hasher, D>,
+    challenger: &mut RecursiveChallenger<F, C::Hasher, D, NUM_HASH_OUT_ELTS>,
     challenges: Option<&GrandProductChallengeSet<Target>>,
-    trace_cap: Option<&MerkleCapTarget>,
-    auxiliary_polys_cap: Option<&MerkleCapTarget>,
-    quotient_polys_cap: Option<&MerkleCapTarget>,
+    trace_cap: Option<&MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
+    auxiliary_polys_cap: Option<&MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
+    quotient_polys_cap: Option<&MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
     openings: &StarkOpeningSetTarget<D>,
-    commit_phase_merkle_caps: &[MerkleCapTarget],
+    commit_phase_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
     final_poly: &PolynomialCoeffsExtTarget<D>,
     pow_witness: Target,
     config: &StarkConfig,

@@ -8,7 +8,6 @@ use p3_poseidon2;
 use p3_poseidon2::{DiffusionPermutation, Poseidon2, Poseidon2ExternalMatrixHL};
 use p3_symmetric::Permutation;
 
-use super::hash_types::RichField;
 use crate::field::types::HasExtension;
 use crate::gates::poseidon2_risc0_babybear::Poseidon2R0BabyBearGate;
 use crate::hash::hash_types::HashOut;
@@ -16,6 +15,8 @@ use crate::hash::hashing::{compress, PlonkyPermutation};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
+
+use super::hash_types::RichField;
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
@@ -312,10 +313,11 @@ mod tests {
     use p3_field::AbstractField;
     use p3_symmetric::Permutation;
 
-    use super::{poseidon2_r0, Poseidon2R0BabyBearHash, SPONGE_WIDTH};
     use crate::field::types::Sample;
+    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_builder::CircuitBuilder;
-    use crate::plonk::config::Hasher;
+
+    use super::{poseidon2_r0, Poseidon2R0BabyBearHash, SPONGE_WIDTH};
 
     #[test]
     fn test_against_r0_values() {
@@ -347,7 +349,7 @@ mod tests {
         use crate::plonk::config::Poseidon2BabyBearConfig;
         type F = BabyBear;
         const D: usize = 4;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type H = Poseidon2R0BabyBearHash;
         type C = Poseidon2BabyBearConfig;
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(

@@ -2,8 +2,9 @@
 use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
-use itertools::{zip_eq, Itertools};
+use itertools::{Itertools, zip_eq};
 use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};

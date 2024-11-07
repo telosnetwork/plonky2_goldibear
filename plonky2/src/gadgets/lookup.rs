@@ -2,6 +2,7 @@
 use alloc::{borrow::ToOwned, vec};
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::lookup::LookupGate;

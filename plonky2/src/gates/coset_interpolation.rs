@@ -9,8 +9,9 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+
 use plonky2_field::extension_algebra::ExtensionAlgebra;
-use plonky2_field::types::{two_adic_subgroup, HasExtension};
+use plonky2_field::types::{HasExtension, two_adic_subgroup};
 
 use crate::field::interpolation::barycentric_weights;
 use crate::gates::gate::Gate;
@@ -733,18 +734,20 @@ mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
+
     use plonky2_field::polynomial::PolynomialValues;
     use plonky2_util::log2_strict;
 
-    use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::HashOut;
+    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+
+    use super::*;
 
     #[test]
     fn test_degree_and_wires_minimized() {
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 2);
         assert_eq!(gate.num_intermediates(), 6);
         assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 2);
@@ -884,7 +887,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         for degree in 2..=4 {
             test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(
@@ -898,7 +901,7 @@ mod tests {
     fn test_gate_constraint() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <F as HasExtension<D>>::Extension;
 
@@ -953,7 +956,7 @@ mod tests {
 
     #[test]
     fn test_num_wires_constraints() {
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 8);
         assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_wires(&gate), 47);
         assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_constraints(&gate), 12);

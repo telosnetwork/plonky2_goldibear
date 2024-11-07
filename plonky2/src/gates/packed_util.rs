@@ -2,6 +2,7 @@
 use alloc::{vec, vec::Vec};
 
 use p3_field::{PackedField, PackedValue, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;

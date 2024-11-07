@@ -1,5 +1,6 @@
 use anyhow::Result;
 use p3_field::AbstractField;
+use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
@@ -8,7 +9,7 @@ use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 /// An example of using Plonky2 to prove that a given value lies in a given range.
 fn main() -> Result<()> {
     const D: usize = 2;
-    const NUM_HASH_OUT_ELTS: usize = 4;
+    const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 

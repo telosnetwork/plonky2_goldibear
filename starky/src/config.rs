@@ -8,9 +8,9 @@
 use alloc::format;
 
 use anyhow::{anyhow, Result};
+use p3_field::{Field, TwoAdicField};
 
-use plonky2::field::extension::BinomiallyExtendable;
-use plonky2::field::types::Field;
+use plonky2::field::types::HasExtension;
 use plonky2::fri::{FriConfig, FriParams};
 use plonky2::fri::reduction_strategies::FriReductionStrategy;
 use plonky2::hash::hash_types::RichField;
@@ -99,9 +99,9 @@ impl StarkConfig {
 
 #[cfg(test)]
 mod tests {
-    use plonky2::field::goldilocks_field::Goldilocks;
-
+    use p3_goldilocks::Goldilocks;
     use super::*;
+
 
     #[test]
     fn test_valid_config() {

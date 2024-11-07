@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use std::vec::Vec;
 
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::GateRef;
@@ -102,8 +103,8 @@ macro_rules! impl_gate_serializer {
 }
 
 pub mod default {
-
     use p3_field::TwoAdicField;
+
     use plonky2_field::types::HasExtension;
 
     use crate::gates::add_many::AddManyGate;

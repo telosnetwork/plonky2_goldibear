@@ -9,6 +9,7 @@ use core::marker::PhantomData;
 
 use itertools::Itertools;
 use p3_field::{AbstractField, PackedField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -457,14 +458,15 @@ mod tests {
     use anyhow::Result;
     use p3_field::Field;
     use p3_goldilocks::Goldilocks;
-    use rand::rngs::OsRng;
     use rand::Rng;
+    use rand::rngs::OsRng;
 
-    use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::HashOut;
+    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+
+    use super::*;
 
     #[test]
     fn low_degree() {
@@ -475,7 +477,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(RandomAccessGate::new(4, 4, 1))
     }
@@ -484,7 +486,7 @@ mod tests {
     fn test_gate_constraint() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 

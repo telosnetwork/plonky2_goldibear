@@ -3,6 +3,7 @@ use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
 use p3_field::{AbstractField, PackedField, PrimeField64, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -241,10 +242,12 @@ mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
 
-    use super::AddManyGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+
+    use super::AddManyGate;
 
     #[test]
     fn low_degree() {
@@ -259,7 +262,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate =
             AddManyGate::new_from_config::<F>(&CircuitConfig::standard_recursion_config_gl(), 32);

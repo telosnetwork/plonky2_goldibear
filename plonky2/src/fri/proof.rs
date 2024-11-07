@@ -4,9 +4,10 @@ use alloc::{vec, vec::Vec};
 use hashbrown::HashMap;
 use itertools::izip;
 use p3_field::TwoAdicField;
+use serde::{Deserialize, Serialize};
+
 use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
-use serde::{Deserialize, Serialize};
 
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::FriParams;

@@ -6,14 +6,16 @@ use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use p3_poseidon2;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_symmetric::Permutation;
+
 use plonky2_field::types::HasExtension;
 
-use super::hash_types::{HashOut, RichField};
-use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
+
+use super::hash_types::{HashOut, RichField};
+use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
@@ -213,30 +215,39 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
     }
 }
 
-#[test]
-fn test_poseidon2_babybear() {
-    use plonky2_field::types::Sample;
+#[cfg(test)]
+mod tests {
+    use p3_baby_bear::BabyBear;
+    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
+    use crate::hash::poseidon2_babybear::Poseidon2BabyBearHash;
+    use crate::plonk::circuit_builder::CircuitBuilder;
+    use crate::plonk::config::Hasher;
 
-    use crate::iop::witness::{PartialWitness, WitnessWrite};
-    use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
-    use crate::plonk::config::Poseidon2BabyBearConfig;
-    type F = BabyBear;
-    const D: usize = 4;
-    const NUM_HASH_OUT_ELTS: usize = 8;
-    type H = Poseidon2BabyBearHash;
-    type C = Poseidon2BabyBearConfig;
-    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(
-        CircuitConfig::standard_recursion_config_bb_wide(),
-    );
-    let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
-    let res = H::hash_or_noop(&vec);
-    let vec_target = builder.add_virtual_targets(NUM_HASH_OUT_ELTS * 3);
-    let res_target = builder.hash_or_noop::<H>(vec_target.clone());
+    #[test]
+    fn test_poseidon2_babybear() {
+        use plonky2_field::types::Sample;
 
-    let mut pw = PartialWitness::<F>::new();
-    pw.set_target_arr(&vec_target, &vec);
-    pw.set_hash_target(res_target, res);
-    let data: CircuitData<F, C, D, NUM_HASH_OUT_ELTS> = builder.build();
-    let proof = data.prove(pw);
-    data.verify(proof.unwrap()).unwrap();
+        use crate::iop::witness::{PartialWitness, WitnessWrite};
+        use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
+        use crate::plonk::config::Poseidon2BabyBearConfig;
+        type F = BabyBear;
+        const D: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
+        type H = Poseidon2BabyBearHash;
+        type C = Poseidon2BabyBearConfig;
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(
+            CircuitConfig::standard_recursion_config_bb_wide(),
+        );
+        let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
+        let res = H::hash_or_noop(&vec);
+        let vec_target = builder.add_virtual_targets(NUM_HASH_OUT_ELTS * 3);
+        let res_target = builder.hash_or_noop::<H>(vec_target.clone());
+
+        let mut pw = PartialWitness::<F>::new();
+        pw.set_target_arr(&vec_target, &vec);
+        pw.set_hash_target(res_target, res);
+        let data: CircuitData<F, C, D, NUM_HASH_OUT_ELTS> = builder.build();
+        let proof = data.prove(pw);
+        data.verify(proof.unwrap()).unwrap();
+    }
 }

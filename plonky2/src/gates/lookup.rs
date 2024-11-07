@@ -10,9 +10,9 @@ use core::usize;
 use itertools::Itertools;
 use keccak_hash::keccak;
 use p3_field::{PackedField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
-use super::lookup_table::LookupTable;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -28,6 +28,8 @@ use crate::plonk::vars::{
     EvaluationVarsBasePacked,
 };
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
+
+use super::lookup_table::LookupTable;
 
 pub type Lookup = Vec<(Target, Target)>;
 

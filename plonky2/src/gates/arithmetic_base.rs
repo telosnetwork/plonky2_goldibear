@@ -6,6 +6,7 @@ use alloc::{
 };
 
 use p3_field::{PackedField, TwoAdicField};
+
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -287,6 +288,7 @@ mod tests {
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
@@ -300,7 +302,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = 4;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)

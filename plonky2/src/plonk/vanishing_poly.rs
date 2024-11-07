@@ -3,12 +3,11 @@ use alloc::{format, vec, vec::Vec};
 use core::cmp::min;
 
 use p3_field::{AbstractExtensionField, TwoAdicField};
+
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
 
-use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
-use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;
@@ -26,6 +25,9 @@ use crate::util::partial_products::{check_partial_products, check_partial_produc
 use crate::util::reducing::ReducingFactorTarget;
 use crate::util::strided_view::PackedStridedView;
 use crate::with_context;
+
+use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
+use super::vars::EvaluationVarsBase;
 
 /// Get the polynomial associated to a lookup table with current challenges.
 pub(crate) fn get_lut_poly<

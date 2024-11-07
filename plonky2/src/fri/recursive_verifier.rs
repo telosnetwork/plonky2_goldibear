@@ -3,24 +3,25 @@ use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
 use p3_field::TwoAdicField;
+
 use plonky2_field::types::HasExtension;
 
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
-use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{flatten_target, ExtensionTarget};
+use crate::iop::ext_target::{ExtensionTarget, flatten_target};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
+use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>

@@ -20,18 +20,18 @@ use std::collections::BTreeMap;
 
 use anyhow::Result;
 use p3_field::{AbstractExtensionField, TwoAdicField};
-use plonky2_field::types::HasExtension;
 use serde::Serialize;
 
-use super::circuit_builder::LookupWire;
+use plonky2_field::types::HasExtension;
+
 use crate::field::fft::FftRootTable;
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::reduction_strategies::FriReductionStrategy;
 use crate::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
 };
-use crate::fri::{FriConfig, FriParams};
 use crate::gates::gate::GateRef;
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
@@ -52,6 +52,8 @@ use crate::util::serialization::{
     Buffer, GateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
 use crate::util::timing::TimingTree;
+
+use super::circuit_builder::LookupWire;
 
 /// Configuration to be used when building a circuit. This defines the shape of the circuit
 /// as well as its targeted security level and sub-protocol (e.g. FRI) parameters.

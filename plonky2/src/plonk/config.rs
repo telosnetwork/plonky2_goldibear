@@ -11,12 +11,13 @@ use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
 use p3_baby_bear::BabyBear;
-use p3_field::extension::BinomialExtensionField;
 use p3_field::{ExtensionField, Field, TwoAdicField};
+use p3_field::extension::BinomialExtensionField;
 use p3_goldilocks::Goldilocks;
-use plonky2_field::types::HasExtension;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+
+use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;

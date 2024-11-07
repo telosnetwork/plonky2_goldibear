@@ -1,12 +1,13 @@
-mod allocator;
-
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use p3_baby_bear::BabyBear;
-use p3_field::extension::BinomialExtensionField;
 use p3_field::{batch_multiplicative_inverse, TwoAdicField};
+use p3_field::extension::BinomialExtensionField;
 use p3_goldilocks::Goldilocks;
-use plonky2_field::types::Sample;
 use tynm::type_name;
+
+use plonky2_field::types::Sample;
+
+mod allocator;
 
 pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     c.bench_function(&format!("mul-throughput<{}>", type_name::<F>()), |b| {

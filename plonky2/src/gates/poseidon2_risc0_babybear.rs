@@ -17,8 +17,8 @@ use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::poseidon2_risc0_babybear::{
-    Poseidon2R0BabyBearHash, EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS,
-    M_INT_DIAG_HZN, N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
+    EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS, M_INT_DIAG_HZN,
+    N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, Poseidon2R0BabyBearHash, SPONGE_CAPACITY, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -839,14 +839,16 @@ mod tests {
     use anyhow::Result;
     use p3_baby_bear::BabyBear;
 
-    use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::hash::poseidon2_risc0_babybear::Permuter31R0;
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
+
+    use super::*;
 
     #[test]
     fn wire_indices() {
@@ -875,7 +877,7 @@ mod tests {
     fn generated_output() {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config_bb_wide();
@@ -931,7 +933,7 @@ mod tests {
     fn eval_fns() -> Result<()> {
         const D: usize = 4;
         type C = Poseidon2BabyBearConfig;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate = Poseidon2R0BabyBearGate::<F, D>::new();
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
@@ -940,7 +942,7 @@ mod tests {
     #[test]
     fn test_permute_internal_circuit() {
         const D: usize = 4;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = BabyBear;
         type EF = <F as HasExtension<D>>::Extension;
 
@@ -964,7 +966,7 @@ mod tests {
     #[test]
     fn test_permute_external_circuit() {
         const D: usize = 4;
-        const NUM_HASH_OUT_ELTS: usize = 8;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = BabyBear;
         type EF = <F as HasExtension<D>>::Extension;
 
