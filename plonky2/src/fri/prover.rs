@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
@@ -37,7 +36,7 @@ pub fn fri_proof<
     timing: &mut TimingTree,
 ) -> FriProof<F, C::Hasher, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     let n = lde_polynomial_values.len();
     assert_eq!(lde_polynomial_coeffs.len(), n);
@@ -95,7 +94,7 @@ fn fri_committed_trees<
     fri_params: &FriParams,
 ) -> FriCommitedTrees<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     let mut trees = Vec::with_capacity(fri_params.reduction_arity_bits.len());
 
@@ -147,7 +146,7 @@ fn fri_proof_of_work<
     config: &FriConfig,
 ) -> F
 where
-    F::Extension: TwoAdicField,
+
 {
     let min_leading_zeros = config.proof_of_work_bits + (64 - F::order().bits()) as u32;
 
@@ -205,7 +204,7 @@ fn fri_prover_query_rounds<
     fri_params: &FriParams,
 ) -> Vec<FriQueryRound<F, C::Hasher, D>>
 where
-    F::Extension: TwoAdicField,
+
 {
     challenger
         .get_n_challenges(fri_params.config.num_query_rounds)
@@ -234,7 +233,7 @@ fn fri_prover_query_round<
     fri_params: &FriParams,
 ) -> FriQueryRound<F, C::Hasher, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     let mut query_steps = Vec::new();
     let initial_proof = initial_merkle_trees

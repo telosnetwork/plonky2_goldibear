@@ -4,8 +4,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
-use plonky2::field::packed::PackedField;
+use p3_field::{AbstractField, ExtensionField, PackedField};
+
+use plonky2::field::types::HasExtension;
 use plonky2::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
@@ -20,7 +21,9 @@ use crate::evaluation_frame::StarkEvaluationFrame;
 use crate::lookup::Lookup;
 
 /// Represents a STARK system.
-pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
+pub trait Stark<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>: Sync
+    where
+ {
     /// The total number of columns in the trace.
     const COLUMNS: usize = Self::EvaluationFrameTarget::COLUMNS;
     /// The total number of public inputs.
@@ -29,7 +32,8 @@ pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
     /// This is used to evaluate constraints natively.
     type EvaluationFrame<FE, P, const D2: usize>: StarkEvaluationFrame<P, FE>
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        F: HasExtension<D2, Extension=FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>;
 
     /// The `Target` version of `Self::EvaluationFrame`, used to evaluate constraints recursively.
@@ -46,7 +50,8 @@ pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
         vars: &Self::EvaluationFrame<FE, P, D2>,
         yield_constr: &mut ConstraintConsumer<P>,
     ) where
-        FE: FieldExtension<D2, BaseField = F>,
+        F: HasExtension<D2, Extension=FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>;
 
     /// Evaluates constraints at a vector of points from the base field `F`.
@@ -75,7 +80,7 @@ pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: &Self::EvaluationFrameTarget,
-        yield_constr: &mut RecursiveConstraintConsumer<F, D>,
+        yield_constr: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
     );
 
     /// Outputs the maximum constraint degree of this [`Stark`].
@@ -159,7 +164,7 @@ pub trait Stark<F: RichField + HasExtension<D>, const D: usize>: Sync {
                 num_lookup_columns + num_ctl_helpers..num_auxiliary_polys,
             );
             let ctl_first_batch = FriBatchInfo {
-                point: F::Extension::ONE,
+                point: F::Extension::one(),
                 polynomials: ctl_zs_info,
             };
 

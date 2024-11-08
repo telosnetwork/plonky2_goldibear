@@ -76,7 +76,7 @@ impl<const NUM_HASH_OUT_ELTS: usize> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<Self>
     where
-        F::Extension: TwoAdicField,
+
     {
         let cap_len = common_data.config.fri_config.num_cap_elements();
         let len = slice.len();
@@ -102,7 +102,7 @@ impl<const NUM_HASH_OUT_ELTS: usize> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
@@ -129,7 +129,7 @@ where
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+
     {
         let verifier_data = self
             .verifier_data_public_input
@@ -184,7 +184,7 @@ where
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(common_data)?;
@@ -213,7 +213,7 @@ pub fn check_cyclic_proof_verifier_data<
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+
 {
     let pis = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS>::from_slice(
         &proof.public_inputs,
@@ -255,7 +255,7 @@ mod tests {
     >() -> CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+
     {
         let config = CircuitConfig::standard_recursion_config_gl();
         let builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);

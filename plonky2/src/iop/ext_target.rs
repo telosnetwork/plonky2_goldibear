@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField};
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -35,7 +35,7 @@ impl<const D: usize> ExtensionTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
-        F::Extension: TwoAdicField,
+
     {
         self.repeated_frobenius(1, builder)
     }
@@ -46,7 +46,7 @@ impl<const D: usize> ExtensionTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
-        F::Extension: TwoAdicField,
+
     {
         if count == 0 {
             return *self;
@@ -98,7 +98,7 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub fn constant_extension(&mut self, c: F::Extension) -> ExtensionTarget<D> {
         let c_parts = c.as_base_slice();

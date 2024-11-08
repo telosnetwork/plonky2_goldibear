@@ -193,7 +193,7 @@ pub trait Read {
     ) -> IoResult<Vec<F::Extension>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         (0..length).map(|_| self.read_field_ext::<F, D>()).collect()
     }
@@ -348,7 +348,7 @@ pub trait Read {
     ) -> IoResult<OpeningSet<F, D>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -439,7 +439,7 @@ pub trait Read {
     ) -> IoResult<FriInitialTreeProof<F, C::Hasher>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -496,7 +496,7 @@ pub trait Read {
     ) -> IoResult<FriQueryStep<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let evals = self.read_field_ext_vec::<F, D>(arity - usize::from(compressed))?;
@@ -529,7 +529,7 @@ pub trait Read {
     ) -> IoResult<Vec<FriQueryRound<F, C::Hasher, D>>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -580,7 +580,7 @@ pub trait Read {
     ) -> IoResult<FriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -752,7 +752,7 @@ pub trait Read {
         &mut self,
     ) -> IoResult<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let poly_len = self.read_usize()?;
         let mut polynomials = Vec::with_capacity(poly_len);
@@ -784,7 +784,7 @@ pub trait Read {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let config = self.read_circuit_config()?;
         let fri_params = self.read_fri_params()?;
@@ -851,7 +851,7 @@ pub trait Read {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let common = self.read_common_circuit_data(gate_serializer)?;
         let prover_only = self.read_prover_only_circuit_data(generator_serializer, &common)?;
@@ -874,7 +874,7 @@ pub trait Read {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let gen_len = self.read_usize()?;
         let mut generators = Vec::with_capacity(gen_len);
@@ -962,7 +962,7 @@ pub trait Read {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let common = self.read_common_circuit_data(gate_serializer)?;
         let prover_only = self.read_prover_only_circuit_data(generator_serializer, &common)?;
@@ -981,7 +981,7 @@ pub trait Read {
         &mut self,
     ) -> IoResult<VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let height = self.read_usize()?;
         let constants_sigmas_cap = self.read_merkle_cap(height)?;
@@ -1003,7 +1003,7 @@ pub trait Read {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let verifier_only = self.read_verifier_only_circuit_data()?;
         let common = self.read_common_circuit_data(gate_serializer)?;
@@ -1032,9 +1032,9 @@ pub trait Read {
     ) -> IoResult<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-        F::Extension: TwoAdicField,
+
     {
         let config = &common_data.config;
         let wires_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
@@ -1079,7 +1079,7 @@ pub trait Read {
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let proof = self.read_proof(common_data)?;
@@ -1112,7 +1112,7 @@ pub trait Read {
     ) -> IoResult<CompressedFriQueryRounds<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -1164,7 +1164,7 @@ pub trait Read {
     ) -> IoResult<CompressedFriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -1193,7 +1193,7 @@ pub trait Read {
     ) -> IoResult<CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -1226,7 +1226,7 @@ pub trait Read {
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let proof = self.read_compressed_proof(common_data)?;
@@ -1354,7 +1354,7 @@ pub trait Write {
     fn write_field_ext<F, const D: usize>(&mut self, x: F::Extension) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         for &a in x.as_base_slice() {
             self.write_field(a)?;
@@ -1367,7 +1367,7 @@ pub trait Write {
     fn write_field_ext_vec<F, const D: usize>(&mut self, v: &[F::Extension]) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         for &a in v {
             self.write_field_ext::<F, D>(a)?;
@@ -1523,7 +1523,7 @@ pub trait Write {
     fn write_opening_set<F, const D: usize>(&mut self, os: &OpeningSet<F, D>) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         self.write_field_ext_vec::<F, D>(&os.constants)?;
         self.write_field_ext_vec::<F, D>(&os.plonk_sigmas)?;
@@ -1598,7 +1598,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for (v, p) in &fitp.evals_proofs {
@@ -1630,7 +1630,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_field_ext_vec::<F, D>(&fqs.evals)?;
@@ -1655,7 +1655,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for fqr in fqrs {
@@ -1692,7 +1692,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for cap in &fp.commit_phase_merkle_caps {
@@ -1857,7 +1857,7 @@ pub trait Write {
         poly_batch: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         self.write_usize(poly_batch.polynomials.len())?;
         for i in 0..poly_batch.polynomials.len() {
@@ -1882,7 +1882,7 @@ pub trait Write {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         let CommonCircuitData {
             config,
@@ -1941,7 +1941,7 @@ pub trait Write {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         self.write_common_circuit_data(&circuit_data.common, gate_serializer)?;
         self.write_prover_only_circuit_data(
@@ -1964,7 +1964,7 @@ pub trait Write {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         let ProverOnlyCircuitData {
             generators,
@@ -2047,7 +2047,7 @@ pub trait Write {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         self.write_common_circuit_data(&prover_circuit_data.common, gate_serializer)?;
         self.write_prover_only_circuit_data(
@@ -2067,7 +2067,7 @@ pub trait Write {
         verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         let VerifierOnlyCircuitData {
             constants_sigmas_cap,
@@ -2092,7 +2092,7 @@ pub trait Write {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         self.write_verifier_only_circuit_data(&verifier_circuit_data.verifier_only)?;
         self.write_common_circuit_data(&verifier_circuit_data.common, gate_serializer)
@@ -2121,7 +2121,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
@@ -2152,7 +2152,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let ProofWithPublicInputs {
@@ -2186,7 +2186,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for &i in &cfqrs.indices {
@@ -2215,7 +2215,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for cap in &fp.commit_phase_merkle_caps {
@@ -2236,7 +2236,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
@@ -2259,7 +2259,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let CompressedProofWithPublicInputs {
@@ -2311,7 +2311,7 @@ impl Write for Vec<u8> {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         gate_serializer.write_gate(self, gate, common_data)
     }
@@ -2327,7 +2327,7 @@ impl Write for Vec<u8> {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         generator_serializer.write_generator(self, generator, common_data)
     }
@@ -2391,7 +2391,7 @@ impl<'a> Read for Buffer<'a> {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         gate_serializer.read_gate(self, common_data)
     }
@@ -2406,7 +2406,7 @@ impl<'a> Read for Buffer<'a> {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         generator_serializer.read_generator(self, common_data)
     }

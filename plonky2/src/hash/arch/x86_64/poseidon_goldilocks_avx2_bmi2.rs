@@ -946,7 +946,7 @@ pub unsafe fn poseidon(state: &[Goldilocks; 12]) -> [Goldilocks; 12] {
     let state = all_partial_rounds(state, HALF_N_FULL_ROUNDS);
     let state = half_full_rounds(state, HALF_N_FULL_ROUNDS + N_PARTIAL_ROUNDS);
 
-    let mut res = [Goldilocks::ZERO; 12];
+    let mut res = [Goldilocks::zero(); 12];
     store_state(&mut res, state);
     res
 }
@@ -975,7 +975,7 @@ pub unsafe fn mds_layer(state: &[Goldilocks; WIDTH]) -> [Goldilocks; WIDTH] {
     // The FUSED_ROUND_CONSTANTS for the last round are all 0 (shifted by 2**63 as required).
     let round_consts = FUSED_ROUND_CONSTANTS[WIDTH * (N_ROUNDS - 1)..].as_ptr();
     let state = mds_const_layers_full(state, (round_consts, 0));
-    let mut res = [Goldilocks::ZERO; 12];
+    let mut res = [Goldilocks::zero(); 12];
     store_state(&mut res, state);
     res
 }

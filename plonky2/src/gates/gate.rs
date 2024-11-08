@@ -9,7 +9,7 @@ use core::usize;
 use std::sync::Arc;
 
 use hashbrown::HashMap;
-use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field};
 use serde::{Serialize, Serializer};
 
 use plonky2_field::types::HasExtension;
@@ -55,7 +55,7 @@ use crate::util::serialization::{Buffer, IoResult};
 pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
     'static + Send + Sync
 where
-    F::Extension: TwoAdicField,
+
 {
     /// Defines a unique identifier for this custom gate.
     ///
@@ -294,7 +294,7 @@ where
 pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
     Gate<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn as_any(&self) -> &dyn Any;
 }
@@ -306,7 +306,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > AnyGate<F, D, NUM_HASH_OUT_ELTS> for T
 where
-    F::Extension: TwoAdicField,
+
 {
     fn as_any(&self) -> &dyn Any {
         self
@@ -322,7 +322,7 @@ pub struct GateRef<F: RichField + HasExtension<D>, const D: usize, const NUM_HAS
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub fn new<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(gate: G) -> GateRef<F, D, NUM_HASH_OUT_ELTS> {
         GateRef(Arc::new(gate))
@@ -332,7 +332,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
@@ -342,7 +342,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Hash
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.id().hash(state)
@@ -352,14 +352,14 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", self.0.id())
@@ -369,7 +369,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Serialize
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0.id())
@@ -391,7 +391,7 @@ pub struct GateInstance<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+
 {
     pub gate_ref: GateRef<F, D, NUM_HASH_OUT_ELTS>,
     pub constants: Vec<F>,
@@ -404,7 +404,7 @@ pub struct PrefixedGate<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+
 {
     pub gate: GateRef<F, D, NUM_HASH_OUT_ELTS>,
     pub prefix: Vec<bool>,
@@ -432,7 +432,7 @@ fn compute_filter_circuit<
     many_selectors: bool,
 ) -> ExtensionTarget<D>
 where
-    F::Extension: TwoAdicField,
+
 {
     debug_assert!(group_range.contains(&row));
     let v = group_range

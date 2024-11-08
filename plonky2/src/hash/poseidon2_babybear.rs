@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use lazy_static::lazy_static;
 use p3_baby_bear::{BabyBear, DiffusionMatrixBabyBear};
-use p3_field::{AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PrimeField64};
 use p3_poseidon2;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_symmetric::Permutation;
@@ -190,7 +190,6 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,
-        <F as HasExtension<D>>::Extension: TwoAdicField,
     {
         let gate_type: Poseidon2BabyBearGate<F, D> = Poseidon2BabyBearGate::<F, D>::new();
         let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);

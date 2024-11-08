@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -14,7 +13,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     /// Interpolates a polynomial, whose points are a coset of the multiplicative subgroup with the
     /// given size, and whose values are given. Returns the evaluation of the interpolant at

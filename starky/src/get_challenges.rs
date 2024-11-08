@@ -29,16 +29,17 @@ fn get_challenges<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     trace_cap: Option<&MerkleCap<F, C::Hasher>>,
     auxiliary_polys_cap: Option<&MerkleCap<F, C::Hasher>>,
     quotient_polys_cap: Option<&MerkleCap<F, C::Hasher>>,
-    openings: &StarkOpeningSet<F, D>,
+    openings: &StarkOpeningSet<F, D, NUM_HASH_OUT_ELTS>,
     commit_phase_merkle_caps: &[MerkleCap<F, C::Hasher>],
     final_poly: &PolynomialCoeffs<F::Extension>,
     pow_witness: F,
     config: &StarkConfig,
     degree_bits: usize,
-) -> StarkProofChallenges<F, D>
+) -> StarkProofChallenges<F, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+
 {
     let num_challenges = config.num_challenges;
 
@@ -81,10 +82,11 @@ where
     }
 }
 
-impl<F, C, const D: usize> StarkProof<F, C, D>
+impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProof<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+
 {
     /// Computes all Fiat-Shamir challenges used in the STARK proof.
     /// For a single STARK system, the `ignore_trace_cap` boolean should
@@ -99,7 +101,7 @@ where
         challenges: Option<&GrandProductChallengeSet<F>>,
         ignore_trace_cap: bool,
         config: &StarkConfig,
-    ) -> StarkProofChallenges<F, D> {
+    ) -> StarkProofChallenges<F, D, NUM_HASH_OUT_ELTS> {
         let degree_bits = self.recover_degree_bits(config);
 
         let StarkProof {
@@ -122,7 +124,7 @@ where
             Some(trace_cap)
         };
 
-        get_challenges::<F, C, D>(
+        get_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
             challenger,
             challenges,
             trace_cap,
@@ -138,10 +140,11 @@ where
     }
 }
 
-impl<F, C, const D: usize> StarkProofWithPublicInputs<F, C, D>
+impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+
 {
     /// Computes all Fiat-Shamir challenges used in the STARK proof.
     /// For a single STARK system, the `ignore_trace_cap` boolean should
@@ -156,7 +159,7 @@ where
         challenges: Option<&GrandProductChallengeSet<F>>,
         ignore_trace_cap: bool,
         config: &StarkConfig,
-    ) -> StarkProofChallenges<F, D> {
+    ) -> StarkProofChallenges<F, D, NUM_HASH_OUT_ELTS> {
         self.proof
             .get_challenges(challenger, challenges, ignore_trace_cap, config)
     }
@@ -179,8 +182,9 @@ fn get_challenges_target<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
 ) -> StarkProofChallengesTarget<D>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    C::Hasher: AlgebraicHasher<F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+
 {
     let num_challenges = config.num_challenges;
 
@@ -224,7 +228,7 @@ where
     }
 }
 
-impl<const D: usize> StarkProofTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProofTarget<D, NUM_HASH_OUT_ELTS> {
     /// Creates all Fiat-Shamir `Target` challenges used in the STARK proof.
     /// For a single STARK system, the `ignore_trace_cap` boolean should
     /// always be set to `false`.
@@ -235,15 +239,16 @@ impl<const D: usize> StarkProofTarget<D> {
     pub fn get_challenges<F, C>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
-        challenger: &mut RecursiveChallenger<F, C::Hasher, D>,
+        challenger: &mut RecursiveChallenger<F, C::Hasher, D, NUM_HASH_OUT_ELTS>,
         challenges: Option<&GrandProductChallengeSet<Target>>,
         ignore_trace_cap: bool,
         config: &StarkConfig,
     ) -> StarkProofChallengesTarget<D>
     where
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
-        C::Hasher: AlgebraicHasher<F>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+
     {
         let StarkProofTarget {
             trace_cap,
@@ -265,7 +270,7 @@ impl<const D: usize> StarkProofTarget<D> {
             Some(trace_cap)
         };
 
-        get_challenges_target::<F, C, D>(
+        get_challenges_target::<F, C, D, NUM_HASH_OUT_ELTS>(
             builder,
             challenger,
             challenges,
@@ -281,7 +286,7 @@ impl<const D: usize> StarkProofTarget<D> {
     }
 }
 
-impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
     /// Creates all Fiat-Shamir `Target` challenges used in the STARK proof.
     /// For a single STARK system, the `ignore_trace_cap` boolean should
     /// always be set to `false`.
@@ -292,15 +297,16 @@ impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
     pub fn get_challenges<F, C>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
-        challenger: &mut RecursiveChallenger<F, C::Hasher, D>,
+        challenger: &mut RecursiveChallenger<F, C::Hasher, D, NUM_HASH_OUT_ELTS>,
         challenges: Option<&GrandProductChallengeSet<Target>>,
         ignore_trace_cap: bool,
         config: &StarkConfig,
     ) -> StarkProofChallengesTarget<D>
     where
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
-        C::Hasher: AlgebraicHasher<F>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+
     {
         self.proof
             .get_challenges::<F, C>(builder, challenger, challenges, ignore_trace_cap, config)
@@ -308,7 +314,7 @@ impl<const D: usize> StarkProofWithPublicInputsTarget<D> {
 }
 
 // TODO: Deal with the compressed stuff.
-// impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize>
+// impl<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize>
 //     CompressedProofWithPublicInputs<F, C, D>
 // {
 //     /// Computes all Fiat-Shamir challenges used in the Plonk proof.

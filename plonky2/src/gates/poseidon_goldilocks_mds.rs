@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField};
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -32,7 +32,7 @@ pub struct PoseidonMdsGate<F: RichField + HasExtension<D>, const D: usize>(Phant
 
 impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub const fn new() -> Self {
         Self(PhantomData)
@@ -133,7 +133,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGate<F, D>
 where
     F: HasExtension<D>,
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -256,7 +256,7 @@ pub struct PoseidonMdsGenerator<const D: usize> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGenerator<D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "PoseidonMdsGenerator".to_string()

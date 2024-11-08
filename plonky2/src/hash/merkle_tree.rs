@@ -252,7 +252,7 @@ mod tests {
         cap_height: usize,
     ) -> Result<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         let tree = MerkleTree::<F, C::Hasher>::new(leaves.clone(), cap_height);
         for (i, leaf) in leaves.into_iter().enumerate() {

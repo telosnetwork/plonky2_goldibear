@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use p3_field::{AbstractField, TwoAdicField};
+use p3_field::AbstractField;
 
 use plonky2_field::types::HasExtension;
 
@@ -38,7 +38,7 @@ pub struct PoseidonGate<F: RichField + HasExtension<D>, const D: usize>(PhantomD
 
 impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub const fn new() -> Self {
         Self(PhantomData)
@@ -107,7 +107,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -449,7 +449,7 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D>, const D: usize> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "PoseidonGenerator".to_string()

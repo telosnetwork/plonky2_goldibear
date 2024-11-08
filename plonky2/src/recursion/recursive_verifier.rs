@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -21,7 +20,7 @@ use crate::with_context;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     /// Recursively verifies an inner proof.
     pub fn verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
@@ -595,7 +594,7 @@ mod tests {
         num_dummy_gates: u64,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         for _ in 0..num_dummy_gates {
@@ -621,7 +620,7 @@ mod tests {
         num_dummy_gates: u64,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let initial_a = builder.add_virtual_target();
@@ -682,7 +681,7 @@ mod tests {
         config: &CircuitConfig,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let initial_a = builder.add_virtual_target();
@@ -763,7 +762,7 @@ mod tests {
         config: &CircuitConfig,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+
     {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
 
@@ -830,7 +829,7 @@ mod tests {
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+
     {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let mut pw = PartialWitness::new();
@@ -885,7 +884,7 @@ mod tests {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()>
     where
-        F::Extension: TwoAdicField,
+
     {
         let proof_bytes = proof.to_bytes();
         info!("Proof length: {} bytes", proof_bytes.len());

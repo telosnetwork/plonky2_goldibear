@@ -1,4 +1,3 @@
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -10,7 +9,7 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     /// Selects `x` or `y` based on `b`, i.e., this returns `if b { x } else { y }`.
     pub fn select_ext(

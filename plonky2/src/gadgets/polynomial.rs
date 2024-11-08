@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -29,7 +28,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         point: Target,
     ) -> ExtensionTarget<D>
     where
-        F::Extension: TwoAdicField,
+
     {
         let point = builder.convert_to_ext(point);
         let mut point = ReducingFactorTarget::new(point);
@@ -42,7 +41,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         point: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where
-        F::Extension: TwoAdicField,
+
     {
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
@@ -60,7 +59,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -76,7 +75,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -93,7 +92,7 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         debug_assert_eq!(self.0.len(), powers.len() + 1);
         let acc = self.0[0];

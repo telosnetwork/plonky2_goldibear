@@ -9,7 +9,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 use log::{debug, info, Level, warn};
-use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, Field};
 
 use plonky2_field::types::{HasExtension, two_adic_subgroup};
 use plonky2_util::ceil_div_usize;
@@ -145,7 +145,7 @@ pub struct CircuitBuilder<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+
 {
     /// Circuit configuration to be used by this [`CircuitBuilder`].
     pub config: CircuitConfig,
@@ -213,7 +213,7 @@ pub struct CircuitBuilder<
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     /// Given a [`CircuitConfig`], generate a new [`CircuitBuilder`] instance.
     /// It will also check that the configuration provided is consistent, i.e.
@@ -1089,7 +1089,7 @@ where
         commit_to_sigma: bool,
     ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
-        F::Extension: TwoAdicField,
+
     {
         let (circuit_data, success) = self.try_build_with_options(commit_to_sigma);
         if !success {
@@ -1105,7 +1105,7 @@ where
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
     where
-        F::Extension: TwoAdicField,
+
     {
         self.complete_gates_wires();
         let mut timing = TimingTree::new("preprocess", Level::Trace);
@@ -1360,7 +1360,7 @@ where
         self,
     ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
-        F::Extension: TwoAdicField,
+
     {
         self.build_with_options(true)
     }
@@ -1369,7 +1369,7 @@ where
         self,
     ) -> MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
-        F::Extension: TwoAdicField,
+
     {
         let circuit_data = self.build_with_options(false);
         MockCircuitData {
@@ -1382,7 +1382,7 @@ where
         self,
     ) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
-        F::Extension: TwoAdicField,
+
     {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
@@ -1394,7 +1394,7 @@ where
         self,
     ) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
     where
-        F::Extension: TwoAdicField,
+
     {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();

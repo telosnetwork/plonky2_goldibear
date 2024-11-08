@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use keccak_hash::keccak;
-use p3_field::{PackedField, TwoAdicField};
+use p3_field::PackedField;
 
 use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
@@ -87,7 +87,7 @@ impl LookupTableGate {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         // Custom implementation to not have the entire lookup table
@@ -202,7 +202,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
 where
-    F::Extension: TwoAdicField,
+
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -224,7 +224,7 @@ pub struct LookupTableGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupTableGenerator
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "LookupTableGenerator".to_string()

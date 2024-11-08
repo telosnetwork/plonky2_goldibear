@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 
 use itertools::Itertools;
-use p3_field::{AbstractField, PackedField, TwoAdicField};
+use p3_field::{AbstractField, PackedField};
 
 use plonky2_field::types::HasExtension;
 
@@ -46,7 +46,7 @@ pub struct RandomAccessGate<F: RichField + HasExtension<D>, const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     const fn new(num_copies: usize, bits: usize, num_extra_constants: usize) -> Self {
         Self {
@@ -127,7 +127,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
@@ -325,7 +325,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -374,7 +374,7 @@ where
 #[derive(Debug, Default)]
 pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+
 {
     row: usize,
     gate: RandomAccessGate<F, D>,
@@ -384,7 +384,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "RandomAccessGenerator".to_string()

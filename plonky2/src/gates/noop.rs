@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -21,7 +20,7 @@ pub struct NoopGate;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for NoopGate
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "NoopGate".into()

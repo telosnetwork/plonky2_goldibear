@@ -7,7 +7,7 @@ use alloc::{
 };
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, TwoAdicField};
+use p3_field::AbstractExtensionField;
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -67,7 +67,7 @@ impl<const D: usize> ReducingGate<D> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingGate<D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -220,7 +220,7 @@ pub struct ReducingGenerator<const D: usize> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ReducingGenerator<D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "ReducingGenerator".to_string()

@@ -1111,7 +1111,7 @@ impl<F: RichField> AlgebraicHasher<F, 4> for Poseidon64Hash {
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);

@@ -6,9 +6,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
-use p3_field::{PackedField, TwoAdicField};
-use plonky2::field::types::HasExtension;
 
+use p3_field::PackedField;
+
+use plonky2::field::types::HasExtension;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
 use plonky2::iop::target::Target;
@@ -45,7 +46,7 @@ impl<P: PackedField> ConstraintConsumer<P> {
         lagrange_basis_last: P,
     ) -> Self {
         Self {
-            constraint_accs: vec![P::ZEROS; alphas.len()],
+            constraint_accs: vec![P::zero(); alphas.len()],
             alphas,
             z_last,
             lagrange_basis_first,
@@ -87,7 +88,7 @@ impl<P: PackedField> ConstraintConsumer<P> {
 
 /// Circuit version of [`ConstraintConsumer`].
 #[derive(Debug)]
-pub struct RecursiveConstraintConsumer<F: RichField + HasExtension<D>, const D: usize> where F::Extension: TwoAdicField{
+pub struct RecursiveConstraintConsumer<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// A random value used to combine multiple constraints into one.
     alphas: Vec<Target>,
 
@@ -108,7 +109,7 @@ pub struct RecursiveConstraintConsumer<F: RichField + HasExtension<D>, const D: 
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> RecursiveConstraintConsumer<F, D> where F::Extension: TwoAdicField{
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS> {
     /// Creates a new instance of [`RecursiveConstraintConsumer`].
     pub fn new(
         zero: ExtensionTarget<D>,

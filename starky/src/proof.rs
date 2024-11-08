@@ -6,6 +6,7 @@
 use alloc::{vec, vec::Vec};
 
 use itertools::Itertools;
+use p3_field::AbstractExtensionField;
 
 use plonky2::field::types::HasExtension;
 use plonky2::fri::oracle::PolynomialBatch;
@@ -28,7 +29,9 @@ use crate::lookup::GrandProductChallengeSet;
 
 /// Merkle caps and openings that form the proof of a single STARK.
 #[derive(Debug, Clone)]
-pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+ where
+      {
     /// Merkle cap of LDEs of trace values.
     pub trace_cap: MerkleCap<F, C::Hasher>,
     /// Optional merkle cap of LDEs of permutation Z values, if any.
@@ -36,12 +39,14 @@ pub struct StarkProof<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HA
     /// Merkle cap of LDEs of trace values.
     pub quotient_polys_cap: Option<MerkleCap<F, C::Hasher>>,
     /// Purported values of each polynomial at the challenge point.
-    pub openings: StarkOpeningSet<F, D>,
+    pub openings: StarkOpeningSet<F, D, NUM_HASH_OUT_ELTS>,
     /// A batch FRI argument for all openings.
     pub opening_proof: FriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProof<F, C, D, NUM_HASH_OUT_ELTS> {
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProof<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    {
     /// Recover the length of the trace from a STARK proof and a STARK config.
     pub fn recover_degree_bits(&self, config: &StarkConfig) -> usize {
         let initial_merkle_proof = &self.opening_proof.query_round_proofs[0]
@@ -126,11 +131,12 @@ impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkProofTarget<D, NUM_HAS
 #[derive(Debug, Clone)]
 pub struct StarkProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > {
     /// A STARK proof.
-    pub proof: StarkProof<F, C, D>,
+    pub proof: StarkProof<F, C, D, NUM_HASH_OUT_ELTS>,
     /// Public inputs associated to this STARK proof.
     // TODO: Maybe make it generic over a `S: Stark` and replace with `[F; S::PUBLIC_INPUTS]`.
     pub public_inputs: Vec<F>,
@@ -138,9 +144,9 @@ pub struct StarkProofWithPublicInputs<
 
 /// Circuit version of [`StarkProofWithPublicInputs`].
 #[derive(Debug, Clone)]
-pub struct StarkProofWithPublicInputsTarget<const D: usize> {
+pub struct StarkProofWithPublicInputsTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// `Target` STARK proof.
-    pub proof: StarkProofTarget<D>,
+    pub proof: StarkProofTarget<D, NUM_HASH_OUT_ELTS>,
     /// `Target` public inputs for this STARK proof.
     pub public_inputs: Vec<Target>,
 }
@@ -149,13 +155,14 @@ pub struct StarkProofWithPublicInputsTarget<const D: usize> {
 #[derive(Debug, Clone)]
 pub struct CompressedStarkProof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > {
     /// Merkle cap of LDEs of trace values.
     pub trace_cap: MerkleCap<F, C::Hasher>,
     /// Purported values of each polynomial at the challenge point.
-    pub openings: StarkOpeningSet<F, D>,
+    pub openings: StarkOpeningSet<F, D, NUM_HASH_OUT_ELTS>,
     /// A batch FRI argument for all openings.
     pub opening_proof: CompressedFriProof<F, C::Hasher, D>,
 }
@@ -164,11 +171,12 @@ pub struct CompressedStarkProof<
 #[derive(Debug, Clone)]
 pub struct CompressedStarkProofWithPublicInputs<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 > {
     /// A compressed STARK proof.
-    pub proof: CompressedStarkProof<F, C, D>,
+    pub proof: CompressedStarkProof<F, C, D, NUM_HASH_OUT_ELTS>,
     /// Public inputs for this compressed STARK proof.
     pub public_inputs: Vec<F>,
 }
@@ -176,15 +184,15 @@ pub struct CompressedStarkProofWithPublicInputs<
 /// A [`StarkProof`] along with metadata about the initial Fiat-Shamir state, which is used when
 /// creating a recursive wrapper proof around a STARK proof.
 #[derive(Debug, Clone)]
-pub struct StarkProofWithMetadata<F, C, const D: usize>
+pub struct StarkProofWithMetadata<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
 {
     /// Initial Fiat-Shamir state.
     pub init_challenger_state: <C::Hasher as Hasher<F>>::Permutation,
     /// Proof for a single STARK.
-    pub proof: StarkProof<F, C, D>,
+    pub proof: StarkProof<F, C, D, NUM_HASH_OUT_ELTS>,
 }
 
 /// A combination of STARK proofs for independent statements operating on possibly shared variables,
@@ -192,18 +200,19 @@ where
 #[derive(Debug, Clone)]
 pub struct MultiProof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
     const N: usize,
 > {
     /// Proofs for all the different STARK modules.
-    pub stark_proofs: [StarkProofWithMetadata<F, C, D>; N],
+    pub stark_proofs: [StarkProofWithMetadata<F, C, D, NUM_HASH_OUT_ELTS>; N],
     /// Cross-table lookup challenges.
     pub ctl_challenges: GrandProductChallengeSet<F>,
 }
 
-impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extension>, const D: usize, const N: usize>
-    MultiProof<F, C, D, N>
+impl<F: RichField + HasExtension<D>, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const D: usize, const NUM_HASH_OUT_ELTS: usize, const N: usize>
+    MultiProof<F, C, D, NUM_HASH_OUT_ELTS, N>
 {
     /// Returns the degree (i.e. the trace length) of each STARK proof,
     /// from their common [`StarkConfig`].
@@ -214,7 +223,7 @@ impl<F: RichField + HasExtension<D>, C: GenericConfig<D, F = F, FE = F::Extensio
 
 /// Randomness used for a STARK proof.
 #[derive(Debug)]
-pub struct StarkProofChallenges<F: RichField + HasExtension<D>, const D: usize> {
+pub struct StarkProofChallenges<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     /// Optional randomness used in any permutation argument.
     pub lookup_challenge_set: Option<GrandProductChallengeSet<F>>,
     /// Random values used to combine STARK constraints.
@@ -240,16 +249,18 @@ pub struct StarkProofChallengesTarget<const D: usize> {
 
 /// Randomness for all STARK proofs contained in a [`MultiProof`]`.
 #[derive(Debug)]
-pub struct MultiProofChallenges<F: RichField + HasExtension<D>, const D: usize, const N: usize> {
+pub struct MultiProofChallenges<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize, const N: usize> {
     /// Randomness used in each STARK proof.
-    pub stark_challenges: [StarkProofChallenges<F, D>; N],
+    pub stark_challenges: [StarkProofChallenges<F, D, NUM_HASH_OUT_ELTS>; N],
     /// Randomness used for cross-table lookups. It is shared by all STARKs.
     pub ctl_challenges: GrandProductChallengeSet<F>,
 }
 
 /// Purported values of each polynomial at the challenge point.
 #[derive(Debug, Clone)]
-pub struct StarkOpeningSet<F: RichField + HasExtension<D>, const D: usize> {
+pub struct StarkOpeningSet<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+where
+{
     /// Openings of trace polynomials at `zeta`.
     pub local_values: Vec<F::Extension>,
     /// Openings of trace polynomials at `g * zeta`.
@@ -264,30 +275,32 @@ pub struct StarkOpeningSet<F: RichField + HasExtension<D>, const D: usize> {
     pub quotient_polys: Option<Vec<F::Extension>>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> StarkOpeningSet<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> StarkOpeningSet<F, D, NUM_HASH_OUT_ELTS>
+where
+    {
     /// Returns a `StarkOpeningSet` given all the polynomial commitments, the number
     /// of permutation `Z`polynomials, the evaluation point and a generator `g`.
     ///
     /// Polynomials are evaluated at point `zeta` and, if necessary, at `g * zeta`.
-    pub fn new<C: GenericConfig<D, F = F>>(
+    pub fn new<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         zeta: F::Extension,
         g: F,
-        trace_commitment: &PolynomialBatch<F, C, D>,
-        auxiliary_polys_commitment: Option<&PolynomialBatch<F, C, D>>,
-        quotient_commitment: Option<&PolynomialBatch<F, C, D>>,
+        trace_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
+        auxiliary_polys_commitment: Option<&PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>,
+        quotient_commitment: Option<&PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>,
         num_lookup_columns: usize,
         requires_ctl: bool,
         num_ctl_polys: &[usize],
     ) -> Self {
         // Batch evaluates polynomials on the LDE, at a point `z`.
-        let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D>| {
+        let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>| {
             c.polynomials
                 .par_iter()
                 .map(|p| p.to_extension().eval(z))
                 .collect::<Vec<_>>()
         };
         // Batch evaluates polynomials at a base field point `z`.
-        let eval_commitment_base = |z: F, c: &PolynomialBatch<F, C, D>| {
+        let eval_commitment_base = |z: F, c: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>| {
             c.polynomials
                 .par_iter()
                 .map(|p| p.eval(z))
@@ -342,7 +355,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> StarkOpeningSet<F, D> {
                 values: ctl_zs_first
                     .iter()
                     .copied()
-                    .map(F::Extension::from_basefield)
+                    .map(F::Extension::from_base)
                     .collect(),
             };
 

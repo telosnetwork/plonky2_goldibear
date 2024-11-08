@@ -32,7 +32,7 @@ pub fn test_low_degree<
     gate: G,
 ) where
     F::Extension: TwoAdicField + Sample,
-    F::Extension: TwoAdicField,
+
 {
     let rate_bits = log2_ceil(gate.degree() + 1);
 
@@ -112,7 +112,7 @@ pub fn test_eval_fns<
 ) -> Result<()>
 where
     F::Extension: Sample + TwoAdicField,
-    F::Extension: TwoAdicField,
+
 {
     // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
     let wires_base = F::rand_vec(gate.num_wires());

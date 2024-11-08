@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use core::iter;
 
 use itertools::Itertools;
-use p3_field::{Field, TwoAdicField};
+use p3_field::Field;
 
 use plonky2_field::types::HasExtension;
 
@@ -94,7 +94,7 @@ pub(crate) fn check_partial_products_circuit<
     max_degree: usize,
 ) -> Vec<ExtensionTarget<D>>
 where
-    F::Extension: TwoAdicField,
+
 {
     debug_assert!(max_degree > 1);
     let product_accs = iter::once(&z_x)

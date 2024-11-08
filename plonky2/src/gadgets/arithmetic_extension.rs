@@ -7,7 +7,7 @@ use alloc::{
 use core::borrow::Borrow;
 
 use itertools::Itertools;
-use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64};
 
 use plonky2_field::types::HasExtension;
 
@@ -26,7 +26,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub fn arithmetic_extension(
         &mut self,
@@ -560,7 +560,7 @@ pub struct QuotientGeneratorExtension<const D: usize> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientGeneratorExtension<D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "QuotientGeneratorExtension".to_string()
@@ -617,7 +617,7 @@ impl<const D: usize> PowersTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
-        F::Extension: TwoAdicField,
+
     {
         let result = self.current;
         self.current = builder.mul_extension(self.base, self.current);
@@ -630,7 +630,7 @@ impl<const D: usize> PowersTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
-        F::Extension: TwoAdicField,
+
     {
         let Self { base, current } = self;
         Self {
@@ -643,7 +643,7 @@ impl<const D: usize> PowersTarget<D> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
         PowersTarget {

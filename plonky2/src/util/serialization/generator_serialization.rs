@@ -5,7 +5,6 @@ pub use alloc::vec::Vec;
 #[cfg(feature = "std")]
 pub use std::vec::Vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -21,7 +20,7 @@ pub trait WitnessGeneratorSerializer<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+
 {
     fn read_generator(
         &self,
@@ -109,7 +108,7 @@ macro_rules! impl_generator_serializer {
 pub mod default {
     use core::marker::PhantomData;
 
-    use p3_field::TwoAdicField;
+    
 
     use plonky2_field::types::HasExtension;
 
@@ -168,7 +167,7 @@ pub mod default {
         for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {

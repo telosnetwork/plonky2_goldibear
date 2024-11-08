@@ -7,9 +7,9 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+use p3_field::AbstractField;
 
-use plonky2::field::extension::BinomiallyExtendable;
-use plonky2::field::types::Field;
+use plonky2::field::types::HasExtension;
 use plonky2::fri::witness_util::set_fri_proof_target;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::challenger::RecursiveChallenger;
@@ -37,27 +37,28 @@ use crate::vanishing_poly::eval_vanishing_poly_circuit;
 /// for some statement in a circuit.
 pub fn verify_stark_proof_circuit<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: S,
-    proof_with_pis: StarkProofWithPublicInputsTarget<D>,
+    proof_with_pis: StarkProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
     inner_config: &StarkConfig,
 ) where
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
 {
     assert_eq!(proof_with_pis.public_inputs.len(), S::PUBLIC_INPUTS);
 
-    let mut challenger = RecursiveChallenger::<F, C::Hasher, D>::new(builder);
+    let mut challenger = RecursiveChallenger::<F, C::Hasher, D, NUM_HASH_OUT_ELTS>::new(builder);
     let challenges = with_context!(
         builder,
         "compute challenges",
         proof_with_pis.get_challenges::<F, C>(builder, &mut challenger, None, false, inner_config)
     );
 
-    verify_stark_proof_with_challenges_circuit::<F, C, S, D>(
+    verify_stark_proof_with_challenges_circuit::<F, C, S, D, NUM_HASH_OUT_ELTS>(
         builder,
         &stark,
         &proof_with_pis.proof,
@@ -71,19 +72,20 @@ pub fn verify_stark_proof_circuit<
 /// Recursively verifies an inner STARK proof.
 pub fn verify_stark_proof_with_challenges_circuit<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
-    proof: &StarkProofTarget<D>,
+    proof: &StarkProofTarget<D, NUM_HASH_OUT_ELTS>,
     public_inputs: &[Target],
     challenges: StarkProofChallengesTarget<D>,
-    ctl_vars: Option<&[CtlCheckVarsTarget<F, D>]>,
+    ctl_vars: Option<&[CtlCheckVarsTarget<F, D, NUM_HASH_OUT_ELTS>]>,
     inner_config: &StarkConfig,
 ) where
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
 {
     check_lookup_options(stark, proof, &challenges).unwrap();
 
@@ -121,7 +123,7 @@ pub fn verify_stark_proof_with_challenges_circuit<
         builder.constant_extension(F::Extension::primitive_root_of_unity(degree_bits).inverse());
     let z_last = builder.sub_extension(challenges.stark_zeta, last);
 
-    let mut consumer = RecursiveConstraintConsumer::<F, D>::new(
+    let mut consumer = RecursiveConstraintConsumer::<F, D, NUM_HASH_OUT_ELTS>::new(
         builder.zero_extension(),
         challenges.stark_alphas,
         z_last,
@@ -150,7 +152,7 @@ pub fn verify_stark_proof_with_challenges_circuit<
     with_context!(
         builder,
         "evaluate vanishing polynomial",
-        eval_vanishing_poly_circuit::<F, S, D>(
+        eval_vanishing_poly_circuit::<F, S, D,NUM_HASH_OUT_ELTS>(
             builder,
             stark,
             &vars,
@@ -197,7 +199,7 @@ pub fn verify_stark_proof_with_challenges_circuit<
     );
 }
 
-fn eval_l_0_and_l_last_circuit<F: RichField + HasExtension<D>, const D: usize>(
+fn eval_l_0_and_l_last_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     log_n: usize,
     x: ExtensionTarget<D>,
@@ -219,8 +221,9 @@ fn eval_l_0_and_l_last_circuit<F: RichField + HasExtension<D>, const D: usize>(
 /// Adds a new `StarkProofWithPublicInputsTarget` to this circuit.
 pub fn add_virtual_stark_proof_with_pis<
     F: RichField + HasExtension<D>,
-    S: Stark<F, D>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
@@ -228,8 +231,8 @@ pub fn add_virtual_stark_proof_with_pis<
     degree_bits: usize,
     num_ctl_helper_zs: usize,
     num_ctl_zs: usize,
-) -> StarkProofWithPublicInputsTarget<D> {
-    let proof = add_virtual_stark_proof::<F, S, D>(
+) -> StarkProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
+    let proof = add_virtual_stark_proof::<F, S, D, NUM_HASH_OUT_ELTS>(
         builder,
         stark,
         config,
@@ -245,14 +248,14 @@ pub fn add_virtual_stark_proof_with_pis<
 }
 
 /// Adds a new `StarkProofTarget` to this circuit.
-pub fn add_virtual_stark_proof<F: RichField + HasExtension<D>, S: Stark<F, D>, const D: usize>(
+pub fn add_virtual_stark_proof<F: RichField + HasExtension<D>, S: Stark<F, D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     config: &StarkConfig,
     degree_bits: usize,
     num_ctl_helper_zs: usize,
     num_ctl_zs: usize,
-) -> StarkProofTarget<D> {
+) -> StarkProofTarget<D, NUM_HASH_OUT_ELTS> {
     let fri_params = config.fri_params(degree_bits);
     let cap_height = fri_params.config.cap_height;
 
@@ -277,7 +280,7 @@ pub fn add_virtual_stark_proof<F: RichField + HasExtension<D>, S: Stark<F, D>, c
         trace_cap: builder.add_virtual_cap(cap_height),
         auxiliary_polys_cap,
         quotient_polys_cap,
-        openings: add_virtual_stark_opening_set::<F, S, D>(
+        openings: add_virtual_stark_opening_set::<F, S, D, NUM_HASH_OUT_ELTS>(
             builder,
             stark,
             num_ctl_helper_zs,
@@ -288,7 +291,7 @@ pub fn add_virtual_stark_proof<F: RichField + HasExtension<D>, S: Stark<F, D>, c
     }
 }
 
-fn add_virtual_stark_opening_set<F: RichField + HasExtension<D>, S: Stark<F, D>, const D: usize>(
+fn add_virtual_stark_opening_set<F: RichField + HasExtension<D>, S: Stark<F, D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     num_ctl_helper_zs: usize,
@@ -321,14 +324,14 @@ fn add_virtual_stark_opening_set<F: RichField + HasExtension<D>, S: Stark<F, D>,
 
 /// Set the targets in a `StarkProofWithPublicInputsTarget` to
 /// their corresponding values in a `StarkProofWithPublicInputs`.
-pub fn set_stark_proof_with_pis_target<F, C: GenericConfig<D, F = F>, W, const D: usize>(
+pub fn set_stark_proof_with_pis_target<F, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, W, const D: usize, const NUM_HASH_OUT_ELTS: usize,>(
     witness: &mut W,
-    stark_proof_with_pis_target: &StarkProofWithPublicInputsTarget<D>,
-    stark_proof_with_pis: &StarkProofWithPublicInputs<F, C, D>,
+    stark_proof_with_pis_target: &StarkProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+    stark_proof_with_pis: &StarkProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     zero: Target,
 ) where
     F: RichField + HasExtension<D>,
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     W: Witness<F>,
 {
     let StarkProofWithPublicInputs {
@@ -350,14 +353,14 @@ pub fn set_stark_proof_with_pis_target<F, C: GenericConfig<D, F = F>, W, const D
 
 /// Set the targets in a [`StarkProofTarget`] to their corresponding values in a
 /// [`StarkProof`].
-pub fn set_stark_proof_target<F, C: GenericConfig<D, F = F>, W, const D: usize>(
+pub fn set_stark_proof_target<F, C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, W, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     witness: &mut W,
-    proof_target: &StarkProofTarget<D>,
-    proof: &StarkProof<F, C, D>,
+    proof_target: &StarkProofTarget<D, NUM_HASH_OUT_ELTS>,
+    proof: &StarkProof<F, C, D, NUM_HASH_OUT_ELTS>,
     zero: Target,
 ) where
     F: RichField + HasExtension<D>,
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     W: Witness<F>,
 {
     witness.set_cap_target(&proof_target.trace_cap, &proof.trace_cap);
@@ -384,9 +387,9 @@ pub fn set_stark_proof_target<F, C: GenericConfig<D, F = F>, W, const D: usize>(
 
 /// Utility function to check that all lookups data wrapped in `Option`s are `Some` iff
 /// the STARK uses a permutation argument.
-fn check_lookup_options<F: RichField + HasExtension<D>, S: Stark<F, D>, const D: usize>(
+fn check_lookup_options<F: RichField + HasExtension<D>, S: Stark<F, D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
-    proof: &StarkProofTarget<D>,
+    proof: &StarkProofTarget<D, NUM_HASH_OUT_ELTS>,
     challenges: &StarkProofChallengesTarget<D>,
 ) -> Result<()> {
     let options_is_some = [

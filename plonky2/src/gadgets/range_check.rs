@@ -6,7 +6,6 @@ use alloc::{
 };
 use core::usize;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -21,7 +20,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     /// Checks that `x < 2^n_log` using a `BaseSumGate`.
     pub fn range_check(&mut self, x: Target, n_log: usize) {
@@ -100,7 +99,7 @@ pub struct LowHighGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LowHighGenerator
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "LowHighGenerator".to_string()

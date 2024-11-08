@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 use lazy_static::lazy_static;
 use p3_baby_bear::BabyBear;
-use p3_field::{AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PrimeField64};
 use p3_poseidon2;
 use p3_poseidon2::{DiffusionPermutation, Poseidon2, Poseidon2ExternalMatrixHL};
 use p3_symmetric::Permutation;
@@ -244,8 +244,7 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
     ) -> Self::AlgebraicPermutation
     where
         F: HasExtension<D>,
-        <F as HasExtension<D>>::Extension: TwoAdicField,
-        F::Extension: TwoAdicField,
+
     {
         let gate_type: Poseidon2R0BabyBearGate<F, D> = Poseidon2R0BabyBearGate::<F, D>::new();
         let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);
@@ -276,8 +275,7 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
     ) -> Vec<Target>
     where
         F: HasExtension<D>,
-        <F as HasExtension<D>>::Extension: TwoAdicField,
-    {
+            {
         let zero = builder.zero();
         let mut state = Self::AlgebraicPermutation::new(core::iter::repeat(zero));
 

@@ -4,9 +4,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::extension::{
     BinomialExtensionField, BinomiallyExtendable, HasTwoAdicBionmialExtension,
 };
-use p3_field::{
-    AbstractExtensionField, AbstractField, ExtensionField, PrimeField32, PrimeField64, TwoAdicField,
-};
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use rand::rngs::OsRng;
 use rand::RngCore;
@@ -19,7 +17,7 @@ pub fn two_adic_subgroup<F: TwoAdicField>(n_log: usize) -> Vec<F> {
 pub trait HasExtension<const D: usize>:
     BinomiallyExtendable<D> + HasTwoAdicBionmialExtension<D>
 {
-    type Extension: ExtensionField<Self::F>;
+    type Extension: ExtensionField<Self::F> + TwoAdicField;
 }
 
 // impl HasExtension<1> for Goldilocks {
@@ -69,6 +67,7 @@ pub trait Sample: Sized {
             .expect("This conversion can never fail.")
     }
 }
+
 
 impl Sample for Goldilocks {
     fn sample<R>(rng: &mut R) -> Self

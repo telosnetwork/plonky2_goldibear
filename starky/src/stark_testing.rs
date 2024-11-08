@@ -4,10 +4,10 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
+use p3_field::Field;
 
-use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use plonky2::field::types::{Field, Sample};
+use plonky2::field::types::{HasExtension, Sample};
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
@@ -23,7 +23,7 @@ const WITNESS_SIZE: usize = 1 << 5;
 
 /// Tests that the constraints imposed by the given STARK are low-degree by applying them to random
 /// low-degree witness polynomials.
-pub fn test_stark_low_degree<F: RichField + HasExtension<D>, S: Stark<F, D>, const D: usize>(
+pub fn test_stark_low_degree<F: RichField + HasExtension<D>, S: Stark<F, D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: S,
 ) -> Result<()> {
     let rate_bits = log2_ceil(stark.constraint_degree() + 1);
@@ -76,9 +76,10 @@ pub fn test_stark_low_degree<F: RichField + HasExtension<D>, S: Stark<F, D>, con
 /// Tests that the circuit constraints imposed by the given STARK are coherent with the native constraints.
 pub fn test_stark_circuit_constraints<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     stark: S,
 ) -> Result<()> {

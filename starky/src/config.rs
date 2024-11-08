@@ -8,7 +8,7 @@
 use alloc::format;
 
 use anyhow::{anyhow, Result};
-use p3_field::{Field, TwoAdicField};
+use p3_field::Field;
 
 use plonky2::field::types::HasExtension;
 use plonky2::fri::{FriConfig, FriParams};
@@ -68,7 +68,7 @@ impl StarkConfig {
 
     /// Checks that this STARK configuration is consistent, i.e. that the different
     /// parameters meet the targeted security level.
-    pub fn check_config<F: RichField + HasExtension<D>, const D: usize>(&self) -> Result<()> where F::Extension: TwoAdicField{
+    pub fn check_config<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(&self) -> Result<()> {
         let StarkConfig {
             security_bits,
             fri_config:
@@ -100,8 +100,8 @@ impl StarkConfig {
 #[cfg(test)]
 mod tests {
     use p3_goldilocks::Goldilocks;
-    use super::*;
 
+    use super::*;
 
     #[test]
     fn test_valid_config() {

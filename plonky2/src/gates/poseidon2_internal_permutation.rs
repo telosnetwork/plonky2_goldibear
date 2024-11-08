@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField};
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -36,7 +36,7 @@ pub struct Poseidon2InternalPermutationGate<F: RichField + HasExtension<D>, cons
 
 impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2InternalPermutationGate<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub const fn new() -> Self {
         Self(PhantomData)
@@ -57,7 +57,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     Gate<F, D, NUM_HASH_OUT_ELTS> for Poseidon2InternalPermutationGate<F, D>
 where
     F: HasExtension<D>,
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -232,7 +232,7 @@ pub struct Poseidon2InternalPermutationGenerator<const D: usize> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for Poseidon2InternalPermutationGenerator<D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "Poseidon2InternalPermutationGenerator".to_string()

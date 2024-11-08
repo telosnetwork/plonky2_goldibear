@@ -5,7 +5,7 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::{PackedField, TwoAdicField};
+use p3_field::PackedField;
 
 use plonky2_field::types::HasExtension;
 
@@ -63,7 +63,7 @@ impl ArithmeticGate {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -185,7 +185,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
 where
-    F::Extension: TwoAdicField,
+
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -210,7 +210,7 @@ where
 #[derive(Clone, Debug, Default)]
 pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+
 {
     row: usize,
     const_0: F,
@@ -221,7 +221,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ArithmeticBaseGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+
 {
     fn id(&self) -> String {
         "ArithmeticBaseGenerator".to_string()

@@ -7,9 +7,9 @@ use core::iter::once;
 
 use anyhow::{anyhow, ensure, Result};
 use itertools::Itertools;
+use p3_field::{AbstractExtensionField, AbstractField, batch_multiplicative_inverse, Field};
 
-use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
-use plonky2::field::types::Field;
+use plonky2::field::types::HasExtension;
 use plonky2::fri::verifier::verify_fri_proof;
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::merkle_tree::MerkleCap;
@@ -29,14 +29,16 @@ use crate::vanishing_poly::eval_vanishing_poly;
 /// Verifies a [`StarkProofWithPublicInputs`] against a STARK statement.
 pub fn verify_stark_proof<
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     stark: S,
-    proof_with_pis: StarkProofWithPublicInputs<F, C, D>,
+    proof_with_pis: StarkProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     config: &StarkConfig,
-) -> Result<()> {
+) -> Result<()>
+where  {
     ensure!(proof_with_pis.public_inputs.len() == S::PUBLIC_INPUTS);
     let mut challenger = Challenger::<F, C::Hasher>::new();
 
@@ -56,18 +58,19 @@ pub fn verify_stark_proof<
 /// with the provided [`StarkProofChallenges`].
 /// It also supports optional cross-table lookups data and challenges,
 /// in case this proof is part of a multi-STARK system.
-pub fn verify_stark_proof_with_challenges<F, C, S, const D: usize>(
+pub fn verify_stark_proof_with_challenges<F, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
-    proof: &StarkProof<F, C, D>,
-    challenges: &StarkProofChallenges<F, D>,
-    ctl_vars: Option<&[CtlCheckVars<F, F::Extension, F::Extension, D>]>,
+    proof: &StarkProof<F, C, D, NUM_HASH_OUT_ELTS>,
+    challenges: &StarkProofChallenges<F, D, NUM_HASH_OUT_ELTS>,
+    ctl_vars: Option<&[CtlCheckVars<F, F::Extension, F::Extension, D, NUM_HASH_OUT_ELTS>]>,
     public_inputs: &[F],
     config: &StarkConfig,
 ) -> Result<()>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
+
 {
     log::debug!("Checking proof: {}", type_name::<S>());
 
@@ -104,7 +107,7 @@ where
         &public_inputs
             .iter()
             .copied()
-            .map(F::Extension::from_basefield)
+            .map(F::Extension::from_base)
             .collect::<Vec<_>>(),
     );
 
@@ -117,7 +120,7 @@ where
         challenges
             .stark_alphas
             .iter()
-            .map(|&alpha| F::Extension::from_basefield(alpha))
+            .map(|&alpha| F::Extension::from_base(alpha))
             .collect::<Vec<_>>(),
         z_last,
         l_0,
@@ -147,7 +150,7 @@ where
     });
     let lookups = stark.lookups();
 
-    eval_vanishing_poly::<F, F::Extension, F::Extension, S, D, D>(
+    eval_vanishing_poly::<F, F::Extension, F::Extension, S, D, NUM_HASH_OUT_ELTS, D>(
         stark,
         &vars,
         &lookups,
@@ -159,7 +162,7 @@ where
 
     // Check each polynomial identity, of the form `vanishing(x) = Z_H(x) quotient(x)`, at zeta.
     let zeta_pow_deg = challenges.stark_zeta.exp_power_of_2(degree_bits);
-    let z_h_zeta = zeta_pow_deg - F::Extension::ONE;
+    let z_h_zeta = zeta_pow_deg - F::Extension::one();
     // `quotient_polys_zeta` holds `num_challenges * quotient_degree_factor` evaluations.
     // Each chunk of `quotient_degree_factor` holds the evaluations of `t_0(zeta),...,t_{quotient_degree_factor-1}(zeta)`
     // where the "real" quotient polynomial is `t(X) = t_0(X) + t_1(X)*X^n + t_2(X)*X^{2n} + ...`.
@@ -190,7 +193,7 @@ where
         })
         .unwrap_or_default();
 
-    verify_fri_proof::<F, C, D>(
+    verify_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
         &stark.fri_instance(
             challenges.stark_zeta,
             F::primitive_root_of_unity(degree_bits),
@@ -208,9 +211,9 @@ where
     Ok(())
 }
 
-fn validate_proof_shape<F, C, S, const D: usize>(
+fn validate_proof_shape<F, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
-    proof: &StarkProof<F, C, D>,
+    proof: &StarkProof<F, C, D, NUM_HASH_OUT_ELTS>,
     public_inputs: &[F],
     config: &StarkConfig,
     num_ctl_helpers: usize,
@@ -218,8 +221,9 @@ fn validate_proof_shape<F, C, S, const D: usize>(
 ) -> anyhow::Result<()>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
+
 {
     let degree_bits = proof.recover_degree_bits(config);
 
@@ -261,7 +265,7 @@ where
         stark.num_quotient_polys(config) == 0
     });
 
-    check_lookup_options::<F, C, S, D>(
+    check_lookup_options::<F, C, S, D, NUM_HASH_OUT_ELTS>(
         stark,
         auxiliary_polys_cap,
         auxiliary_polys,
@@ -282,16 +286,16 @@ fn eval_l_0_and_l_last<F: Field>(log_n: usize, x: F) -> (F, F) {
     let n = F::from_canonical_usize(1 << log_n);
     let g = F::primitive_root_of_unity(log_n);
     let z_x = x.exp_power_of_2(log_n) - F::one();
-    let invs = F::batch_multiplicative_inverse::<F>(&[n * (x - F::one()), n * (g * x - F::one())]);
+    let invs = batch_multiplicative_inverse::<F>(&[n * (x - F::one()), n * (g * x - F::one())]);
 
     (z_x * invs[0], z_x * invs[1])
 }
 
 /// Utility function to check that all lookups data wrapped in `Option`s are `Some` iff
 /// the STARK uses a permutation argument.
-fn check_lookup_options<F, C, S, const D: usize>(
+fn check_lookup_options<F, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
-    auxiliary_polys_cap: &Option<MerkleCap<F, <C as GenericConfig<D>>::Hasher>>,
+    auxiliary_polys_cap: &Option<MerkleCap<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>>,
     auxiliary_polys: &Option<Vec<<F as HasExtension<D>>::Extension>>,
     auxiliary_polys_next: &Option<Vec<<F as HasExtension<D>>::Extension>>,
     num_ctl_helpers: usize,
@@ -301,8 +305,8 @@ fn check_lookup_options<F, C, S, const D: usize>(
 ) -> Result<()>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     if stark.uses_lookups() || stark.requires_ctls() {
         let num_auxiliary = stark.num_lookup_helper_columns(config) + num_ctl_helpers + num_ctl_zs;
@@ -336,7 +340,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use plonky2::field::goldilocks_field::Goldilocks;
+    use p3_goldilocks::Goldilocks;
+
     use plonky2::field::polynomial::PolynomialValues;
     use plonky2::field::types::Sample;
 

@@ -35,11 +35,10 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+use p3_field::{ExtensionField, Field, PackedField, TwoAdicField};
 
-use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
-use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::PolynomialValues;
-use plonky2::field::types::Field;
+use plonky2::field::types::HasExtension;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::challenger::Challenger;
 use plonky2::iop::ext_target::ExtensionTarget;
@@ -224,7 +223,7 @@ impl<'a, F: Field> CtlData<'a, F> {
 
 /// Outputs a tuple of (challenges, data) of CTL challenges and all
 /// the CTL data necessary to prove a multi-STARK system.
-pub fn get_ctl_data<'a, F, C, const D: usize, const N: usize>(
+pub fn get_ctl_data<'a, F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize, const N: usize>(
     config: &StarkConfig,
     trace_poly_values: &[Vec<PolynomialValues<F>>; N],
     all_cross_table_lookups: &'a [CrossTableLookup<F>],
@@ -233,7 +232,7 @@ pub fn get_ctl_data<'a, F, C, const D: usize, const N: usize>(
 ) -> (GrandProductChallengeSet<F>, [CtlData<'a, F>; N])
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F, FE = F::Extension>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
 {
     // Get challenges for the cross-table lookups.
     let ctl_challenges = get_grand_product_challenge_set(challenger, config.num_challenges);
@@ -251,17 +250,17 @@ where
 }
 
 /// Outputs all the CTL data necessary to prove a multi-STARK system.
-pub fn get_ctl_vars_from_proofs<'a, F, C, const D: usize, const N: usize>(
-    multi_proof: &MultiProof<F, C, D, N>,
+pub fn get_ctl_vars_from_proofs<'a, F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize, const N: usize>(
+    multi_proof: &MultiProof<F, C, D, NUM_HASH_OUT_ELTS, N>,
     all_cross_table_lookups: &'a [CrossTableLookup<F>],
     ctl_challenges: &'a GrandProductChallengeSet<F>,
     num_lookup_columns: &'a [usize; N],
     max_constraint_degree: usize,
-) -> [Vec<CtlCheckVars<'a, F, <F as HasExtension<D>>::Extension, <F as HasExtension<D>>::Extension, D>>;
+) -> [Vec<CtlCheckVars<'a, F, <F as HasExtension<D>>::Extension, <F as HasExtension<D>>::Extension, D, NUM_HASH_OUT_ELTS>>;
        N]
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
 {
     let num_ctl_helper_cols =
         num_ctl_helper_columns_by_table(all_cross_table_lookups, max_constraint_degree);
@@ -392,7 +391,7 @@ pub(crate) fn cross_table_lookup_data<'a, F: RichField, const D: usize, const N:
 
 /// Computes helper columns and Z polynomials for all looking tables
 /// of one cross-table lookup (i.e. for one looked table).
-fn ctl_helper_zs_cols<F: Field, const N: usize>(
+fn ctl_helper_zs_cols<F: RichField, const N: usize>(
     all_stark_traces: &[Vec<PolynomialValues<F>>; N],
     looking_tables: Vec<TableWithColumns<F>>,
     challenge: GrandProductChallenge<F>,
@@ -432,7 +431,7 @@ fn ctl_helper_zs_cols<F: Field, const N: usize>(
 ///
 /// The sum is updated: `s += \sum h_i`, and is pushed to the vector of partial sums `z``.
 /// Returns the helper columns and `z`.
-fn partial_sums<F: Field>(
+fn partial_sums<F: RichField>(
     trace: &[PolynomialValues<F>],
     columns_filters: &[ColumnFilter<F>],
     challenge: GrandProductChallenge<F>,
@@ -467,10 +466,10 @@ fn partial_sums<F: Field>(
 
 /// Data necessary to check the cross-table lookups of a given table.
 #[derive(Clone, Debug)]
-pub struct CtlCheckVars<'a, F, FE, P, const D2: usize>
+pub struct CtlCheckVars<'a, F, FE, P, const D2: usize, const NUM_HASH_OUT_ELTS: usize>
 where
-    F: Field,
-    FE: FieldExtension<D2, BaseField = F>,
+    F: Field + HasExtension<D2, Extension = FE>,
+    FE: ExtensionField<F>,
     P: PackedField<Scalar = FE>,
 {
     /// Helper columns to check that the Z polyomial
@@ -488,12 +487,12 @@ where
     pub(crate) filter: Vec<Option<Filter<F>>>,
 }
 
-impl<'a, F: RichField + HasExtension<D>, const D: usize>
-    CtlCheckVars<'a, F, F::Extension, F::Extension, D>
+impl<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CtlCheckVars<'a, F, F::Extension, F::Extension, D, NUM_HASH_OUT_ELTS>
 {
     /// Extracts the `CtlCheckVars` for each STARK.
-    pub fn from_proofs<C: GenericConfig<D, F = F>, const N: usize>(
-        proofs: &[StarkProofWithMetadata<F, C, D>; N],
+    pub fn from_proofs<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>, const N: usize>(
+        proofs: &[StarkProofWithMetadata<F, C, D, NUM_HASH_OUT_ELTS>; N],
         cross_table_lookups: &'a [CrossTableLookup<F>],
         ctl_challenges: &'a GrandProductChallengeSet<F>,
         num_lookup_columns: &[usize; N],
@@ -627,16 +626,16 @@ impl<'a, F: RichField + HasExtension<D>, const D: usize>
 /// the first term is on the last row. This allows the transition constraint to be:
 /// `combine(w) * (Z(w) - Z(gw)) = filter` where combine is called on the local row
 /// and not the next. This enables CTLs across two rows.
-pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const D2: usize>(
+pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const NUM_HASH_OUT_ELTS: usize, const D2: usize>(
     vars: &S::EvaluationFrame<FE, P, D2>,
-    ctl_vars: &[CtlCheckVars<F, FE, P, D2>],
+    ctl_vars: &[CtlCheckVars<F, FE, P, D2, NUM_HASH_OUT_ELTS>],
     consumer: &mut ConstraintConsumer<P>,
     constraint_degree: usize,
 ) where
-    F: RichField + HasExtension<D>,
-    FE: FieldExtension<D2, BaseField = F>,
+    F: RichField + HasExtension<D> + HasExtension<D2, Extension = FE>,
+    FE: ExtensionField<F>,
     P: PackedField<Scalar = FE>,
-    S: Stark<F, D>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     let local_values = vars.get_local_values();
     let next_values = vars.get_next_values();
@@ -656,13 +655,13 @@ pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const 
             .iter()
             .map(|col| {
                 col.iter()
-                    .map(|c| c.eval_with_next(local_values, next_values))
+                    .map(|c| c.eval_with_next::<FE, P, D>(local_values, next_values))
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
 
         // Check helper columns.
-        eval_helper_columns(
+        eval_helper_columns::<F, FE, P, D, D2>(
             filter,
             &evals,
             local_values,
@@ -674,24 +673,24 @@ pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const 
         );
 
         if !helper_columns.is_empty() {
-            let h_sum = helper_columns.iter().fold(P::ZEROS, |acc, x| acc + *x);
+            let h_sum = helper_columns.iter().fold(P::zero(), |acc, x| acc + *x);
             // Check value of `Z(g^(n-1))`
             consumer.constraint_last_row(*local_z - h_sum);
             // Check `Z(w) = Z(gw) + \sum h_i`
             consumer.constraint_transition(*local_z - *next_z - h_sum);
         } else if columns.len() > 1 {
-            let combin0 = challenges.combine(&evals[0]);
-            let combin1 = challenges.combine(&evals[1]);
+            let combin0 = challenges.combine::<FE, P, &Vec<P>, D2>(&evals[0]);
+            let combin1 = challenges.combine::<FE, P, &Vec<P>, D2>(&evals[1]);
 
             let f0 = if let Some(filter0) = &filter[0] {
-                filter0.eval_filter(local_values, next_values)
+                filter0.eval_filter::<FE, P, D2>(local_values, next_values)
             } else {
-                P::ONES
+                P::one()
             };
             let f1 = if let Some(filter1) = &filter[1] {
-                filter1.eval_filter(local_values, next_values)
+                filter1.eval_filter::<FE, P, D2>(local_values, next_values)
             } else {
-                P::ONES
+                P::one()
             };
 
             consumer
@@ -700,11 +699,11 @@ pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const 
                 combin0 * combin1 * (*local_z - *next_z) - f0 * combin1 - f1 * combin0,
             );
         } else {
-            let combin0 = challenges.combine(&evals[0]);
+            let combin0 = challenges.combine::<FE, P, &Vec<P>, D2>(&evals[0]);
             let f0 = if let Some(filter0) = &filter[0] {
-                filter0.eval_filter(local_values, next_values)
+                filter0.eval_filter::<FE, P, D2>(local_values, next_values)
             } else {
-                P::ONES
+                P::one()
             };
             consumer.constraint_last_row(combin0 * *local_z - f0);
             consumer.constraint_transition(combin0 * (*local_z - *next_z) - f0);
@@ -714,7 +713,7 @@ pub(crate) fn eval_cross_table_lookup_checks<F, FE, P, S, const D: usize, const 
 
 /// Circuit version of `CtlCheckVars`. Data necessary to check the cross-table lookups of a given table.
 #[derive(Clone, Debug)]
-pub struct CtlCheckVarsTarget<F: Field, const D: usize> {
+pub struct CtlCheckVarsTarget<F: Field, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     ///Evaluation of the helper columns to check that the Z polyomial
     /// was constructed correctly.
     pub(crate) helper_columns: Vec<ExtensionTarget<D>>,
@@ -730,11 +729,11 @@ pub struct CtlCheckVarsTarget<F: Field, const D: usize> {
     pub(crate) filter: Vec<Option<Filter<F>>>,
 }
 
-impl<'a, F: Field, const D: usize> CtlCheckVarsTarget<F, D> {
+impl<'a, F: Field, const D: usize, const NUM_HASH_OUT_ELTS: usize> CtlCheckVarsTarget<F, D, NUM_HASH_OUT_ELTS> {
     /// Circuit version of `from_proofs`, for a single STARK.
     pub fn from_proof(
         table: TableIdx,
-        proof: &StarkProofTarget<D>,
+        proof: &StarkProofTarget<D, NUM_HASH_OUT_ELTS>,
         cross_table_lookups: &'a [CrossTableLookup<F>],
         ctl_challenges: &'a GrandProductChallengeSet<Target>,
         num_lookup_columns: usize,
@@ -844,16 +843,19 @@ impl<'a, F: Field, const D: usize> CtlCheckVarsTarget<F, D> {
 /// `combine(w) * (Z(w) - Z(gw)) = filter` where combine is called on the local row
 /// and not the next. This enables CTLs across two rows.
 pub(crate) fn eval_cross_table_lookup_checks_circuit<
-    S: Stark<F, D>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     F: RichField + HasExtension<D>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     vars: &S::EvaluationFrameTarget,
-    ctl_vars: &[CtlCheckVarsTarget<F, D>],
-    consumer: &mut RecursiveConstraintConsumer<F, D>,
+    ctl_vars: &[CtlCheckVarsTarget<F, D, NUM_HASH_OUT_ELTS>],
+    consumer: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
     constraint_degree: usize,
-) {
+)
+where
+ {
     let local_values = vars.get_local_values();
     let next_values = vars.get_next_values();
 
@@ -920,12 +922,12 @@ pub(crate) fn eval_cross_table_lookup_checks_circuit<
 
             let combined = builder.mul_sub_extension(combin1, *local_z, f1);
             let combined = builder.mul_extension(combined, combin0);
-            let constr = builder.arithmetic_extension(F::NEG_ONE, F::one(), f0, combin1, combined);
+            let constr = builder.arithmetic_extension(F::neg_one(), F::one(), f0, combin1, combined);
             consumer.constraint_last_row(builder, constr);
 
             let combined = builder.mul_sub_extension(combin1, z_diff, f1);
             let combined = builder.mul_extension(combined, combin0);
-            let constr = builder.arithmetic_extension(F::NEG_ONE, F::one(), f0, combin1, combined);
+            let constr = builder.arithmetic_extension(F::neg_one(), F::one(), f0, combin1, combined);
             consumer.constraint_last_row(builder, constr);
         } else {
             let combin0 = challenges.combine_circuit(builder, &evals[0]);
@@ -998,6 +1000,7 @@ pub fn verify_cross_table_lookups<F: RichField + HasExtension<D>, const D: usize
 pub fn verify_cross_table_lookups_circuit<
     F: RichField + HasExtension<D>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
     const N: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
@@ -1005,7 +1008,9 @@ pub fn verify_cross_table_lookups_circuit<
     ctl_zs_first: [Vec<Target>; N],
     ctl_extra_looking_sums: Option<&[Vec<Target>]>,
     inner_config: &StarkConfig,
-) {
+)
+where
+     {
     let mut ctl_zs_openings = ctl_zs_first.iter().map(|v| v.iter()).collect::<Vec<_>>();
     for CrossTableLookup {
         looking_tables,
@@ -1051,16 +1056,16 @@ pub mod debug_utils {
     use alloc::{vec, vec::Vec};
 
     use hashbrown::HashMap;
+    use p3_field::{Field, TwoAdicField};
 
     use plonky2::field::polynomial::PolynomialValues;
-    use plonky2::field::types::Field;
 
     use super::{CrossTableLookup, TableIdx, TableWithColumns};
 
     type MultiSet<F> = HashMap<Vec<F>, Vec<(TableIdx, usize)>>;
 
     /// Check that the provided traces and cross-table lookups are consistent.
-    pub fn check_ctls<F: Field>(
+    pub fn check_ctls<F: Field + TwoAdicField>(
         trace_poly_values: &[Vec<PolynomialValues<F>>],
         cross_table_lookups: &[CrossTableLookup<F>],
         extra_looking_values: &HashMap<TableIdx, Vec<Vec<F>>>,
@@ -1070,7 +1075,7 @@ pub mod debug_utils {
         }
     }
 
-    fn check_ctl<F: Field>(
+    fn check_ctl<F: Field + TwoAdicField>(
         trace_poly_values: &[Vec<PolynomialValues<F>>],
         ctl: &CrossTableLookup<F>,
         ctl_index: usize,
@@ -1116,7 +1121,7 @@ pub mod debug_utils {
         }
     }
 
-    fn process_table<F: Field>(
+    fn process_table<F: Field + TwoAdicField>(
         trace_poly_values: &[Vec<PolynomialValues<F>>],
         table: &TableWithColumns<F>,
         multiset: &mut MultiSet<F>,

@@ -37,7 +37,7 @@ fn biguint_from_array(arr: [u64; 4]) -> BigUint {
 
 impl Default for Secp256K1Scalar {
     fn default() -> Self {
-        Self::ZERO
+        Self::zero()
     }
 }
 
@@ -181,7 +181,7 @@ impl Neg for Secp256K1Scalar {
     #[inline]
     fn neg(self) -> Self {
         if self.is_zero() {
-            Self::ZERO
+            Self::zero()
         } else {
             Self::from_noncanonical_biguint(Self::order() - self.to_canonical_biguint())
         }
@@ -210,7 +210,7 @@ impl AddAssign for Secp256K1Scalar {
 
 impl Sum for Secp256K1Scalar {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Self::ZERO, |acc, x| acc + x)
+        iter.fold(Self::zero(), |acc, x| acc + x)
     }
 }
 
@@ -252,7 +252,7 @@ impl MulAssign for Secp256K1Scalar {
 impl Product for Secp256K1Scalar {
     #[inline]
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.reduce(|acc, x| acc * x).unwrap_or(Self::ONE)
+        iter.reduce(|acc, x| acc * x).unwrap_or(Self::one())
     }
 }
 

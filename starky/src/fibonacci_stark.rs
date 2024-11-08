@@ -6,9 +6,12 @@
 use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
 
+use p3_field::{ExtensionField, PackedField};
+
 use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
 use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::PolynomialValues;
+use plonky2::field::types::HasExtension;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
@@ -22,12 +25,12 @@ use crate::util::trace_rows_to_poly_values;
 /// Computes a Fibonacci sequence with state `[x0, x1]` using the state transition
 /// `x0' <- x1, x1' <- x0 + x1.
 #[derive(Copy, Clone)]
-struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize> {
+struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
     num_rows: usize,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> FibonacciStark<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> FibonacciStark<F, D, NUM_HASH_OUT_ELTS> {
     // The first public input is `x0`.
     const PI_INDEX_X0: usize = 0;
     // The second public input is `x1`.
@@ -60,10 +63,11 @@ impl<F: RichField + HasExtension<D>, const D: usize> FibonacciStark<F, D> {
 const FIBONACCI_COLUMNS: usize = 2;
 const FIBONACCI_PUBLIC_INPUTS: usize = 3;
 
-impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Stark<F, D, NUM_HASH_OUT_ELTS> for FibonacciStark<F, D, NUM_HASH_OUT_ELTS> {
     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, FIBONACCI_COLUMNS, FIBONACCI_PUBLIC_INPUTS>
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        F: HasExtension<D2, Extension = FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>;
 
     type EvaluationFrameTarget = StarkFrame<
@@ -78,7 +82,8 @@ impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciSt
         vars: &Self::EvaluationFrame<FE, P, D2>,
         yield_constr: &mut ConstraintConsumer<P>,
     ) where
-        FE: FieldExtension<D2, BaseField = F>,
+        F: HasExtension<D2, Extension = FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>,
     {
         let local_values = vars.get_local_values();
@@ -100,7 +105,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciSt
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: &Self::EvaluationFrameTarget,
-        yield_constr: &mut RecursiveConstraintConsumer<F, D>,
+        yield_constr: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
     ) {
         let local_values = vars.get_local_values();
         let next_values = vars.get_next_values();
@@ -134,10 +139,10 @@ impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciSt
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::{AbstractField, Field};
+    use plonky2::field::types::HasExtension;
 
-    use plonky2::field::extension::BinomiallyExtendable;
-    use plonky2::field::types::Field;
-    use plonky2::hash::hash_types::RichField;
+    use plonky2::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, RichField};
     use plonky2::iop::witness::PartialWitness;
     use plonky2::plonk::circuit_builder::CircuitBuilder;
     use plonky2::plonk::circuit_data::CircuitConfig;
@@ -164,8 +169,8 @@ mod tests {
     fn test_fibonacci_stark() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type S = FibonacciStark<F, D>;
+        type F = <C as GenericConfig<D, GOLDILOCKS_NUM_HASH_OUT_ELTS>>::F;
+        type S = FibonacciStark<F, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>;
 
         let config = StarkConfig::standard_fast_config();
         let num_rows = 1 << 5;
@@ -173,7 +178,7 @@ mod tests {
 
         let stark = S::new(num_rows);
         let trace = stark.generate_trace(public_inputs[0], public_inputs[1]);
-        let proof = prove::<F, C, S, D>(
+        let proof = prove::<F, C, S, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>(
             stark,
             &config,
             trace,
@@ -187,9 +192,10 @@ mod tests {
     #[test]
     fn test_fibonacci_stark_degree() -> Result<()> {
         const D: usize = 2;
+
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type S = FibonacciStark<F, D>;
+        type F = <C as GenericConfig<D, GOLDILOCKS_NUM_HASH_OUT_ELTS>>::F;
+        type S = FibonacciStark<F, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>;
 
         let num_rows = 1 << 5;
         let stark = S::new(num_rows);
@@ -200,12 +206,12 @@ mod tests {
     fn test_fibonacci_stark_circuit() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type S = FibonacciStark<F, D>;
+        type F = <C as GenericConfig<D, GOLDILOCKS_NUM_HASH_OUT_ELTS>>::F;
+        type S = FibonacciStark<F, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>;
 
         let num_rows = 1 << 5;
         let stark = S::new(num_rows);
-        test_stark_circuit_constraints::<F, C, S, D>(stark)
+        test_stark_circuit_constraints::<F, C, S, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>(stark)
     }
 
     #[test]
@@ -213,8 +219,8 @@ mod tests {
         init_logger();
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type S = FibonacciStark<F, D>;
+        type F = <C as GenericConfig<D, GOLDILOCKS_NUM_HASH_OUT_ELTS>>::F;
+        type S = FibonacciStark<F, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>;
 
         let config = StarkConfig::standard_fast_config();
         let num_rows = 1 << 5;
@@ -223,7 +229,7 @@ mod tests {
         // Test first STARK
         let stark = S::new(num_rows);
         let trace = stark.generate_trace(public_inputs[0], public_inputs[1]);
-        let proof = prove::<F, C, S, D>(
+        let proof = prove::<F, C, S, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>(
             stark,
             &config,
             trace,
@@ -232,23 +238,24 @@ mod tests {
         )?;
         verify_stark_proof(stark, proof.clone(), &config)?;
 
-        recursive_proof::<F, C, S, C, D>(stark, proof, &config, true)
+        recursive_proof::<F, C, S, C, D, GOLDILOCKS_NUM_HASH_OUT_ELTS>(stark, proof, &config, true)
     }
 
     fn recursive_proof<
         F: RichField + HasExtension<D>,
-        C: GenericConfig<D, F = F>,
-        S: Stark<F, D> + Copy,
-        InnerC: GenericConfig<D, F = F>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        S: Stark<F, D, NUM_HASH_OUT_ELTS> + Copy,
+        InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
     >(
         stark: S,
-        inner_proof: StarkProofWithPublicInputs<F, InnerC, D>,
+        inner_proof: StarkProofWithPublicInputs<F, InnerC, D, NUM_HASH_OUT_ELTS>,
         inner_config: &StarkConfig,
         print_gate_counts: bool,
     ) -> Result<()>
     where
-        InnerC::Hasher: AlgebraicHasher<F>,
+        InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let circuit_config = CircuitConfig::standard_recursion_config_gl();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(circuit_config);
@@ -258,7 +265,7 @@ mod tests {
             add_virtual_stark_proof_with_pis(&mut builder, &stark, inner_config, degree_bits, 0, 0);
         set_stark_proof_with_pis_target(&mut pw, &pt, &inner_proof, builder.zero());
 
-        verify_stark_proof_circuit::<F, InnerC, S, D>(&mut builder, stark, pt, inner_config);
+        verify_stark_proof_circuit::<F, InnerC, S, D, NUM_HASH_OUT_ELTS>(&mut builder, stark, pt, inner_config);
 
         if print_gate_counts {
             builder.print_gate_counts(0);

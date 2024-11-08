@@ -35,7 +35,7 @@ fn biguint_from_array(arr: [u64; 4]) -> BigUint {
 
 impl Default for Secp256K1Base {
     fn default() -> Self {
-        Self::ZERO
+        Self::zero()
     }
 }
 
@@ -94,7 +94,7 @@ impl Field for Secp256K1Base {
     const MULTIPLICATIVE_GROUP_GENERATOR: Self = Self([5, 0, 0, 0]);
 
     // Sage: `g_2 = g^((p - 1) / 2)`
-    const POWER_OF_TWO_GENERATOR: Self = Self::NEG_ONE;
+    const POWER_OF_TWO_GENERATOR: Self = Self::neg_one();
 
     const BITS: usize = 256;
 
@@ -173,7 +173,7 @@ impl Neg for Secp256K1Base {
     #[inline]
     fn neg(self) -> Self {
         if self.is_zero() {
-            Self::ZERO
+            Self::zero()
         } else {
             Self::from_noncanonical_biguint(Self::order() - self.to_canonical_biguint())
         }
@@ -202,7 +202,7 @@ impl AddAssign for Secp256K1Base {
 
 impl Sum for Secp256K1Base {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Self::ZERO, |acc, x| acc + x)
+        iter.fold(Self::zero(), |acc, x| acc + x)
     }
 }
 
@@ -244,7 +244,7 @@ impl MulAssign for Secp256K1Base {
 impl Product for Secp256K1Base {
     #[inline]
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.reduce(|acc, x| acc * x).unwrap_or(Self::ONE)
+        iter.reduce(|acc, x| acc * x).unwrap_or(Self::one())
     }
 }
 

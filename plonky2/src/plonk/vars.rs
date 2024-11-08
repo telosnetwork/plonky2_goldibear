@@ -3,7 +3,7 @@
 use core::ops::Range;
 use core::usize;
 
-use p3_field::{AbstractExtensionField, Field, PackedField, TwoAdicField};
+use p3_field::{AbstractExtensionField, Field, PackedField};
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
@@ -19,7 +19,7 @@ pub struct EvaluationVars<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+
 {
     pub local_constants: &'a [F::Extension],
     pub local_wires: &'a [F::Extension],
@@ -58,7 +58,7 @@ pub struct EvaluationVarsBasePacked<'a, P: PackedField, const NUM_HASH_OUT_ELTS:
 impl<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     EvaluationVars<'a, F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+
 {
     pub fn get_local_ext_algebra(&self, wire_range: Range<usize>) -> ExtensionAlgebra<F, D> {
         debug_assert_eq!(wire_range.len(), D);
@@ -136,7 +136,7 @@ impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBase<'a, F, NUM
     pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> F::Extension
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+
     {
         debug_assert_eq!(wire_range.len(), D);
         let view = self.local_wires.view(wire_range);

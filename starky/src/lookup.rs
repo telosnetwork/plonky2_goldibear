@@ -9,12 +9,11 @@ use core::iter::repeat;
 
 use itertools::Itertools;
 use num_bigint::BigUint;
+use p3_field::{AbstractExtensionField, batch_multiplicative_inverse, ExtensionField, Field, PackedField, TwoAdicField};
 
 use plonky2::field::batch_util::batch_add_inplace;
-use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
-use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::PolynomialValues;
-use plonky2::field::types::Field;
+use plonky2::field::types::HasExtension;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::challenger::{Challenger, RecursiveChallenger};
 use plonky2::iop::ext_target::ExtensionTarget;
@@ -40,7 +39,7 @@ pub struct Filter<F: Field> {
     constants: Vec<Column<F>>,
 }
 
-impl<F: Field> Filter<F> {
+impl<F: Field + TwoAdicField> Filter<F> {
     /// Returns a filter from the provided `products` and `constants` vectors.
     pub fn new(products: Vec<(Column<F>, Column<F>)>, constants: Vec<Column<F>>) -> Self {
         Self {
@@ -60,23 +59,24 @@ impl<F: Field> Filter<F> {
     /// Given the column values for the current and next rows, evaluates the filter.
     pub(crate) fn eval_filter<FE, P, const D: usize>(&self, v: &[P], next_v: &[P]) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
+        F: HasExtension<D, Extension = FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>,
     {
         self.products
             .iter()
-            .map(|(col1, col2)| col1.eval_with_next(v, next_v) * col2.eval_with_next(v, next_v))
+            .map(|(col1, col2)| col1.eval_with_next::<FE, P, D>(v, next_v) * col2.eval_with_next::<FE, P, D>(v, next_v))
             .sum::<P>()
             + self
                 .constants
                 .iter()
-                .map(|col| col.eval_with_next(v, next_v))
+                .map(|col| col.eval_with_next::<FE, P, D>(v, next_v))
                 .sum::<P>()
     }
 
     /// Circuit version of `eval_filter`:
     /// Given the column values for the current and next rows, evaluates the filter.
-    pub(crate) fn eval_filter_circuit<const D: usize>(
+    pub(crate) fn eval_filter_circuit<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         v: &[ExtensionTarget<D>],
@@ -84,6 +84,7 @@ impl<F: Field> Filter<F> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+
     {
         let prods = self
             .products
@@ -131,7 +132,7 @@ pub struct Column<F: Field> {
     constant: F,
 }
 
-impl<F: Field> Column<F> {
+impl<F: Field + TwoAdicField> Column<F> {
     /// Returns the representation of a single column in the current row.
     pub fn single(c: usize) -> Self {
         Self {
@@ -283,32 +284,34 @@ impl<F: Field> Column<F> {
     /// Given the column values for the current row, returns the evaluation of the linear combination.
     pub(crate) fn eval<FE, P, const D: usize>(&self, v: &[P]) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
+        F: HasExtension<D, Extension = FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>,
     {
         self.linear_combination
             .iter()
-            .map(|&(c, f)| v[c] * FE::from_basefield(f))
+            .map(|&(c, f)| v[c] * FE::from_base(f))
             .sum::<P>()
-            + FE::from_basefield(self.constant)
+            + FE::from_base(self.constant)
     }
 
     /// Given the column values for the current and next rows, evaluates the current and next linear combinations and returns their sum.
     pub(crate) fn eval_with_next<FE, P, const D: usize>(&self, v: &[P], next_v: &[P]) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
+        F: HasExtension<D, Extension = FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>,
     {
         self.linear_combination
             .iter()
-            .map(|&(c, f)| v[c] * FE::from_basefield(f))
+            .map(|&(c, f)| v[c] * FE::from_base(f))
             .sum::<P>()
             + self
                 .next_row_linear_combination
                 .iter()
-                .map(|&(c, f)| next_v[c] * FE::from_basefield(f))
+                .map(|&(c, f)| next_v[c] * FE::from_base(f))
                 .sum::<P>()
-            + FE::from_basefield(self.constant)
+            + FE::from_base(self.constant)
     }
 
     /// Evaluate on a row of a table given in column-major form.
@@ -342,13 +345,14 @@ impl<F: Field> Column<F> {
     }
 
     /// Circuit version of `eval`: Given a row's targets, returns their linear combination.
-    pub(crate) fn eval_circuit<const D: usize>(
+    pub(crate) fn eval_circuit<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         v: &[ExtensionTarget<D>],
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+
     {
         let pairs = self
             .linear_combination
@@ -356,17 +360,17 @@ impl<F: Field> Column<F> {
             .map(|&(c, f)| {
                 (
                     v[c],
-                    builder.constant_extension(F::Extension::from_basefield(f)),
+                    builder.constant_extension(F::Extension::from_base(f)),
                 )
             })
             .collect::<Vec<_>>();
-        let constant = builder.constant_extension(F::Extension::from_basefield(self.constant));
+        let constant = builder.constant_extension(F::Extension::from_base(self.constant));
         builder.inner_product_extension(F::one(), constant, pairs)
     }
 
     /// Circuit version of `eval_with_next`:
     /// Given the targets of the current and next row, returns the sum of their linear combinations.
-    pub(crate) fn eval_with_next_circuit<const D: usize>(
+    pub(crate) fn eval_with_next_circuit<const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         v: &[ExtensionTarget<D>],
@@ -374,6 +378,7 @@ impl<F: Field> Column<F> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
+
     {
         let mut pairs = self
             .linear_combination
@@ -381,18 +386,18 @@ impl<F: Field> Column<F> {
             .map(|&(c, f)| {
                 (
                     v[c],
-                    builder.constant_extension(F::Extension::from_basefield(f)),
+                    builder.constant_extension(F::Extension::from_base(f)),
                 )
             })
             .collect::<Vec<_>>();
         let next_row_pairs = self.next_row_linear_combination.iter().map(|&(c, f)| {
             (
                 next_v[c],
-                builder.constant_extension(F::Extension::from_basefield(f)),
+                builder.constant_extension(F::Extension::from_base(f)),
             )
         });
         pairs.extend(next_row_pairs);
-        let constant = builder.constant_extension(F::Extension::from_basefield(self.constant));
+        let constant = builder.constant_extension(F::Extension::from_base(self.constant));
         builder.inner_product_extension(F::one(), constant, pairs)
     }
 }
@@ -454,20 +459,24 @@ impl<F: Field> GrandProductChallenge<F> {
     /// `(Σ t_i * beta^i) + gamma`.
     pub fn combine<'a, FE, P, T: IntoIterator<Item = &'a P>, const D2: usize>(&self, terms: T) -> P
     where
-        FE: FieldExtension<D2, BaseField = F>,
+        F: HasExtension<D2, Extension = FE>,
+        FE: ExtensionField<F>,
         P: PackedField<Scalar = FE>,
         T::IntoIter: DoubleEndedIterator,
     {
-        reduce_with_powers(terms, FE::from_basefield(self.beta)) + FE::from_basefield(self.gamma)
+        reduce_with_powers(terms, FE::from_base(self.beta)) + FE::from_base(self.gamma)
     }
 }
 
 impl GrandProductChallenge<Target> {
-    pub(crate) fn combine_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    pub(crate) fn combine_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         terms: &[ExtensionTarget<D>],
-    ) -> ExtensionTarget<D> {
+    ) -> ExtensionTarget<D>
+    where
+
+    {
         let reduced = reduce_with_powers_ext_circuit(builder, terms, self.beta);
         let gamma = builder.convert_to_ext(self.gamma);
         builder.add_extension(reduced, gamma)
@@ -476,11 +485,14 @@ impl GrandProductChallenge<Target> {
 
 impl GrandProductChallenge<Target> {
     /// Circuit version of `combine`.
-    pub fn combine_base_circuit<F: RichField + HasExtension<D>, const D: usize>(
+    pub fn combine_base_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         terms: &[Target],
-    ) -> Target {
+    ) -> Target
+    where
+
+    {
         let reduced = reduce_with_powers_circuit(builder, terms, self.beta);
         builder.add(reduced, self.gamma)
     }
@@ -542,12 +554,16 @@ pub fn get_grand_product_challenge_set<F: RichField, H: Hasher<F>>(
 
 fn get_grand_product_challenge_target<
     F: RichField + HasExtension<D>,
-    H: AlgebraicHasher<F>,
+    H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
-    challenger: &mut RecursiveChallenger<F, H, D>,
-) -> GrandProductChallenge<Target> {
+    challenger: &mut RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>,
+) -> GrandProductChallenge<Target>
+where
+
+{
     let beta = challenger.get_challenge(builder);
     let gamma = challenger.get_challenge(builder);
     GrandProductChallenge { beta, gamma }
@@ -556,13 +572,17 @@ fn get_grand_product_challenge_target<
 /// Circuit version of `get_grand_product_challenge_set`.
 pub fn get_grand_product_challenge_set_target<
     F: RichField + HasExtension<D>,
-    H: AlgebraicHasher<F>,
+    H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
-    challenger: &mut RecursiveChallenger<F, H, D>,
+    challenger: &mut RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>,
     num_challenges: usize,
-) -> GrandProductChallengeSet<Target> {
+) -> GrandProductChallengeSet<Target>
+where
+
+{
     let challenges = (0..num_challenges)
         .map(|_| get_grand_product_challenge_target(builder, challenger))
         .collect();
@@ -574,7 +594,7 @@ pub fn get_grand_product_challenge_set_target<
 /// Given columns `f0,...,fk` and a column `t`, such that `∪fi ⊆ t`, and challenges `x`,
 /// this computes the helper columns `h_i = 1/(x+f_2i) + 1/(x+f_2i+1)`, `g = 1/(x+t)`,
 /// and `Z(gx) = Z(x) + sum h_i(x) - m(x)g(x)` where `m` is the frequencies column.
-pub(crate) fn lookup_helper_columns<F: Field>(
+pub(crate) fn lookup_helper_columns<F: RichField>(
     lookup: &Lookup<F>,
     trace_poly_values: &[PolynomialValues<F>],
     challenge: F,
@@ -627,7 +647,7 @@ pub(crate) fn lookup_helper_columns<F: Field>(
     for x in table.iter_mut() {
         *x = challenge + *x;
     }
-    let table_inverse: Vec<F> = F::batch_multiplicative_inverse::<F>(&table);
+    let table_inverse: Vec<F> = batch_multiplicative_inverse::<F>(&table);
 
     // Compute the `Z` polynomial with `Z(1)=0` and `Z(gx) = Z(x) + sum h_i(x) - frequencies(x)g(x)`.
     // This enforces the check from the paper, that the sum of the h_k(x) polynomials is 0 over H.
@@ -660,8 +680,8 @@ pub(crate) fn eval_helper_columns<F, FE, P, const D: usize, const D2: usize>(
     challenges: &GrandProductChallenge<F>,
     consumer: &mut ConstraintConsumer<P>,
 ) where
-    F: RichField + HasExtension<D>,
-    FE: FieldExtension<D2, BaseField = F>,
+    F: RichField + HasExtension<D> + HasExtension<D2, Extension = FE>,
+    FE: ExtensionField<F>,
     P: PackedField<Scalar = FE>,
 {
     if !helper_columns.is_empty() {
@@ -672,28 +692,28 @@ pub(crate) fn eval_helper_columns<F, FE, P, const D: usize, const D2: usize>(
         {
             match chunk.len() {
                 2 => {
-                    let combin0 = challenges.combine(&chunk[0]);
-                    let combin1 = challenges.combine(chunk[1].iter());
+                    let combin0 = challenges.combine::<FE, P, &Vec<P>, D2>(&chunk[0]);
+                    let combin1 = challenges.combine::<FE, P,  std::slice::Iter<'_, P>, D2>(chunk[1].iter());
 
                     let f0 = if let Some(filter0) = &fs[0] {
-                        filter0.eval_filter(local_values, next_values)
+                        filter0.eval_filter::<FE, P, D2>(local_values, next_values)
                     } else {
-                        P::ONES
+                        P::one()
                     };
                     let f1 = if let Some(filter1) = &fs[1] {
-                        filter1.eval_filter(local_values, next_values)
+                        filter1.eval_filter::<FE, P, D2>(local_values, next_values)
                     } else {
-                        P::ONES
+                        P::one()
                     };
 
                     consumer.constraint(combin1 * combin0 * h - f0 * combin1 - f1 * combin0);
                 }
                 1 => {
-                    let combin = challenges.combine(&chunk[0]);
+                    let combin = challenges.combine::<FE, P, &Vec<P>, D2>(&chunk[0]);
                     let f0 = if let Some(filter1) = &fs[0] {
-                        filter1.eval_filter(local_values, next_values)
+                        filter1.eval_filter::<FE, P, D2>(local_values, next_values)
                     } else {
-                        P::ONES
+                        P::one()
                     };
                     consumer.constraint(combin * h - f0);
                 }
@@ -706,7 +726,7 @@ pub(crate) fn eval_helper_columns<F, FE, P, const D: usize, const D2: usize>(
 
 /// Circuit version of `eval_helper_columns`.
 /// Given data associated to a lookup (either a CTL or a range-check), check the associated helper polynomials.
-pub(crate) fn eval_helper_columns_circuit<F: RichField + HasExtension<D>, const D: usize>(
+pub(crate) fn eval_helper_columns_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     filter: &[Option<Filter<F>>],
     columns: &[Vec<ExtensionTarget<D>>],
@@ -715,8 +735,11 @@ pub(crate) fn eval_helper_columns_circuit<F: RichField + HasExtension<D>, const 
     helper_columns: &[ExtensionTarget<D>],
     constraint_degree: usize,
     challenges: &GrandProductChallenge<Target>,
-    consumer: &mut RecursiveConstraintConsumer<F, D>,
-) {
+    consumer: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
+)
+where
+
+{
     if !helper_columns.is_empty() {
         let chunk_size = constraint_degree.checked_sub(1).unwrap_or(1);
         for (chunk, (fs, &h)) in columns
@@ -766,7 +789,7 @@ pub(crate) fn eval_helper_columns_circuit<F: RichField + HasExtension<D>, const 
 
 /// Given a STARK's trace, and the data associated to one lookup (either CTL or range check),
 /// returns the associated helper polynomials.
-pub(crate) fn get_helper_cols<F: Field>(
+pub(crate) fn get_helper_cols<F: RichField>(
     trace: &[PolynomialValues<F>],
     degree: usize,
     columns_filters: &[ColumnFilter<F>],
@@ -811,7 +834,7 @@ pub(crate) fn get_helper_cols<F: Field>(
             })
             .collect::<Vec<F>>();
 
-        let mut acc = F::batch_multiplicative_inverse::<F>(&first_combined);
+        let mut acc = batch_multiplicative_inverse::<F>(&first_combined);
         for d in 0..degree {
             if filter_col[d].is_zero() {
                 acc[d] = F::zero();
@@ -844,7 +867,7 @@ pub(crate) fn get_helper_cols<F: Field>(
                 })
                 .collect::<Vec<F>>();
 
-            combined = F::batch_multiplicative_inverse::<F>(&combined);
+            combined = batch_multiplicative_inverse::<F>(&combined);
 
             for d in 0..degree {
                 if filter_col[d].is_zero() {
@@ -865,8 +888,8 @@ pub(crate) fn get_helper_cols<F: Field>(
 #[derive(Debug)]
 pub(crate) struct LookupCheckVars<F, FE, P, const D2: usize>
 where
-    F: Field,
-    FE: FieldExtension<D2, BaseField = F>,
+    F: Field + HasExtension<D2, Extension = FE>,
+    FE: ExtensionField<F>,
     P: PackedField<Scalar = FE>,
 {
     pub(crate) local_values: Vec<P>,
@@ -875,17 +898,17 @@ where
 }
 
 /// Constraints for the logUp lookup argument.
-pub(crate) fn eval_packed_lookups_generic<F, FE, P, S, const D: usize, const D2: usize>(
+pub(crate) fn eval_packed_lookups_generic<F, FE, P, S, const D: usize, const NUM_HASH_OUT_ELTS: usize, const D2: usize>(
     stark: &S,
     lookups: &[Lookup<F>],
     vars: &S::EvaluationFrame<FE, P, D2>,
     lookup_vars: LookupCheckVars<F, FE, P, D2>,
     yield_constr: &mut ConstraintConsumer<P>,
 ) where
-    F: RichField + HasExtension<D>,
-    FE: FieldExtension<D2, BaseField = F>,
+    F: RichField + HasExtension<D> + HasExtension<D2, Extension = FE>,
+    FE: ExtensionField<F>,
     P: PackedField<Scalar = FE>,
-    S: Stark<F, D>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     let local_values = vars.get_local_values();
     let next_values = vars.get_next_values();
@@ -901,12 +924,12 @@ pub(crate) fn eval_packed_lookups_generic<F, FE, P, S, const D: usize, const D2:
             let lookup_columns = lookup
                 .columns
                 .iter()
-                .map(|col| vec![col.eval_with_next(local_values, next_values)])
+                .map(|col| vec![col.eval_with_next::<FE, P, D2>(local_values, next_values)])
                 .collect::<Vec<Vec<P>>>();
 
             // For each chunk, check that `h_i (x+f_2i) (x+f_{2i+1}) = (x+f_2i) * filter_{2i+1} + (x+f_{2i+1}) * filter_2i`
             // if the chunk has length 2 or if it has length 1, check that `h_i * (x+f_2i) = filter_2i`, where x is the challenge
-            eval_helper_columns(
+            eval_helper_columns::<F, FE, P, D, D2>(
                 &lookup.filter_columns,
                 &lookup_columns,
                 local_values,
@@ -917,17 +940,17 @@ pub(crate) fn eval_packed_lookups_generic<F, FE, P, S, const D: usize, const D2:
                 yield_constr,
             );
 
-            let challenge = FE::from_basefield(challenge);
+            let challenge = FE::from_base(challenge);
 
             // Check the `Z` polynomial.
             let z = lookup_vars.local_values[start + num_helper_columns - 1];
             let next_z = lookup_vars.next_values[start + num_helper_columns - 1];
-            let table_with_challenge = lookup.table_column.eval(local_values) + challenge;
+            let table_with_challenge = lookup.table_column.eval::<FE, P, D2>(local_values) + challenge;
             let y = lookup_vars.local_values[start..start + num_helper_columns - 1]
                 .iter()
-                .fold(P::ZEROS, |acc, x| acc + *x)
+                .fold(P::zero(), |acc, x| acc + *x)
                 * table_with_challenge
-                - lookup.frequencies_column.eval(local_values);
+                - lookup.frequencies_column.eval::<FE, P, D2>(local_values);
             // Check that in the first row, z = 0;
             yield_constr.constraint_first_row(z);
             yield_constr.constraint((next_z - z) * table_with_challenge - y);
@@ -945,14 +968,15 @@ pub(crate) struct LookupCheckVarsTarget<const D: usize> {
 
 pub(crate) fn eval_ext_lookups_circuit<
     F: RichField + HasExtension<D>,
-    S: Stark<F, D>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     stark: &S,
     vars: &S::EvaluationFrameTarget,
     lookup_vars: LookupCheckVarsTarget<D>,
-    yield_constr: &mut RecursiveConstraintConsumer<F, D>,
+    yield_constr: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
 ) {
     let degree = stark.constraint_degree();
     let lookups = stark.lookups();

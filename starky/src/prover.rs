@@ -6,12 +6,10 @@ use core::iter::once;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
+use p3_field::{AbstractField, PackedField};
 
-use plonky2::field::extension::BinomiallyExtendable;
-use plonky2::field::packable::Packable;
-use plonky2::field::packed::PackedField;
 use plonky2::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use plonky2::field::types::Field;
+use plonky2::field::types::{HasExtension, two_adic_subgroup};
 use plonky2::field::zero_poly_coset::ZeroPolyOnCoset;
 use plonky2::fri::oracle::PolynomialBatch;
 use plonky2::hash::hash_types::RichField;
@@ -35,17 +33,17 @@ use crate::stark::Stark;
 use crate::vanishing_poly::eval_vanishing_poly;
 
 /// From a STARK trace, computes a STARK proof to attest its correctness.
-pub fn prove<F, C, S, const D: usize>(
+pub fn prove<F, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: S,
     config: &StarkConfig,
     trace_poly_values: Vec<PolynomialValues<F>>,
     public_inputs: &[F],
     timing: &mut TimingTree,
-) -> Result<StarkProofWithPublicInputs<F, C, D>>
+) -> Result<StarkProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     let degree = trace_poly_values[0].len();
     let degree_bits = log2_strict(degree);
@@ -60,7 +58,7 @@ where
     let trace_commitment = timed!(
         timing,
         "compute trace commitment",
-        PolynomialBatch::<F, C, D>::from_values(
+        PolynomialBatch::<F, C, D,NUM_HASH_OUT_ELTS>::from_values(
             trace_poly_values.clone(),
             rate_bits,
             false,
@@ -94,21 +92,21 @@ where
 /// - all the required polynomial and FRI argument openings.
 /// - individual `ctl_data` and common `ctl_challenges` if the STARK is part
 /// of a multi-STARK system.
-pub fn prove_with_commitment<F, C, S, const D: usize>(
+pub fn prove_with_commitment<F, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
     config: &StarkConfig,
     trace_poly_values: &[PolynomialValues<F>],
-    trace_commitment: &PolynomialBatch<F, C, D>,
+    trace_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     ctl_data: Option<&CtlData<F>>,
     ctl_challenges: Option<&GrandProductChallengeSet<F>>,
     challenger: &mut Challenger<F, C::Hasher>,
     public_inputs: &[F],
     timing: &mut TimingTree,
-) -> Result<StarkProofWithPublicInputs<F, C, D>>
+) -> Result<StarkProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     let degree = trace_poly_values[0].len();
     let degree_bits = log2_strict(degree);
@@ -230,7 +228,7 @@ where
     let quotient_polys = timed!(
         timing,
         "compute quotient polys",
-        compute_quotient_polys::<F, F::Packing, C, S, D>(
+        compute_quotient_polys::<F, F::Packing, C, S, D, NUM_HASH_OUT_ELTS>(
             stark,
             trace_commitment,
             &auxiliary_polys_commitment,
@@ -290,7 +288,7 @@ where
     // `(g * zeta)^n = zeta^n`, where `n` is the order of `g`.
     let g = F::primitive_root_of_unity(degree_bits);
     ensure!(
-        zeta.exp_power_of_2(degree_bits) != F::Extension::ONE,
+        zeta.exp_power_of_2(degree_bits) != F::Extension::one(),
         "Opening point is in the subgroup."
     );
 
@@ -341,10 +339,10 @@ where
 
 /// Computes the quotient polynomials `(sum alpha^i C_i(x)) / Z_H(x)` for `alpha` in `alphas`,
 /// where the `C_i`s are the STARK constraints.
-fn compute_quotient_polys<'a, F, P, C, S, const D: usize>(
+fn compute_quotient_polys<'a, F, P, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
-    trace_commitment: &'a PolynomialBatch<F, C, D>,
-    auxiliary_polys_commitment: &'a Option<PolynomialBatch<F, C, D>>,
+    trace_commitment: &'a PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
+    auxiliary_polys_commitment: &'a Option<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>,
     lookup_challenges: Option<&'a Vec<F>>,
     lookups: &[Lookup<F>],
     ctl_data: Option<&CtlData<F>>,
@@ -358,8 +356,8 @@ fn compute_quotient_polys<'a, F, P, C, S, const D: usize>(
 where
     F: RichField + HasExtension<D>,
     P: PackedField<Scalar = F>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     if stark.quotient_degree_factor() == 0 {
         return None;
@@ -464,7 +462,7 @@ where
                                 ..num_lookup_columns + start_index + num_ctl_helper_cols]
                             .to_vec();
 
-                        let ctl_vars = CtlCheckVars::<F, F, P, 1> {
+                        let ctl_vars = CtlCheckVars::<F, F, P, D, NUM_HASH_OUT_ELTS> {
                             helper_columns,
                             local_z: auxiliary_polys_commitment
                                 .as_ref()
@@ -490,7 +488,7 @@ where
 
             // Evaluate the polynomial combining all constraints, including
             // those associated to the permutation arguments.
-            eval_vanishing_poly::<F, F, P, S, D, 1>(
+            eval_vanishing_poly::<F, F, P, S, D, NUM_HASH_OUT_ELTS, 1>(
                 stark,
                 &vars,
                 lookups,
@@ -535,11 +533,11 @@ where
 /// **Note**: this is an expensive check, hence is only available when the `debug_assertions`
 /// flag is activated, to not hinder performances with regular `release` build.
 #[cfg(debug_assertions)]
-fn check_constraints<'a, F, C, S, const D: usize>(
+fn check_constraints<'a, F, C, S, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     stark: &S,
-    trace_commitment: &'a PolynomialBatch<F, C, D>,
+    trace_commitment: &'a PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     public_inputs: &[F],
-    auxiliary_commitment: &'a Option<PolynomialBatch<F, C, D>>,
+    auxiliary_commitment: &'a Option<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>,
     lookup_challenges: Option<&'a Vec<F>>,
     lookups: &[Lookup<F>],
     ctl_data: Option<&CtlData<F>>,
@@ -549,8 +547,8 @@ fn check_constraints<'a, F, C, S, const D: usize>(
     num_ctl_helper_cols: &[usize],
 ) where
     F: RichField + HasExtension<D>,
-    C: GenericConfig<D, F = F>,
-    S: Stark<F, D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    S: Stark<F, D, NUM_HASH_OUT_ELTS>,
 {
     let degree = 1 << degree_bits;
     let rate_bits = 0; // Set this to higher value to check constraint degree.
@@ -567,7 +565,7 @@ fn check_constraints<'a, F, C, S, const D: usize>(
     let subgroup = two_adic_subgroup::<F>(degree_bits + rate_bits);
 
     // Get the evaluations of a batch of polynomials over our subgroup.
-    let get_subgroup_evals = |comm: &PolynomialBatch<F, C, D>| -> Vec<Vec<F>> {
+    let get_subgroup_evals = |comm: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>| -> Vec<Vec<F>> {
         let values = comm
             .polynomials
             .par_iter()
@@ -626,7 +624,7 @@ fn check_constraints<'a, F, C, S, const D: usize>(
                             [num_lookup_columns + start_index
                                 ..num_lookup_columns + start_index + num_helper_cols]
                             .to_vec();
-                        let ctl_vars = CtlCheckVars::<F, F, F, 1> {
+                        let ctl_vars = CtlCheckVars::<F, F, F> {
                             helper_columns,
                             local_z: auxiliary_subgroup_evals.as_ref().unwrap()[i]
                                 [num_lookup_columns + total_num_helper_cols + iii],

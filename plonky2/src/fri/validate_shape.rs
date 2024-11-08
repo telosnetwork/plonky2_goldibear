@@ -1,5 +1,4 @@
 use anyhow::ensure;
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -18,7 +17,7 @@ pub(crate) fn validate_fri_proof_shape<F, C, const D: usize, const NUM_HASH_OUT_
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField,
+
 {
     let FriProof {
         commit_phase_merkle_caps,

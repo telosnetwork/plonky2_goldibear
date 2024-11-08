@@ -25,11 +25,11 @@
 //!
 //! ```rust
 //! # use core::marker::PhantomData;
+//! # use p3_field::{ExtensionField, PackedField};
 //! // Imports all basic types.
-//! use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
-//! use plonky2::field::packed::PackedField;
-//! use plonky2::field::polynomial::PolynomialValues;
-//! use plonky2::hash::hash_types::RichField;
+//! # use plonky2::field::polynomial::PolynomialValues;
+//! # use plonky2::field::types::HasExtension;
+//! # use plonky2::hash::hash_types::RichField;
 //! # use starky::util::trace_rows_to_poly_values;
 //!
 //! // Imports to define the constraints of our STARK.
@@ -41,13 +41,13 @@
 //! use plonky2::iop::ext_target::ExtensionTarget;
 //! use plonky2::plonk::circuit_builder::CircuitBuilder;
 //!
-//! pub struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize> {
+//! pub struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
 //!     num_rows: usize,
 //!     _phantom: PhantomData<F>,
 //! }
 //!
 //! // Define witness generation.
-//! impl<F: RichField + HasExtension<D>, const D: usize> FibonacciStark<F, D> {
+//! impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> FibonacciStark<F, D,NUM_HASH_OUT_ELTS> {
 //!     // The first public input is `x0`.
 //!     const PI_INDEX_X0: usize = 0;
 //!     // The second public input is `x1`.
@@ -77,10 +77,10 @@
 //! const COLUMNS: usize = 3;
 //! const PUBLIC_INPUTS: usize = 3;
 //!
-//! impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
+//! impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Stark<F, D, NUM_HASH_OUT_ELTS> for FibonacciStark<F, D, NUM_HASH_OUT_ELTS> {
 //!     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, COLUMNS, PUBLIC_INPUTS>
 //!     where
-//!         FE: FieldExtension<D2, BaseField = F>,
+//!         FE: ExtensionField<F>,
 //!         P: PackedField<Scalar = FE>;
 //!
 //!     type EvaluationFrameTarget =
@@ -92,7 +92,7 @@
 //!         vars: &Self::EvaluationFrame<FE, P, D2>,
 //!         yield_constr: &mut ConstraintConsumer<P>,
 //!     ) where
-//!         FE: FieldExtension<D2, BaseField = F>,
+//!         FE: ExtensionField<F>,
 //!         P: PackedField<Scalar = FE>,
 //!     {
 //!         let local_values = vars.get_local_values();
@@ -116,7 +116,7 @@
 //!         &self,
 //!         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
 //!         vars: &Self::EvaluationFrameTarget,
-//!         yield_constr: &mut RecursiveConstraintConsumer<F, D>,
+//!         yield_constr: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
 //!     ) {
 //!         let local_values = vars.get_local_values();
 //!         let next_values = vars.get_next_values();
@@ -158,11 +158,10 @@
 //! # use anyhow::Result;
 //! # use core::marker::PhantomData;
 //! # // Imports all basic types.
-//! # use plonky2::field::extension::{BinomiallyExtendable, FieldExtension};
-//! # use plonky2::field::types::Field;
-//! # use plonky2::field::packed::PackedField;
 //! # use plonky2::field::polynomial::PolynomialValues;
 //! # use plonky2::hash::hash_types::RichField;
+//! # use plonky2::field::types::HasExtension;
+//! # use p3_field::{ExtensionField, PackedField, Field};
 //! # use starky::util::trace_rows_to_poly_values;
 //! # // Imports to define the constraints of our STARK.
 //! # use starky::constraint_consumer::{ConstraintConsumer, RecursiveConstraintConsumer};
@@ -178,12 +177,12 @@
 //! # use starky::config::StarkConfig;
 //! #
 //! # #[derive(Copy, Clone)]
-//! # pub struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize> {
+//! # pub struct FibonacciStark<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> {
 //! #     num_rows: usize,
 //! #     _phantom: PhantomData<F>,
 //! # }
 //! # // Define witness generation.
-//! # impl<F: RichField + HasExtension<D>, const D: usize> FibonacciStark<F, D> {
+//! # impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> FibonacciStark<F, D, NUM_HASH_OUT_ELTS> {
 //! #     // The first public input is `x0`.
 //! #     const PI_INDEX_X0: usize = 0;
 //! #     // The second public input is `x1`.
@@ -215,10 +214,10 @@
 //! # // Define constraints.
 //! # const COLUMNS: usize = 3;
 //! # const PUBLIC_INPUTS: usize = 3;
-//! # impl<F: RichField + HasExtension<D>, const D: usize> Stark<F, D> for FibonacciStark<F, D> {
+//! # impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Stark<F, D, NUM_HASH_OUT_ELTS> for FibonacciStark<F, D, NUM_HASH_OUT_ELTS> {
 //! #     type EvaluationFrame<FE, P, const D2: usize> = StarkFrame<P, P::Scalar, COLUMNS, PUBLIC_INPUTS>
 //! #     where
-//! #         FE: FieldExtension<D2, BaseField = F>,
+//! #         FE: ExtensionField<F>,
 //! #         P: PackedField<Scalar = FE>;
 //! #     type EvaluationFrameTarget =
 //! #         StarkFrame<ExtensionTarget<D>, ExtensionTarget<D>, COLUMNS, PUBLIC_INPUTS>;
@@ -228,10 +227,11 @@
 //! #         vars: &Self::EvaluationFrame<FE, P, D2>,
 //! #         yield_constr: &mut ConstraintConsumer<P>,
 //! #     ) where
-//! #         FE: FieldExtension<D2, BaseField = F>,
+//! #         FE: ExtensionField<F>,
 //! #         P: PackedField<Scalar = FE>,
 //! #     {
-//! #         let local_values = vars.get_local_values();
+//! #         use p3_field::{ExtensionField, PackedField};
+//! let local_values = vars.get_local_values();
 //! #         let next_values = vars.get_next_values();
 //! #         let public_inputs = vars.get_public_inputs();
 //! #         // Check public inputs.
@@ -249,7 +249,7 @@
 //! #         &self,
 //! #         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
 //! #         vars: &Self::EvaluationFrameTarget,
-//! #         yield_constr: &mut RecursiveConstraintConsumer<F, D>,
+//! #         yield_constr: &mut RecursiveConstraintConsumer<F, D, NUM_HASH_OUT_ELTS>,
 //! #     ) {
 //! #         let local_values = vars.get_local_values();
 //! #         let next_values = vars.get_next_values();
@@ -279,25 +279,28 @@
 //! #     }
 //! # }
 //! # fn fibonacci<F: Field>(n: usize, x0: F, x1: F) -> F {
-//! #     (0..n).fold((x0, x1), |x, _| (x.1, x.0 + x.1)).1
+//! #     use p3_field::Field;
+//! (0..n).fold((x0, x1), |x, _| (x.1, x.0 + x.1)).1
 //! # }
 //! #
 //! const D: usize = 2;
+//! const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 //! const CONFIG: StarkConfig = StarkConfig::standard_fast_config();
 //! type C = PoseidonGoldilocksConfig;
-//! type F = <C as GenericConfig<D>>::F;
-//! type S = FibonacciStark<F, D>;
+//! type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+//! type S = FibonacciStark<F, D, NUM_HASH_OUT_ELTS>;
 //!
 //! fn main() {
-//!     let num_rows = 1 << 10;
+//!     use p3_field::AbstractField;
+//! let num_rows = 1 << 10;
 //!     let x0 = F::from_canonical_u32(2);
 //!     let x1 = F::from_canonical_u32(7);
 //!
 //!     let public_inputs = [x0, x1, fibonacci(num_rows - 1, x0, x1)];
-//!     let stark = FibonacciStark::<F, D>::new(num_rows);
+//!     let stark = FibonacciStark::<F, D,NUM_HASH_OUT_ELTS>::new(num_rows);
 //!     let trace = stark.generate_trace(public_inputs[0], public_inputs[1]);
 //!
-//!     let proof = prove::<F, C, S, D>(
+//!     let proof = prove::<F, C, S, D,NUM_HASH_OUT_ELTS>(
 //!         stark,
 //!         &CONFIG,
 //!         trace,

@@ -5,7 +5,6 @@ use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use std::vec::Vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -21,7 +20,7 @@ pub trait GateSerializer<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+
 {
     fn read_gate(
         &self,
@@ -103,7 +102,7 @@ macro_rules! impl_gate_serializer {
 }
 
 pub mod default {
-    use p3_field::TwoAdicField;
+    
 
     use plonky2_field::types::HasExtension;
 
@@ -142,7 +141,7 @@ pub mod default {
     impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
         GateSerializer<F, D, NUM_HASH_OUT_ELTS> for DefaultGateSerializer
     where
-        F::Extension: TwoAdicField,
+
     {
         impl_gate_serializer! {
             DefaultGateSerializer,

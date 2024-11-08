@@ -4,9 +4,9 @@
 use alloc::vec::Vec;
 
 use itertools::Itertools;
+use p3_field::Field;
 
 use plonky2::field::polynomial::PolynomialValues;
-use plonky2::field::types::Field;
 use plonky2::util::transpose;
 
 /// A helper function to transpose a row-wise trace and put it in the format that `prove` expects.
