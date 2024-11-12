@@ -41,6 +41,7 @@ use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{generate_partial_witness, WitnessGeneratorRef};
 use crate::iop::target::Target;
+use crate::iop::wire::Wire;
 use crate::iop::witness::{PartialWitness, PartitionWitness};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{GenericConfig, Hasher};
@@ -250,14 +251,24 @@ where
         &self,
         inputs: PartialWitness<F>,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
-        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
-            &self.prover_only,
-            &self.common,
+        self.prove_with_timing(
             inputs,
             &mut TimingTree::default(),
         )
     }
 
+    pub fn prove_with_timing(
+        &self,
+        inputs: PartialWitness<F>,
+        timing: &mut TimingTree,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
+            &self.prover_only,
+            &self.common,
+            inputs,
+            timing,
+        )
+    }
     pub fn verify(
         &self,
         proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -465,8 +476,11 @@ pub struct ProverOnlyCircuitData<
     pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<F>>::Hash,
     ///The concrete placement of the lookup gates for each lookup table index.
     pub lookup_rows: Vec<LookupWire>,
-    /// A vector of (looking_in, looking_out) pairs for for each lookup table index.
+    /// A vector of (looking_in, looking_out) pairs for each lookup table index.
     pub lut_to_lookups: Vec<Lookup>,
+    /// The random wire taken from the public input gate used to randomize the witnesses in case of
+    /// division by zero in permutation argument (see issue https://github.com/0xPolygonZero/plonky2/issues/456)
+    pub random_wire: Option<Wire>,
 }
 
 impl<

@@ -39,6 +39,7 @@ use crate::iop::generator::{
     ConstantGenerator, CopyGenerator, RandomValueGenerator, SimpleGenerator, WitnessGeneratorRef,
 };
 use crate::iop::target::{BoolTarget, Target};
+use crate::iop::wire;
 use crate::iop::wire::Wire;
 use crate::plonk::circuit_data::{
     CircuitConfig, CircuitData, CommonCircuitData, MockCircuitData, ProverCircuitData,
@@ -94,6 +95,7 @@ pub struct LookupWire {
 ///
 /// ```rust
 /// use p3_field::AbstractField;
+/// use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 /// use plonky2::plonk::circuit_data::CircuitConfig;
 /// use plonky2::iop::witness::PartialWitness;
 /// use plonky2::plonk::circuit_builder::CircuitBuilder;
@@ -208,6 +210,10 @@ pub struct CircuitBuilder<
     /// Optional verifier data that is registered as public inputs.
     /// This is used in cyclic recursion to hold the circuit's own verifier key.
     pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
+
+    /// The random wire taken from the public input gate used to randomize the witnesses in case of
+    /// division by zero in permutation argument (see issue https://github.com/0xPolygonZero/plonky2/issues/456)
+    random_wire: Option<Wire>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
@@ -241,6 +247,7 @@ where
             luts: Vec::new(),
             goal_common_data: None,
             verifier_data_public_input: None,
+            random_wire: None,
         };
         builder.check_config();
         builder
@@ -1062,8 +1069,13 @@ where
     /// See <https://github.com/0xPolygonZero/plonky2/issues/456>.
     fn randomize_unused_pi_wires(&mut self, pi_gate: usize) {
         for wire in PublicInputGate::wires_public_inputs_hash().end..self.config.num_wires {
+            let wire_obj = wire::Wire{row: pi_gate, column:wire};
+            if wire == self.config.num_wires - 1 {
+                self.random_wire = Some(wire_obj);
+            }
+
             self.add_simple_generator(RandomValueGenerator {
-                target: Target::wire(pi_gate, wire),
+                target: Target::Wire(wire_obj),
             });
         }
     }
@@ -1323,6 +1335,7 @@ where
             }
         }
 
+
         let prover_only = ProverOnlyCircuitData::<F, C, D, NUM_HASH_OUT_ELTS> {
             generators: self.generators,
             generator_indices_by_watches,
@@ -1335,6 +1348,7 @@ where
             circuit_digest,
             lookup_rows: self.lookup_rows.clone(),
             lut_to_lookups: self.lut_to_lookups.clone(),
+            random_wire: self.random_wire.clone(),
         };
 
         let verifier_only = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS> {

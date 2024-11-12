@@ -935,7 +935,13 @@ pub trait Read {
         for _ in 0..length {
             lut_to_lookups.push(self.read_target_lut()?);
         }
-
+        let random_wire_row = self.read_usize()?;
+        let random_wire_column = self.read_usize()?;
+        let random_wire = if random_wire_column == 0 && random_wire_column == 0 {
+            None
+        } else {
+            Some( Wire{ row: random_wire_row, column: random_wire_column } )
+        };
         Ok(ProverOnlyCircuitData {
             generators,
             generator_indices_by_watches,
@@ -948,6 +954,7 @@ pub trait Read {
             circuit_digest,
             lookup_rows,
             lut_to_lookups,
+            random_wire,
         })
     }
 
@@ -1978,6 +1985,7 @@ pub trait Write {
             circuit_digest,
             lookup_rows,
             lut_to_lookups,
+            random_wire,
         } = prover_only_circuit_data;
 
         self.write_usize(generators.len())?;
@@ -2030,6 +2038,14 @@ pub trait Write {
         self.write_usize(lut_to_lookups.len())?;
         for tlut in lut_to_lookups.iter() {
             self.write_target_lut(tlut)?;
+        }
+        if random_wire.is_none() {
+            self.write_usize(0)?;
+            self.write_usize(0)?;
+        } else {
+            let wire = random_wire.unwrap();
+            self.write_usize(wire.row)?;
+            self.write_usize(wire.column)?;
         }
 
         Ok(())

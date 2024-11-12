@@ -634,4 +634,74 @@ mod tests {
         verify(proof, &data.verifier_only, &data.common)?;
         data.verify_compressed(compressed_proof)
     }
+
+    #[cfg(feature = "disable-randomness")]
+    mod tests_non_rand {
+        use p3_field::AbstractField;
+        use plonky2_field::types::tests_non_rand;
+        use crate::gates::noop::NoopGate;
+        use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
+        use crate::iop::witness::{PartialWitness, WitnessWrite};
+        use crate::plonk::circuit_builder::CircuitBuilder;
+        use crate::plonk::circuit_data::CircuitConfig;
+        use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
+        use crate::plonk::verifier::verify;
+        use crate::util::timing::{StatisticsItem, TimingTree};
+
+        #[test]
+        fn test_proof_permutation_argument_div_zero()  {
+            const D: usize = 4;
+            type C = Poseidon2BabyBearConfig;
+            const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
+            type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+
+
+            let config = CircuitConfig::standard_recursion_config_bb_wide();
+
+            let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
+            let xt = builder.add_virtual_target();
+            let yt = builder.two();
+            let zt = builder.mul(xt.clone(), yt);
+
+            let comp_zt = builder.mul(xt, yt);
+            builder.connect(zt, comp_zt);
+            for _ in 0.. (1 << 11) {
+                builder.add_gate(NoopGate, vec![]);
+            }
+            let data = builder.build::<C>();
+
+            tests_non_rand::NonRandomRng::reset();
+            {
+                //Generate the proof with no randomness providing an input that leads to a division by zero in permutation argument
+                let x_fail = 68;
+                let x = F::from_canonical_u64(x_fail);
+                let mut pw = PartialWitness::new();
+                pw.set_target(xt, x);
+
+                let mut timing = TimingTree::default();
+                let res = data.prove_with_timing(pw, &mut timing).unwrap();
+                assert!(verify(res, &data.verifier_only, &data.common).is_ok());
+
+                //Ensure one retry was automatically performed due to a division by zero in permutation argument
+                let perm_arg_retries = timing.get_statistic_value(StatisticsItem::PermArgRetries).unwrap();
+                assert_eq!(*perm_arg_retries, 1);
+            }
+            tests_non_rand::NonRandomRng::reset();
+            {
+                //Now generate the proof an input that does NOT lead to a division by zero in permutation argument
+                let x_ok = 67;
+                let x = F::from_canonical_u64(x_ok);
+                let mut pw = PartialWitness::new();
+                pw.set_target(xt, x);
+
+                let mut timing = TimingTree::default();
+                let res = data.prove_with_timing(pw, &mut timing).unwrap();
+                assert!(verify(res, &data.verifier_only, &data.common).is_ok());
+
+                //Ensure no division by zero happened in permutation argument
+                let perm_arg_retries = timing.get_statistic_value(StatisticsItem::PermArgRetries).unwrap();
+                assert_eq!(*perm_arg_retries, 0);
+            }
+        }
+    }
 }

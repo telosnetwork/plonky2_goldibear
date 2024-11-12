@@ -4,9 +4,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::extension::{
     BinomialExtensionField, BinomiallyExtendable, HasTwoAdicBionmialExtension,
 };
-use p3_field::{
-    AbstractExtensionField, AbstractField, ExtensionField, PrimeField32, PrimeField64, TwoAdicField,
-};
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use rand::rngs::OsRng;
 use rand::RngCore;
@@ -21,10 +19,6 @@ pub trait HasExtension<const D: usize>:
 {
     type Extension: ExtensionField<Self::F>;
 }
-
-// impl HasExtension<1> for Goldilocks {
-//     type Extension = Self;
-// }
 
 impl<T: BinomiallyExtendable<D> + HasTwoAdicBionmialExtension<D>, const D: usize> HasExtension<D>
     for T
@@ -41,6 +35,44 @@ impl<F: HasExtension<D> + Sample, const D: usize> Sample for BinomialExtensionFi
     }
 }
 
+#[cfg(feature = "disable-randomness")]
+pub mod tests_non_rand {
+    extern crate std;
+
+    use lazy_static::lazy_static;
+    use rand_xoshiro::rand_core;
+    lazy_static! {
+        pub static ref value: std::sync::Mutex<u64> = std::sync::Mutex::new(1);
+    }
+    #[derive(Debug, Default)]
+    pub struct NonRandomRng;
+
+    impl NonRandomRng {
+        pub fn reset() {
+            let mut val = value.lock().unwrap();
+            *val = 1;
+        }
+    }
+    impl rand::RngCore for NonRandomRng {
+        fn next_u32(&mut self) -> u32 {
+            self.next_u64() as u32
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            let mut val = value.lock().unwrap(); // Lock the mutex to access the value
+            *val += 1;
+            *val
+        }
+
+        fn fill_bytes(&mut self, _dest: &mut [u8]) {
+            panic!();
+        }
+
+        fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand_core::Error> {
+            panic!();
+        }
+    }
+}
 /// Sampling
 pub trait Sample: Sized {
     /// Samples a single value using `rng`.
@@ -49,13 +81,20 @@ pub trait Sample: Sized {
         R: rand::RngCore + ?Sized;
 
     /// Samples a single value using the [`OsRng`].
+    #[cfg(not(feature = "disable-randomness"))]
     #[inline]
     fn rand() -> Self {
         Self::sample(&mut OsRng)
     }
 
-    /// Samples a [`Vec`] of values of length `n` using [`OsRng`].
+    #[cfg(feature = "disable-randomness")]
     #[inline]
+    fn rand() -> Self {
+        use crate::types::tests_non_rand::NonRandomRng;
+        Self::sample(&mut NonRandomRng)
+    }
+
+    /// Samples a [`Vec`] of values of length `n` using [`OsRng`].
     fn rand_vec(n: usize) -> Vec<Self> {
         (0..n).map(|_| Self::rand()).collect()
     }

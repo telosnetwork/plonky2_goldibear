@@ -5,8 +5,9 @@ use alloc::{format, vec, vec::Vec};
 use core::cmp::min;
 use core::mem::swap;
 
-use anyhow::{ensure, Result};
+use anyhow::{ensure, Result, bail};
 use hashbrown::HashMap;
+use log::{error, info};
 use p3_field::{AbstractExtensionField, AbstractField, batch_multiplicative_inverse, TwoAdicField};
 use p3_field::extension::HasTwoAdicBionmialExtension;
 
@@ -29,15 +30,31 @@ use crate::plonk::circuit_data::{CommonCircuitData, ProverOnlyCircuitData};
 use crate::plonk::config::{GenericConfig, Hasher};
 use crate::plonk::plonk_common::PlonkOracle;
 use crate::plonk::proof::{OpeningSet, Proof, ProofWithPublicInputs};
+use crate::plonk::prover::ProverError::InvZeroPermArg;
 use crate::plonk::vanishing_poly::{eval_vanishing_poly_base_batch, get_lut_poly};
 use crate::plonk::vars::EvaluationVarsBaseBatch;
 use crate::timed;
 use crate::util::{ceil_div_usize, log2_ceil, transpose};
 use crate::util::partial_products::{partial_products_and_z_gx, quotient_chunk_products};
-use crate::util::timing::TimingTree;
+use crate::util::timing::{StatisticsItem, TimingTree};
 
 use super::circuit_builder::{LookupChallenges, LookupWire};
 
+#[derive(Debug)]
+pub enum ProverError {
+    InvZeroPermArg,
+    TooManyPermArgFailures,
+    GenericFailure
+}
+impl core::fmt::Display for ProverError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvZeroPermArg => write!(f, "Permutation argument division by zero"),
+            Self::TooManyPermArgFailures => write!(f, "Couldn't find random values avoiding permutation argument division by zero"),
+            Self::GenericFailure => write!(f, "Prover Generic Failure"),
+        }
+    }
+}
 /// Set all the lookup gate wires (including multiplicities) and pad unused LU slots.
 /// Warning: rows are in descending order: the first gate to appear is the last LU gate, and
 /// the last gate to appear is the first LUT gate.
@@ -137,8 +154,7 @@ where
         generate_partial_witness(inputs, prover_data, common_data)
     );
 
-    let proof = prove_with_partition_witness(prover_data, common_data, partition_witness, timing);
-    proof
+    prove_with_partition_witness(prover_data, common_data, partition_witness, timing)
 }
 
 pub fn prove_with_partition_witness<
@@ -157,22 +173,77 @@ where
     C::InnerHasher: Hasher<F>,
     F::Extension: TwoAdicField,
 {
+
+    set_lookup_wires(prover_data, common_data, &mut partition_witness);
+
+    let public_inputs = partition_witness.get_targets(&prover_data.public_inputs);
+
+    let mut witness = timed!(
+        timing,
+        "compute full witness",
+        partition_witness.full_witness()
+    );
+    const MAX_PERM_ARG_RETRIES: usize = 3;
+
+    for retry_idx in 0..MAX_PERM_ARG_RETRIES {
+        timing.push_statistic_value(StatisticsItem::PermArgRetries, retry_idx);
+
+        if retry_idx > 0 {
+            if prover_data.random_wire.is_none() {
+                error!("Permutation argument division by zero but no random wires were present to randomize the witnesses (PublicInputGate used all wires)");
+                bail!(ProverError::TooManyPermArgFailures);
+            }
+            let wire = &prover_data.random_wire.unwrap();
+            witness.wire_values[wire.column][wire.row] = F::rand();
+        }
+
+        let res = internal_prove_with_partition_witness(prover_data, common_data, &witness, &public_inputs, timing);
+
+        if res.is_ok() {
+            return res;
+        } else {
+            let err = res.err().unwrap();
+            if err.is::<ProverError>() {
+                let prover_error= err.downcast::<ProverError>().unwrap();
+                match prover_error {
+                    ProverError::InvZeroPermArg => {
+                        //try another time ...
+                        info!("Permutation argument inversion by zero! Trying again with different randomness ...")
+                    },
+                    _ => {
+                        bail!(prover_error);
+                    }
+                }
+            } else {
+                bail!(err);
+            }
+        }
+    }
+    bail!(ProverError::TooManyPermArgFailures);
+}
+fn internal_prove_with_partition_witness<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    witness: &MatrixWitness<F>,
+    public_inputs: &Vec<F>,
+    timing: &mut TimingTree,
+) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
+where
+    C::Hasher: Hasher<F>,
+    C::InnerHasher: Hasher<F>,
+    F::Extension: TwoAdicField,
+{
+    let public_inputs_hash = C::InnerHasher::hash_no_pad(&public_inputs);
     let has_lookup = !common_data.luts.is_empty();
     let config = &common_data.config;
     let num_challenges = config.num_challenges;
     let quotient_degree = common_data.quotient_degree();
     let degree = common_data.degree();
-
-    set_lookup_wires(prover_data, common_data, &mut partition_witness);
-
-    let public_inputs = partition_witness.get_targets(&prover_data.public_inputs);
-    let public_inputs_hash = C::InnerHasher::hash_no_pad(&public_inputs);
-
-    let witness = timed!(
-        timing,
-        "compute full witness",
-        partition_witness.full_witness()
-    );
 
     let wires_values: Vec<PolynomialValues<F>> = timed!(
         timing,
@@ -231,7 +302,7 @@ where
     let mut partial_products_and_zs = timed!(
         timing,
         "compute partial products",
-        all_wires_permutation_partial_products(&witness, &betas, &gammas, prover_data, common_data)
+        all_wires_permutation_partial_products(&witness, &betas, &gammas, prover_data, common_data)?
     );
 
     // Z is expected at the front of our batch; see `zs_range` and `partial_products_range`.
@@ -368,7 +439,7 @@ where
     };
     Ok(ProofWithPublicInputs::<F, C, D, NUM_HASH_OUT_ELTS> {
         proof,
-        public_inputs,
+        public_inputs: public_inputs.clone(),
     })
 }
 
@@ -384,7 +455,7 @@ fn all_wires_permutation_partial_products<
     gammas: &[F],
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
-) -> Vec<Vec<PolynomialValues<F>>>
+) -> Result<Vec<Vec<PolynomialValues<F>>>>
 where
     F::Extension: TwoAdicField,
 {
@@ -398,7 +469,7 @@ where
                 common_data,
             )
         })
-        .collect()
+        .collect::<Result<Vec<Vec<PolynomialValues<F>>>>>()
 }
 
 /// Compute the partial products used in the `Z` polynomial.
@@ -415,7 +486,7 @@ fn wires_permutation_partial_products_and_zs<
     gamma: F,
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
-) -> Vec<PolynomialValues<F>>
+) -> Result<Vec<PolynomialValues<F>>>
 where
     F::Extension: TwoAdicField,
 {
@@ -438,18 +509,23 @@ where
                 .map(|j| {
                     let wire_value = witness.get_wire(i, j);
                     let s_sigma = s_sigmas[j];
-                    wire_value + beta * s_sigma + gamma
+                    let res = wire_value + beta * s_sigma + gamma;
+                    if res.is_zero() {
+                        bail!(InvZeroPermArg);
+                    }
+                    Ok(res)
                 })
-                .collect::<Vec<_>>();
-            let denominator_invs = batch_multiplicative_inverse::<F>(&denominators);
+                .collect::<Result<Vec<_>>>();
+
+            let denominator_invs = batch_multiplicative_inverse::<F>(&denominators?);
             let quotient_values = numerators
                 .zip(denominator_invs)
                 .map(|(num, den_inv)| num * den_inv)
                 .collect::<Vec<_>>();
 
-            quotient_chunk_products(&quotient_values, degree)
+            Ok(quotient_chunk_products(&quotient_values, degree))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()?;
 
     let mut z_x = F::one();
     let mut all_partial_products_and_zs = Vec::with_capacity(all_quotient_chunk_products.len());
@@ -461,10 +537,11 @@ where
         all_partial_products_and_zs.push(partial_products_and_z_gx);
     }
 
-    transpose(&all_partial_products_and_zs)
+    let res = transpose(&all_partial_products_and_zs)
         .into_par_iter()
         .map(PolynomialValues::new)
-        .collect()
+        .collect();
+    Ok(res)
 }
 
 /// Computes lookup polynomials for a given challenge.
