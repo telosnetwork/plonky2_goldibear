@@ -8,7 +8,6 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::ensure;
-use p3_field::TwoAdicField;
 use serde::{Deserialize, Serialize};
 
 use plonky2_field::types::HasExtension;
@@ -39,7 +38,7 @@ pub struct Proof<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
@@ -69,7 +68,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > Proof<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Compress the proof.
     pub fn compress(
@@ -103,7 +102,7 @@ pub struct ProofWithPublicInputs<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub proof: Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
@@ -116,7 +115,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn compress(
         self,
@@ -165,7 +164,7 @@ pub struct CompressedProof<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
@@ -186,7 +185,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Decompress the proof.
     pub(crate) fn decompress(
@@ -221,7 +220,7 @@ pub struct CompressedProofWithPublicInputs<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub proof: CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
@@ -234,7 +233,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn decompress(
         self,
@@ -310,7 +309,7 @@ where
 #[derive(Debug)]
 pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Random values used in Plonk's permutation argument.
     pub plonk_betas: Vec<F>,
@@ -354,7 +353,7 @@ pub struct ProofWithPublicInputsTarget<const D: usize, const NUM_HASH_OUT_ELTS: 
 /// The purported values of each polynomial at a single point.
 pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub constants: Vec<F::Extension>,
     pub plonk_sigmas: Vec<F::Extension>,
@@ -369,7 +368,7 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn new<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,

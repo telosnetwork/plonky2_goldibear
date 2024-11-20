@@ -53,7 +53,7 @@ pub(crate) fn fri_verify_proof_of_work<F: RichField + HasExtension<D>, const D: 
     config: &FriConfig,
 ) -> Result<()>
 where
-    F::Extension: TwoAdicField,
+    
 {
     ensure!(
         fri_pow_response.as_canonical_u64().leading_zeros()
@@ -78,7 +78,7 @@ pub fn verify_fri_proof<
     params: &FriParams,
 ) -> Result<()>
 where
-    F::Extension: TwoAdicField,
+    
 {
     validate_fri_proof_shape::<F, C, D, NUM_HASH_OUT_ELTS>(proof, instance, params)?;
 
@@ -143,7 +143,7 @@ pub(crate) fn fri_combine_initial<
     params: &FriParams,
 ) -> F::Extension
 where
-    F::Extension: TwoAdicField,
+    
 {
     assert!(D > 1, "Not implemented for D=1.");
     let subgroup_x = F::Extension::from_base(subgroup_x);
@@ -191,7 +191,7 @@ fn fri_verifier_query_round<
     params: &FriParams,
 ) -> Result<()>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fri_verify_initial_proof::<F, C::Hasher>(
         x_index,
@@ -262,14 +262,14 @@ where
 #[derive(Clone, Debug)]
 pub(crate) struct PrecomputedReducedOpenings<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub reduced_openings_at_point: Vec<F::Extension>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize> PrecomputedReducedOpenings<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub(crate) fn from_os_and_alpha(openings: &FriOpenings<F, D>, alpha: F::Extension) -> Self {
         let reduced_openings_at_point = openings

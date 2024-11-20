@@ -44,7 +44,7 @@ fn get_challenges<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<ProofChallenges<F, D>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let config = &common_data.config;
     let num_challenges = config.num_challenges;
@@ -107,7 +107,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub(crate) fn fri_query_indices(
         &self,
@@ -165,7 +165,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub(crate) fn get_challenges(
@@ -283,7 +283,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn get_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
@@ -371,7 +371,7 @@ impl<const D: usize, const NUM_HASH_OUT_ELTS: usize>
     ) -> ProofChallengesTarget<D>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+        
     {
         let ProofTarget {
             wires_cap,

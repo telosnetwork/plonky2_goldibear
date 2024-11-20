@@ -6,7 +6,6 @@ use alloc::{
 };
 
 use hashbrown::HashMap;
-use p3_field::TwoAdicField;
 
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_field::types::HasExtension;
@@ -43,7 +42,7 @@ pub fn cyclic_base_proof<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
 ) -> ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
 where
     F: RichField + HasExtension<D>,
-    F::Extension: TwoAdicField,
+    
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     C::Hasher: AlgebraicHasher<C::F, NUM_HASH_OUT_ELTS>,
 {
@@ -81,7 +80,7 @@ pub(crate) fn dummy_proof<
     nonzero_public_inputs: HashMap<usize, F>,
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let mut pw = PartialWitness::new();
     for i in 0..circuit.common.num_public_inputs {
@@ -101,7 +100,7 @@ pub(crate) fn dummy_circuit<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let config = common_data.config.clone();
     assert!(
@@ -133,7 +132,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub(crate) fn dummy_proof_and_vk<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
@@ -146,7 +145,7 @@ where
     )>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+        
     {
         let dummy_circuit = dummy_circuit::<F, C, D, NUM_HASH_OUT_ELTS>(common_data);
         let dummy_proof_with_pis =
@@ -170,7 +169,7 @@ where
 pub struct DummyProofGenerator<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>
 where
     F: RichField + HasExtension<D>,
-    F::Extension: TwoAdicField,
+    
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
 {
     pub(crate) proof_with_pis_target: ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
@@ -184,7 +183,7 @@ impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> Default
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField,
+    
 {
     fn default() -> Self {
         let proof_with_pis_target = ProofWithPublicInputsTarget {
@@ -257,7 +256,7 @@ where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "DummyProofGenerator".to_string()

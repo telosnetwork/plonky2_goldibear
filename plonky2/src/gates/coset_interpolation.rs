@@ -8,7 +8,7 @@ use alloc::{
 use core::marker::PhantomData;
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, Field};
 
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::{HasExtension, two_adic_subgroup};
@@ -58,7 +58,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 #[derive(Clone, Debug, Default)]
 pub struct CosetInterpolationGate<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub subgroup_bits: usize,
     pub degree: usize,
@@ -68,18 +68,18 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn new(subgroup_bits: usize) -> Self
     where
-        F::Extension: TwoAdicField,
+        
     {
         Self::with_max_degree(subgroup_bits, 1 << subgroup_bits)
     }
 
     pub(crate) fn with_max_degree(subgroup_bits: usize, max_degree: usize) -> Self
     where
-        F::Extension: TwoAdicField,
+        
     {
         assert!(max_degree > 1, "need at least quadratic constraints");
 
@@ -188,7 +188,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for CosetInterpolationGate<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         let arr = self
@@ -464,7 +464,7 @@ where
 #[derive(Debug, Default)]
 pub struct InterpolationGenerator<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     row: usize,
     gate: CosetInterpolationGate<F, D>,
@@ -474,7 +474,7 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize> InterpolationGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn new(row: usize, gate: CosetInterpolationGate<F, D>) -> Self {
         let interpolation_domain = two_adic_subgroup::<F>(gate.subgroup_bits);
@@ -490,7 +490,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for InterpolationGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "InterpolationGenerator".to_string()
@@ -698,7 +698,7 @@ fn partial_interpolate_ext_algebra_target<
     initial_partial_prod: ExtensionAlgebraTarget<D>,
 ) -> (ExtensionAlgebraTarget<D>, ExtensionAlgebraTarget<D>)
 where
-    F::Extension: TwoAdicField,
+    
 {
     let n = values.len();
     debug_assert!(n != 0);

@@ -2,7 +2,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use core::ops::Range;
 
-use p3_field::{AbstractField, PackedField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PackedField, PrimeField64};
 
 use plonky2_field::types::HasExtension;
 
@@ -53,7 +53,7 @@ impl AddManyGate {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for AddManyGate
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -161,7 +161,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for AddManyGate
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -188,7 +188,7 @@ pub struct AddManyGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for AddManyGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "AddManyGenerator".to_string()

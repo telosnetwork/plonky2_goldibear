@@ -8,7 +8,7 @@ use alloc::{
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-use p3_field::{Field, TwoAdicField};
+use p3_field::Field;
 
 use plonky2_field::types::HasExtension;
 
@@ -35,7 +35,7 @@ pub fn generate_partial_witness<
     common_data: &'a CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> PartitionWitness<'a, F>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let config = &common_data.config;
     let generators = &prover_data.generators;
@@ -114,7 +114,7 @@ pub trait WitnessGenerator<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >: 'static + Send + Sync + Debug where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String;
 
@@ -152,7 +152,7 @@ pub struct WitnessGeneratorRef<
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn new<G: WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>>(
         generator: G,
@@ -164,7 +164,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
     for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
@@ -174,14 +174,14 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
     for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
     for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0.id())
@@ -229,7 +229,7 @@ impl<F: Field> GeneratedValues<F> {
     ) -> Self
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
     {
         let mut witness = Self::with_capacity(D);
         witness.set_extension_target(et, value);
@@ -243,7 +243,7 @@ pub trait SimpleGenerator<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >: 'static + Send + Sync + Debug where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String;
 
@@ -282,7 +282,7 @@ pub struct SimpleGeneratorAdapter<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     _phantom: PhantomData<F>,
     inner: SG,
@@ -296,7 +296,7 @@ impl<
     > WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>
     for SimpleGeneratorAdapter<F, SG, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         self.inner.id()
@@ -344,7 +344,7 @@ pub struct CopyGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for CopyGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "CopyGenerator".to_string()
@@ -387,7 +387,7 @@ pub struct RandomValueGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomValueGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "RandomValueGenerator".to_string()
@@ -429,7 +429,7 @@ pub struct NonzeroTestGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for NonzeroTestGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "NonzeroTestGenerator".to_string()
@@ -488,7 +488,7 @@ impl<F: Field> ConstantGenerator<F> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ConstantGenerator<F>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "ConstantGenerator".to_string()

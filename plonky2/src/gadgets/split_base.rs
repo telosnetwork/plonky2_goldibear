@@ -3,7 +3,6 @@ use alloc::{format, string::String, vec, vec::Vec};
 use core::borrow::Borrow;
 
 use itertools::Itertools;
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -20,7 +19,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Split the given element into a list of targets, where each one represents a
     /// base-B limb of the element, with little-endian ordering.
@@ -99,7 +98,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for BaseSumGenerator<B>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         format!("BaseSumGenerator + Base: {B}")

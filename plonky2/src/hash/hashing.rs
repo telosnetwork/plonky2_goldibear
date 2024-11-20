@@ -3,7 +3,7 @@
 use alloc::vec::Vec;
 use core::fmt::Debug;
 
-use p3_field::{Field, TwoAdicField};
+use p3_field::Field;
 
 use plonky2_field::types::HasExtension;
 
@@ -15,7 +15,7 @@ use crate::plonk::config::AlgebraicHasher;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn hash_or_noop<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,

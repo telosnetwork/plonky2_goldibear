@@ -8,7 +8,7 @@ use core::mem::swap;
 use anyhow::{ensure, Result, bail};
 use hashbrown::HashMap;
 use log::{error, info};
-use p3_field::{AbstractExtensionField, AbstractField, batch_multiplicative_inverse, TwoAdicField};
+use p3_field::{AbstractExtensionField, AbstractField, batch_multiplicative_inverse};
 use p3_field::extension::HasTwoAdicBionmialExtension;
 
 use plonky2_field::types::{HasExtension, two_adic_subgroup};
@@ -68,7 +68,7 @@ pub fn set_lookup_wires<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     pw: &mut PartitionWitness<F>,
 ) where
-    F::Extension: TwoAdicField,
+    
 {
     for (
         lut_index,
@@ -146,7 +146,7 @@ pub fn prove<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    F::Extension: TwoAdicField,
+    
 {
     let partition_witness = timed!(
         timing,
@@ -171,7 +171,7 @@ pub fn prove_with_partition_witness<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    F::Extension: TwoAdicField,
+    
 {
 
     set_lookup_wires(prover_data, common_data, &mut partition_witness);
@@ -236,7 +236,7 @@ fn internal_prove_with_partition_witness<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    F::Extension: TwoAdicField,
+    
 {
     let public_inputs_hash = C::InnerHasher::hash_no_pad(&public_inputs);
     let has_lookup = !common_data.luts.is_empty();
@@ -457,7 +457,7 @@ fn all_wires_permutation_partial_products<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<Vec<Vec<PolynomialValues<F>>>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     (0..common_data.config.num_challenges)
         .map(|i| {
@@ -488,7 +488,7 @@ fn wires_permutation_partial_products_and_zs<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<Vec<PolynomialValues<F>>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let degree = common_data.quotient_degree_factor;
     let subgroup = &prover_data.subgroup;
@@ -563,7 +563,7 @@ fn compute_lookup_polys<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<PolynomialValues<F>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let degree = common_data.degree();
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
@@ -687,7 +687,7 @@ fn compute_all_lookup_polys<
     lookup: bool,
 ) -> Vec<PolynomialValues<F>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     if lookup {
         let polys: Vec<Vec<PolynomialValues<F>>> = (0..common_data.config.num_challenges)
@@ -728,7 +728,7 @@ fn compute_quotient_polys<
     alphas: &[F],
 ) -> Vec<PolynomialCoeffs<F>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let num_challenges = common_data.config.num_challenges;
 

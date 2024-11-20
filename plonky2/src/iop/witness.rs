@@ -3,7 +3,7 @@ use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
 use itertools::{Itertools, zip_eq};
-use p3_field::{AbstractExtensionField, Field, TwoAdicField};
+use p3_field::{AbstractExtensionField, Field};
 
 use plonky2_field::types::HasExtension;
 
@@ -47,7 +47,7 @@ pub trait WitnessWrite<F: Field> {
     fn set_extension_target<const D: usize>(&mut self, et: ExtensionTarget<D>, value: F::Extension)
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
     {
         self.set_target_arr(&et.0, value.as_base_slice());
     }
@@ -62,7 +62,7 @@ pub trait WitnessWrite<F: Field> {
         values: &[F::Extension],
     ) where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
     {
         debug_assert_eq!(ets.len(), values.len());
         ets.iter()
@@ -87,7 +87,7 @@ pub trait WitnessWrite<F: Field> {
     ) where
         F: RichField + HasExtension<D>,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+        
     {
         let ProofWithPublicInputs {
             proof,
@@ -118,7 +118,7 @@ pub trait WitnessWrite<F: Field> {
     ) where
         F: RichField + HasExtension<D>,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+        
     {
         self.set_cap_target(&proof_target.wires_cap, &proof.wires_cap);
         self.set_cap_target(
@@ -141,7 +141,7 @@ pub trait WitnessWrite<F: Field> {
         fri_openings: &FriOpenings<F, D>,
     ) where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
     {
         for (batch_target, batch) in fri_openings_target
             .batches
@@ -163,7 +163,7 @@ pub trait WitnessWrite<F: Field> {
     ) where
         F: RichField + HasExtension<D>,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        F::Extension: TwoAdicField,
+        
     {
         self.set_cap_target(&vdt.constants_sigmas_cap, &vd.constants_sigmas_cap);
         self.set_hash_target(vdt.circuit_digest, vd.circuit_digest);
@@ -186,7 +186,7 @@ pub trait WitnessWrite<F: Field> {
     fn set_ext_wires<W, const D: usize>(&mut self, wires: W, value: F::Extension)
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
         W: IntoIterator<Item = Wire>,
     {
         self.set_wires(wires, value.as_base_slice());
@@ -214,7 +214,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
     fn get_extension_target<const D: usize>(&self, et: ExtensionTarget<D>) -> F::Extension
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
     {
         F::Extension::from_base_slice(&self.get_targets(&et.to_target_array()))
     }
@@ -222,7 +222,7 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
     fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<F::Extension>
     where
         F: RichField + HasExtension<D>,
-        F::Extension: TwoAdicField,
+        
     {
         ets.iter()
             .map(|&et| self.get_extension_target(et))

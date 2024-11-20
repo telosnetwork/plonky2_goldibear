@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -16,7 +15,7 @@ use crate::util::log2_strict;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Checks that a `Target` matches a vector at a particular index.
     pub fn random_access(&mut self, access_index: Target, v: Vec<Target>) -> Target {

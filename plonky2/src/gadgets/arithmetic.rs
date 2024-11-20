@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use p3_field::{PrimeField64, TwoAdicField};
+use p3_field::PrimeField64;
 
 use plonky2_field::types::HasExtension;
 
@@ -26,7 +26,7 @@ const ADD_MANY_THRESHOLD: usize = 23;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Computes `-x`.
     pub fn neg(&mut self, x: Target) -> Target {
@@ -436,7 +436,7 @@ pub struct EqualityGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for EqualityGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "EqualityGenerator".to_string()
@@ -499,7 +499,7 @@ pub struct QuotientOrZeroGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientOrZeroGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "QuotientGeneratorExtension".to_string()

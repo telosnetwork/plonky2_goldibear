@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, TwoAdicField};
+use p3_field::AbstractExtensionField;
 
 use plonky2_field::types::HasExtension;
 
@@ -57,7 +57,7 @@ impl<const D: usize> MulExtensionGate<D> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for MulExtensionGate<D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -188,7 +188,7 @@ pub struct MulExtensionGenerator<F: RichField + HasExtension<D>, const D: usize>
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for MulExtensionGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "MulExtensionGenerator".to_string()

@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use p3_field::{PackedField, PackedValue, TwoAdicField};
+use p3_field::{PackedField, PackedValue};
 
 use plonky2_field::types::HasExtension;
 
@@ -15,7 +15,7 @@ pub trait PackedEvaluableBase<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 >: Gate<F, D, NUM_HASH_OUT_ELTS> where
-    F::Extension: TwoAdicField,
+    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,

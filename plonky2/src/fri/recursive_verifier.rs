@@ -27,7 +27,7 @@ use crate::with_context;
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
@@ -488,7 +488,7 @@ impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
     where
-        F::Extension: TwoAdicField,
+        
     {
         let reduced_openings_at_point = openings
             .batches

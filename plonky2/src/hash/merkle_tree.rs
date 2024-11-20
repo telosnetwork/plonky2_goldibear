@@ -228,7 +228,7 @@ impl<F: RichField, H: Hasher<F>> MerkleTree<F, H> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use p3_field::TwoAdicField;
+    
 
     use plonky2_field::types::HasExtension;
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
@@ -252,7 +252,7 @@ mod tests {
         cap_height: usize,
     ) -> Result<()>
     where
-        F::Extension: TwoAdicField,
+        
     {
         let tree = MerkleTree::<F, C::Hasher>::new(leaves.clone(), cap_height);
         for (i, leaf) in leaves.into_iter().enumerate() {

@@ -6,7 +6,7 @@ use alloc::{
 };
 use core::ops::Range;
 
-use p3_field::{AbstractExtensionField, TwoAdicField};
+use p3_field::AbstractExtensionField;
 
 use plonky2_field::types::HasExtension;
 
@@ -60,7 +60,7 @@ impl<const D: usize> ArithmeticExtensionGate<D> {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticExtensionGate<D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -194,7 +194,7 @@ where
 #[derive(Clone, Debug, Default)]
 pub struct ArithmeticExtensionGenerator<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     row: usize,
     const_0: F,
@@ -205,7 +205,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ArithmeticExtensionGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "ArithmeticExtensionGenerator".to_string()

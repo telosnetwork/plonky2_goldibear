@@ -26,7 +26,7 @@ use plonky2_field::types::{HasExtension, Sample};
 #[derive(Debug, Default)]
 struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     x: Target,
     x_squared: Target,
@@ -36,7 +36,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SquareRootGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "SquareRootGenerator".to_string()
@@ -94,7 +94,7 @@ where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     impl_generator_serializer! {
         CustomGeneratorSerializer,

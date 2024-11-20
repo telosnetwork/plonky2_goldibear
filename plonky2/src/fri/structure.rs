@@ -5,7 +5,6 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -16,7 +15,7 @@ use crate::iop::ext_target::ExtensionTarget;
 #[derive(Debug)]
 pub struct FriInstanceInfo<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// The oracles involved, not counting oracles created during the commit phase.
     pub oracles: Vec<FriOracleInfo>,
@@ -43,7 +42,7 @@ pub struct FriOracleInfo {
 #[derive(Debug)]
 pub struct FriBatchInfo<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub point: F::Extension,
     pub polynomials: Vec<FriPolynomialInfo>,
@@ -82,7 +81,7 @@ impl FriPolynomialInfo {
 #[derive(Debug)]
 pub struct FriOpenings<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub batches: Vec<FriOpeningBatch<F, D>>,
 }
@@ -91,7 +90,7 @@ where
 #[derive(Debug)]
 pub struct FriOpeningBatch<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub values: Vec<F::Extension>,
 }

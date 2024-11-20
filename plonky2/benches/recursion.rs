@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use criterion::{Criterion, criterion_group, criterion_main};
 use log::{info, Level};
 use p3_baby_bear::BabyBear;
-use p3_field::TwoAdicField;
 use p3_goldilocks::Goldilocks;
 use tynm::type_name;
 
@@ -40,7 +39,7 @@ fn dummy_proof<
     log2_size: usize,
 ) -> anyhow::Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     // 'size' is in degree, but we want number of noop gates. A non-zero amount of padding will be added and size will be rounded to the next power of two. To hit our target size, we go just under the previous power of two and hope padding is less than half the proof.
     let num_dummy_gates = match log2_size {
@@ -84,7 +83,7 @@ fn get_recursive_circuit_data<
 )
 where
     InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let input_proof_target = builder.add_virtual_proof_with_pis(input_proof_common_circuit_data);
@@ -121,7 +120,7 @@ fn recursive_proof<
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     let mut pw = PartialWitness::new();
     pw.set_proof_with_pis_target(input_proof_target, input_proof);
@@ -149,7 +148,7 @@ pub(crate) fn bench_recursion<
     config: &CircuitConfig,
 ) where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     let inner = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(config, 12).unwrap();
     let (_, _, common_data) = &inner;
@@ -212,7 +211,7 @@ pub(crate) fn bench_merge<
     config: &CircuitConfig,
 ) where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     let inner = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(config, 12).unwrap();
     let (_, _, common_data) = &inner;
@@ -286,7 +285,7 @@ fn get_merge_circuit_data<
 )
 where
     InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let input_proof_target_one =
@@ -333,7 +332,7 @@ fn merge_proof<
 ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    F::Extension: TwoAdicField,
+    
 {
     let mut pw = PartialWitness::new();
     pw.set_proof_with_pis_target(input_proof_target_one, input_proof);

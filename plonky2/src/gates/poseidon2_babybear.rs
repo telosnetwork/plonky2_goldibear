@@ -10,7 +10,7 @@ use core::usize;
 
 use itertools::Itertools;
 use p3_baby_bear::BabyBear;
-use p3_field::{AbstractField, PrimeField64, TwoAdicField};
+use p3_field::{AbstractField, PrimeField64};
 
 use plonky2_field::types::HasExtension;
 
@@ -55,7 +55,7 @@ const NON_ROUTED_WIRES_PER_OP: usize =
 
 impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn new() -> Self {
         Self::new_from_config(&CircuitConfig::standard_recursion_config_bb_wide())
@@ -149,7 +149,7 @@ where
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGate<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -501,7 +501,7 @@ pub struct Poseidon2BabyBearGenerator<F: RichField + HasExtension<D>, const D: u
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGenerator<F, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "PoseidonGenerator".to_string()
@@ -626,7 +626,7 @@ fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_O
     input: ExtensionTarget<D>,
 ) -> ExtensionTarget<D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let x2 = builder.square_extension(input);
     let x3 = builder.mul_extension(input, x2);
@@ -639,7 +639,7 @@ fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     round_idx: usize,
 ) where
-    F::Extension: TwoAdicField,
+    
 {
     (0..SPONGE_WIDTH).for_each(|i| {
         state[i] = builder.add_const_extension(
@@ -663,7 +663,7 @@ fn permute_internal_mut_circuit<
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
 ) where
-    F::Extension: TwoAdicField,
+    
 {
     if USE_INTERNAL_PERMUTATION_GATE {
         let gate =
@@ -758,7 +758,7 @@ fn permute_external_mut_circuit<
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; WIDTH],
 ) where
-    F::Extension: TwoAdicField,
+    
 {
     assert_eq!(WIDTH % 4, 0);
     for i in (0..WIDTH).step_by(4) {
@@ -794,7 +794,7 @@ fn apply_mat4_circuit<
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     x: &mut [ExtensionTarget<D>; 4],
 ) where
-    F::Extension: TwoAdicField,
+    
 {
     if USE_EXTERNAL_PERMUTATION_GATE {
         let gate = super::apply_mat4::ApplyMat4Gate::<F, D>::new_from_config(&builder.config);

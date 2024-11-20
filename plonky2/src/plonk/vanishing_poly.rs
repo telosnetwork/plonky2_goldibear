@@ -2,7 +2,7 @@
 use alloc::{format, vec, vec::Vec};
 use core::cmp::min;
 
-use p3_field::{AbstractExtensionField, TwoAdicField};
+use p3_field::AbstractExtensionField;
 
 use plonky2_field::polynomial::PolynomialCoeffs;
 use plonky2_field::types::HasExtension;
@@ -41,7 +41,7 @@ pub(crate) fn get_lut_poly<
     degree: usize,
 ) -> PolynomialCoeffs<F>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let b = deltas[LookupChallenges::ChallengeB as usize];
     let mut coeffs = Vec::with_capacity(common_data.luts[lut_index].len());
@@ -77,7 +77,7 @@ pub(crate) fn eval_vanishing_poly<
     deltas: &[F],
 ) -> Vec<F::Extension>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
@@ -201,7 +201,7 @@ pub(crate) fn eval_vanishing_poly_base_batch<
     lut_re_poly_evals: &[&[F]],
 ) -> Vec<Vec<F>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let has_lookup = common_data.num_lookup_polys != 0;
 
@@ -373,7 +373,7 @@ pub fn check_lookup_constraints<
     deltas: &[F; 4],
 ) -> Vec<F::Extension>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
@@ -557,7 +557,7 @@ pub fn check_lookup_constraints_batch<
     lut_re_poly_evals: &[F],
 ) -> Vec<F>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
@@ -715,7 +715,7 @@ pub fn evaluate_gate_constraints<
     vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<F::Extension>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let mut constraints =
         vec![F::Extension::from_base(F::zero()); common_data.num_gate_constraints];
@@ -754,7 +754,7 @@ pub fn evaluate_gate_constraints_base_batch<
     vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
 ) -> Vec<F>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let mut constraints_batch =
         vec![F::zero(); common_data.num_gate_constraints * vars_batch.len()];
@@ -791,7 +791,7 @@ pub fn evaluate_gate_constraints_circuit<
     vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<ExtensionTarget<D>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let mut all_gate_constraints = vec![builder.zero_extension(); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
@@ -826,7 +826,7 @@ pub(crate) fn get_lut_poly_circuit<
     degree: usize,
 ) -> Target
 where
-    F::Extension: TwoAdicField,
+    
 {
     let b = deltas[LookupChallenges::ChallengeB as usize];
     let delta = deltas[LookupChallenges::ChallengeDelta as usize];
@@ -879,7 +879,7 @@ pub(crate) fn eval_vanishing_poly_circuit<
     deltas: &[Target],
 ) -> Vec<ExtensionTarget<D>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
@@ -1013,7 +1013,7 @@ pub fn check_lookup_constraints_circuit<
     deltas: &[Target],
 ) -> Vec<ExtensionTarget<D>>
 where
-    F::Extension: TwoAdicField,
+    
 {
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);

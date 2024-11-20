@@ -17,7 +17,7 @@ pub fn two_adic_subgroup<F: TwoAdicField>(n_log: usize) -> Vec<F> {
 pub trait HasExtension<const D: usize>:
     BinomiallyExtendable<D> + HasTwoAdicBionmialExtension<D>
 {
-    type Extension: ExtensionField<Self::F>;
+    type Extension: ExtensionField<Self::F> + TwoAdicField;
 }
 
 impl<T: BinomiallyExtendable<D> + HasTwoAdicBionmialExtension<D>, const D: usize> HasExtension<D>

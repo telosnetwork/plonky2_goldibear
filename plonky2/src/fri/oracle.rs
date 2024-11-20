@@ -33,7 +33,7 @@ pub struct PolynomialBatch<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub polynomials: Vec<PolynomialCoeffs<F>>,
     pub merkle_tree: MerkleTree<F, C::Hasher>,
@@ -49,7 +49,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > Default for PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn default() -> Self {
         PolynomialBatch {
@@ -69,7 +69,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.
     pub fn from_values(

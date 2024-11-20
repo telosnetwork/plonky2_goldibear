@@ -1,5 +1,4 @@
 use anyhow::ensure;
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -15,7 +14,7 @@ pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize, const NUM_HASH
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField,
+    
 {
     let ProofWithPublicInputs {
         proof,
@@ -36,7 +35,7 @@ fn validate_proof_shape<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
 where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-    F::Extension: TwoAdicField,
+    
 {
     let config = &common_data.config;
     let Proof {

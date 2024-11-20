@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
-use p3_field::TwoAdicField;
 use serde::{Deserialize, Serialize};
 
 use plonky2_field::types::HasExtension;
@@ -81,7 +80,7 @@ pub fn verify_merkle_proof_to_cap<F: RichField, H: Hasher<F>>(
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given root. The index is given by its little-endian bits.

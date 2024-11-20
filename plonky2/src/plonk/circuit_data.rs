@@ -180,7 +180,7 @@ pub struct MockCircuitData<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
@@ -193,7 +193,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
         generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(
@@ -212,7 +212,7 @@ pub struct CircuitData<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
@@ -226,7 +226,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn to_bytes(
         &self,
@@ -338,7 +338,7 @@ pub struct ProverCircuitData<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
@@ -351,7 +351,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn to_bytes(
         &self,
@@ -377,7 +377,7 @@ where
         inputs: PartialWitness<F>,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
     where
-        F::Extension: TwoAdicField,
+        
     {
         let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
@@ -397,7 +397,7 @@ pub struct VerifierCircuitData<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
@@ -410,7 +410,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn to_bytes(
         &self,
@@ -452,7 +452,7 @@ pub struct ProverOnlyCircuitData<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
     /// Generator indices (within the `Vec` above), indexed by the representative of each target
@@ -490,7 +490,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn to_bytes(
         &self,
@@ -558,7 +558,7 @@ pub struct CommonCircuitData<
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
 > where
-    F::Extension: TwoAdicField,
+    
 {
     pub config: CircuitConfig,
 
@@ -600,7 +600,7 @@ pub struct CommonCircuitData<
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub fn to_bytes(
         &self,

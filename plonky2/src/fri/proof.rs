@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
 use itertools::izip;
-use p3_field::TwoAdicField;
 use serde::{Deserialize, Serialize};
 
 use plonky2_field::extension::{flatten, unflatten};
@@ -27,7 +26,7 @@ use crate::plonk::proof::{FriInferredElements, ProofChallenges};
 #[serde(bound = "")]
 pub struct FriQueryStep<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub evals: Vec<F::Extension>,
     pub merkle_proof: MerkleProof<F, H>,
@@ -84,7 +83,7 @@ impl<const NUM_HASH_OUT_ELTS: usize> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS
 #[serde(bound = "")]
 pub struct FriQueryRound<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     pub initial_trees_proof: FriInitialTreeProof<F, H>,
     pub steps: Vec<FriQueryStep<F, H, D>>,
@@ -101,7 +100,7 @@ pub struct FriQueryRoundTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
 #[serde(bound = "")]
 pub struct CompressedFriQueryRounds<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Query indices.
     pub indices: Vec<usize>,
@@ -115,7 +114,7 @@ where
 #[serde(bound = "")]
 pub struct FriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// A Merkle cap for each reduced polynomial in the commit phase.
     pub commit_phase_merkle_caps: Vec<MerkleCap<F, H>>,
@@ -139,7 +138,7 @@ pub struct FriProofTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
 #[serde(bound = "")]
 pub struct CompressedFriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// A Merkle cap for each reduced polynomial in the commit phase.
     pub commit_phase_merkle_caps: Vec<MerkleCap<F, H>>,
@@ -153,7 +152,7 @@ where
 
 impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> FriProof<F, H, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Compress all the Merkle paths in the FRI proof and remove duplicate indices.
     pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedFriProof<F, H, D> {
@@ -258,7 +257,7 @@ where
 
 impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> CompressedFriProof<F, H, D>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Decompress all the Merkle paths in the FRI proof and reinsert duplicate indices.
     pub(crate) fn decompress(
@@ -387,7 +386,7 @@ where
 #[derive(Debug)]
 pub struct FriChallenges<F: RichField + HasExtension<D>, const D: usize>
 where
-    F::Extension: TwoAdicField,
+    
 {
     // Scaling factor to combine polynomials.
     pub fri_alpha: F::Extension,

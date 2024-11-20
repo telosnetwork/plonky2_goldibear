@@ -5,7 +5,6 @@ use alloc::{
     vec::Vec,
 };
 
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
@@ -22,7 +21,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
 where
-    F::Extension: TwoAdicField,
+    
 {
     /// Split the given integer into a list of wires, where each one represents a
     /// bit of the integer, with little-endian ordering.
@@ -77,7 +76,7 @@ pub struct SplitGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SplitGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "SplitGenerator".to_string()
@@ -131,7 +130,7 @@ pub struct WireSplitGenerator {
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for WireSplitGenerator
 where
-    F::Extension: TwoAdicField,
+    
 {
     fn id(&self) -> String {
         "WireSplitGenerator".to_string()
