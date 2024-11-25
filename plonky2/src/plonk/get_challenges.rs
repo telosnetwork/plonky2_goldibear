@@ -2,7 +2,6 @@
 use alloc::{vec, vec::Vec};
 
 use hashbrown::HashSet;
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 

@@ -12,7 +12,7 @@ use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_builder::LookupWire;
 
 /// Placeholder value to indicate that a gate doesn't use a selector polynomial.
-pub(crate) const UNUSED_SELECTOR: usize = u16::MAX as usize;
+pub(crate) const UNUSED_SELECTOR: usize = u32::MAX as usize;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct SelectorsInfo {
@@ -185,7 +185,7 @@ where
     let selector_indices = (0..num_gates).map(group).collect();
 
     // Placeholder value to indicate that a gate doesn't use a selector polynomial.
-    let unused = F::from_canonical_usize(UNUSED_SELECTOR);
+    let unused = F::from_canonical_usize(UNUSED_SELECTOR % F::ORDER_U64 as usize);
 
     let mut polynomials = vec![PolynomialValues::zero(n); groups.len()];
     for (j, g) in instances.iter().enumerate() {

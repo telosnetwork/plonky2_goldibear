@@ -178,6 +178,7 @@ where
             group_range,
             vars.local_constants[selector_index],
             num_selectors > 1,
+            F::ORDER_U64
         );
         vars.remove_prefix(num_selectors);
         vars.remove_prefix(num_lookup_selectors);
@@ -206,6 +207,7 @@ where
                     group_range.clone(),
                     vars.local_constants[selector_index],
                     num_selectors > 1,
+                    F::ORDER_U64
                 )
             })
             .collect();
@@ -411,11 +413,11 @@ pub struct PrefixedGate<
 }
 
 /// A gate's filter designed so that it is non-zero if `s = row`.
-fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_selector: bool) -> K {
+fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_selector: bool, characteristic: u64) -> K {
     debug_assert!(group_range.contains(&row));
     group_range
         .filter(|&i| i != row)
-        .chain(many_selector.then_some(UNUSED_SELECTOR))
+        .chain(many_selector.then_some(UNUSED_SELECTOR % characteristic as usize))
         .map(|i| K::from_canonical_usize(i) - s)
         .product()
 }
@@ -437,7 +439,7 @@ where
     debug_assert!(group_range.contains(&row));
     let v = group_range
         .filter(|&i| i != row)
-        .chain(many_selectors.then_some(UNUSED_SELECTOR))
+        .chain(many_selectors.then_some(UNUSED_SELECTOR % F::ORDER_U64 as usize))
         .map(|i| {
             let c = builder
                 .constant_extension(<F::Extension as AbstractField>::from_canonical_usize(i));

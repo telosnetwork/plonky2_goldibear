@@ -2,7 +2,6 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-use p3_field::TwoAdicField;
 
 use plonky2_field::types::HasExtension;
 
