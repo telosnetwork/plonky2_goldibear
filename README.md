@@ -1,15 +1,17 @@
-# Plonky2 & more
-[![Discord](https://img.shields.io/discord/743511677072572486?logo=discord)](https://discord.gg/QZKRUpqCJ6)
+# Plonky2 GoldiBear: an extended version of Plonky2 supporting both Goldilocks and BabyBear fields
 
-This repository was originally for Plonky2, a SNARK implementation based on techniques from PLONK and FRI. It has since expanded to include tools such as Starky, a highly performant STARK implementation.
+Plonky2 GoldiBear implementation now it's generic on the field (the field must be two-adic and with at most 64 bits) enabling the support of both Goldilocks and BabyBear. 
 
+Plonky2 GoldiBear introduces the support for recursive proofs composition over both fields, using Poseidon over Goldilocks and Poseidon2 over BabyBear. 
+The implementations of the fields and Poseidon2 are taken directly from the [Plonky3](https://github.com/Plonky3/Plonky3) repo as dependencies.
+
+This implementation solves also the [Plonky2 issue 456](https://github.com/0xPolygonZero/plonky2/issues/456) that was much more probable to happen using the BabyBear field (see [commit](https://github.com/telosnetwork/plonky2/commit/cf802b6d2c125a90f057ba7ad72ad0b4904fb450)).
 
 ## Documentation
 
 For more details about the Plonky2 argument system, see this [writeup](plonky2/plonky2.pdf).
 
 Polymer Labs has written up a helpful tutorial [here](https://polymerlabs.medium.com/a-tutorial-on-writing-zk-proofs-with-plonky2-part-i-be5812f6b798)!
-
 
 ## Examples
 
@@ -40,10 +42,10 @@ in the Plonky2 directory.
 
 ## Running
 
-To see recursion performance, one can run this bench, which generates a chain of three recursion proofs:
+To see recursion performance, one can run this bench [`recursion`](plonky2/benches/recursion.rs), which tests both fields:
 
 ```sh
-RUSTFLAGS=-Ctarget-cpu=native cargo run --release --example bench_recursion -- -vv
+RUSTFLAGS=-Ctarget-cpu=native cargo bench recursion
 ```
 
 ## Jemalloc
@@ -80,19 +82,7 @@ This code has not yet been audited, and should not be used in any production sys
 
 While Plonky2 is configurable, its defaults generally target 100 bits of security. The default FRI configuration targets 100 bits of *conjectured* security based on the conjecture in [ethSTARK](https://eprint.iacr.org/2021/582).
 
-Plonky2's default hash function is Poseidon, configured with 8 full rounds, 22 partial rounds, a width of 12 field elements (each ~64 bits), and an S-box of `x^7`. [BBLP22](https://tosc.iacr.org/index.php/ToSC/article/view/9850) suggests that this configuration may have around 95 bits of security, falling a bit short of our 100 bit target.
+Plonky2's default hash function over Goldilocks is Poseidon, configured with 8 full rounds, 22 partial rounds, a width of 12 field elements (each ~64 bits), and an S-box of `x^7`. 
+Over BabyBear is Poseidon2, configured with 8 full rounds, 13 partial rounds, a width of 16 field elements (each ~31 bits), and an S-box of `x^7`. [BBLP22]
+(https://tosc.iacr.org/index.php/ToSC/article/view/9850) suggests that these configurations may have around 95 bits of security, falling a bit short of our 100 bit target.
 
-
-## Links
-
-#### Actively maintained
-
-- [Polygon Zero's zkEVM](https://github.com/0xPolygonZero/zk_evm), an efficient Type 1 zkEVM built on top of Starky and plonky2
-
-#### No longer maintained
-
-- [System Zero](https://github.com/0xPolygonZero/system-zero), a zkVM built on top of Starky
-- [Waksman](https://github.com/0xPolygonZero/plonky2-waksman), Plonky2 gadgets for permutation checking using Waksman networks
-- [Insertion](https://github.com/0xPolygonZero/plonky2-insertion), Plonky2 gadgets for insertion into a list
-- [u32](https://github.com/0xPolygonZero/plonky2-u32), Plonky2 gadgets for u32 arithmetic
-- [ECDSA](https://github.com/0xPolygonZero/plonky2-ecdsa), Plonky2 gadgets for the ECDSA algorithm
