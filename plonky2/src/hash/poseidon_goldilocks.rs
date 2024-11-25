@@ -210,6 +210,8 @@ const ALL_ROUND_CONSTANTS: [u64; MAX_WIDTH * N_ROUNDS]  = [
     0x4543d9df5476d3cb, 0xf172d73e004fc90d, 0xdfd1c4febcc81238, 0xbc8dfb627fe558fc,
 ];
 
+#[inline(always)]
+#[cfg(target_arch = "x86_64")]
 unsafe fn add_no_canonicalize_trashing_input(x: u64, y: u64) -> u64 {
     let res_wrapped: u64;
     let adjustment: u64;
@@ -234,21 +236,31 @@ unsafe fn add_no_canonicalize_trashing_input(x: u64, y: u64) -> u64 {
     // Cannot overflow unless the assumption if x + y < 2**64 + ORDER is incorrect.
     res_wrapped + adjustment
 }
+
+pub const EPSILON: u64 = (1 << 32) - 1;
+
+#[inline(always)]
+#[cfg(not(target_arch = "x86_64"))]
+const unsafe fn add_no_canonicalize_trashing_input(x: u64, y: u64) -> u64 {
+    let (res_wrapped, carry) = x.overflowing_add(y);
+    // Below cannot overflow unless the assumption if x + y < 2**64 + ORDER is incorrect.
+    res_wrapped + EPSILON * (carry as u64)
+}
+
 #[derive(Debug)]
 pub struct PoseidonGoldilocks;
 
 fn from_noncanonical_u128<F: RichField>(x: u128) -> F {
-    let epsilon = (1 << 32) - 1;
     let (x_lo, x_hi) = (x as u64, (x >> 64) as u64); // This is a no-op
     let x_hi_hi = x_hi >> 32;
-    let x_hi_lo = x_hi & epsilon;
+    let x_hi_lo = x_hi & EPSILON;
 
     let (mut t0, borrow) = x_lo.overflowing_sub(x_hi_hi);
     if borrow {
         branch_hint(); // A borrow is exceedingly rare. It is faster to branch.
-        t0 -= epsilon; // Cannot underflow.
+        t0 -= EPSILON; // Cannot underflow.
     }
-    let t1 = x_hi_lo * epsilon;
+    let t1 = x_hi_lo * EPSILON;
     let t2 = unsafe { add_no_canonicalize_trashing_input(t0, t1) };
     <F as AbstractField>::from_canonical_u64(t2)
 }

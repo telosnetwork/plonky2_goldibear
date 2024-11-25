@@ -375,7 +375,6 @@ mod tests {
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
         assert_eq!(common_data.degree_bits(), 14);
-        println!(" common data = {:#?}", common_data);
         // Shrink it to 2^13.
         let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
             proof,

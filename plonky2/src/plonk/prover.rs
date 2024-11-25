@@ -939,7 +939,7 @@ mod tests {
     use crate::plonk::config::PoseidonGoldilocksConfig;
 
     #[test]
-    fn test_prover_data() {
+    fn circuit_digest_regression_test() {
         type F = Goldilocks;
         const D: usize = 2;
         const NUM_HASH_OUT_ELTS: usize = 4;
