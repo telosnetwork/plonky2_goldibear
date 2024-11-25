@@ -2,10 +2,11 @@
 use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
-use itertools::{zip_eq, Itertools};
+use itertools::{Itertools, zip_eq};
+use p3_field::{AbstractExtensionField, Field};
 
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::Field;
+use plonky2_field::types::HasExtension;
+
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
 use crate::fri::witness_util::set_fri_proof_target;
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -20,16 +21,20 @@ use crate::plonk::proof::{Proof, ProofTarget, ProofWithPublicInputs, ProofWithPu
 pub trait WitnessWrite<F: Field> {
     fn set_target(&mut self, target: Target, value: F);
 
-    fn set_hash_target(&mut self, ht: HashOutTarget, value: HashOut<F>) {
+    fn set_hash_target<const NUM_HASH_OUT_ELTS: usize>(
+        &mut self,
+        ht: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        value: HashOut<F, NUM_HASH_OUT_ELTS>,
+    ) {
         ht.elements
             .iter()
             .zip(value.elements)
             .for_each(|(&t, x)| self.set_target(t, x));
     }
 
-    fn set_cap_target<H: AlgebraicHasher<F>>(
+    fn set_cap_target<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        ct: &MerkleCapTarget,
+        ct: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
         value: &MerkleCap<F, H>,
     ) where
         F: RichField,
@@ -41,9 +46,10 @@ pub trait WitnessWrite<F: Field> {
 
     fn set_extension_target<const D: usize>(&mut self, et: ExtensionTarget<D>, value: F::Extension)
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
-        self.set_target_arr(&et.0, &value.to_basefield_array());
+        self.set_target_arr(&et.0, value.as_base_slice());
     }
 
     fn set_target_arr(&mut self, targets: &[Target], values: &[F]) {
@@ -55,7 +61,8 @@ pub trait WitnessWrite<F: Field> {
         ets: &[ExtensionTarget<D>],
         values: &[F::Extension],
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         debug_assert_eq!(ets.len(), values.len());
         ets.iter()
@@ -69,13 +76,18 @@ pub trait WitnessWrite<F: Field> {
 
     /// Set the targets in a `ProofWithPublicInputsTarget` to their corresponding values in a
     /// `ProofWithPublicInputs`.
-    fn set_proof_with_pis_target<C: GenericConfig<D, F = F>, const D: usize>(
+    fn set_proof_with_pis_target<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
-        proof_with_pis_target: &ProofWithPublicInputsTarget<D>,
-        proof_with_pis: &ProofWithPublicInputs<F, C, D>,
+        proof_with_pis_target: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) where
-        F: RichField + Extendable<D>,
-        C::Hasher: AlgebraicHasher<F>,
+        F: RichField + HasExtension<D>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         let ProofWithPublicInputs {
             proof,
@@ -95,13 +107,18 @@ pub trait WitnessWrite<F: Field> {
     }
 
     /// Set the targets in a `ProofTarget` to their corresponding values in a `Proof`.
-    fn set_proof_target<C: GenericConfig<D, F = F>, const D: usize>(
+    fn set_proof_target<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
-        proof_target: &ProofTarget<D>,
-        proof: &Proof<F, C, D>,
+        proof_target: &ProofTarget<D, NUM_HASH_OUT_ELTS>,
+        proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     ) where
-        F: RichField + Extendable<D>,
-        C::Hasher: AlgebraicHasher<F>,
+        F: RichField + HasExtension<D>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         self.set_cap_target(&proof_target.wires_cap, &proof.wires_cap);
         self.set_cap_target(
@@ -123,7 +140,8 @@ pub trait WitnessWrite<F: Field> {
         fri_openings_target: &FriOpeningsTarget<D>,
         fri_openings: &FriOpenings<F, D>,
     ) where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         for (batch_target, batch) in fri_openings_target
             .batches
@@ -134,13 +152,18 @@ pub trait WitnessWrite<F: Field> {
         }
     }
 
-    fn set_verifier_data_target<C: GenericConfig<D, F = F>, const D: usize>(
+    fn set_verifier_data_target<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
-        vdt: &VerifierCircuitTarget,
-        vd: &VerifierOnlyCircuitData<C, D>,
+        vdt: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) where
-        F: RichField + Extendable<D>,
-        C::Hasher: AlgebraicHasher<F>,
+        F: RichField + HasExtension<D>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         self.set_cap_target(&vdt.constants_sigmas_cap, &vd.constants_sigmas_cap);
         self.set_hash_target(vdt.circuit_digest, vd.circuit_digest);
@@ -162,10 +185,11 @@ pub trait WitnessWrite<F: Field> {
 
     fn set_ext_wires<W, const D: usize>(&mut self, wires: W, value: F::Extension)
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
         W: IntoIterator<Item = Wire>,
     {
-        self.set_wires(wires, &value.to_basefield_array());
+        self.set_wires(wires, value.as_base_slice());
     }
 
     fn extend<I: Iterator<Item = (Target, F)>>(&mut self, pairs: I) {
@@ -189,16 +213,16 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
 
     fn get_extension_target<const D: usize>(&self, et: ExtensionTarget<D>) -> F::Extension
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
-        F::Extension::from_basefield_array(
-            self.get_targets(&et.to_target_array()).try_into().unwrap(),
-        )
+        F::Extension::from_base_slice(&self.get_targets(&et.to_target_array()))
     }
 
     fn get_extension_targets<const D: usize>(&self, ets: &[ExtensionTarget<D>]) -> Vec<F::Extension>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         ets.iter()
             .map(|&et| self.get_extension_target(et))
@@ -216,16 +240,22 @@ pub trait Witness<F: Field>: WitnessWrite<F> {
         panic!("not a bool")
     }
 
-    fn get_hash_target(&self, ht: HashOutTarget) -> HashOut<F> {
+    fn get_hash_target<const NUM_HASH_OUT_ELTS: usize>(
+        &self,
+        ht: HashOutTarget<NUM_HASH_OUT_ELTS>,
+    ) -> HashOut<F, NUM_HASH_OUT_ELTS> {
         HashOut {
             elements: self.get_targets(&ht.elements).try_into().unwrap(),
         }
     }
 
-    fn get_merkle_cap_target<H>(&self, cap_target: MerkleCapTarget) -> MerkleCap<F, H>
+    fn get_merkle_cap_target<H, const NUM_HASH_OUT_ELTS: usize>(
+        &self,
+        cap_target: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    ) -> MerkleCap<F, H>
     where
         F: RichField,
-        H: AlgebraicHasher<F>,
+        H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let cap = cap_target
             .0
@@ -338,7 +368,7 @@ impl<'a, F: Field> PartitionWitness<'a, F> {
     }
 
     pub fn full_witness(self) -> MatrixWitness<F> {
-        let mut wire_values = vec![vec![F::ZERO; self.degree]; self.num_wires];
+        let mut wire_values = vec![vec![F::zero(); self.degree]; self.num_wires];
         for i in 0..self.degree {
             for j in 0..self.num_wires {
                 let t = Target::Wire(Wire { row: i, column: j });

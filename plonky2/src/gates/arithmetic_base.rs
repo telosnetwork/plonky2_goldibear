@@ -5,8 +5,10 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::field::extension::Extendable;
-use crate::field::packed::PackedField;
+use p3_field::PackedField;
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -40,7 +42,7 @@ impl ArithmeticGate {
 
     /// Determine the maximum number of operations that can fit in one gate for the given config.
     pub(crate) const fn num_ops(config: &CircuitConfig) -> usize {
-        let wires_per_op = 4;
+        let wires_per_op: usize = 4;
         config.num_routed_wires / wires_per_op
     }
 
@@ -58,21 +60,32 @@ impl ArithmeticGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ArithmeticGate {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
+where
+    
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_ops)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_ops = src.read_usize()?;
         Ok(Self { num_ops })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let const_0 = vars.local_constants[0];
         let const_1 = vars.local_constants[1];
 
@@ -92,20 +105,23 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ArithmeticGate
 
     fn eval_unfiltered_base_one(
         &self,
-        _vars: EvaluationVarsBase<F>,
+        _vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         _yield_constr: StridedConstraintConsumer<F>,
     ) {
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let const_0 = vars.local_constants[0];
         let const_1 = vars.local_constants[1];
@@ -129,7 +145,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ArithmeticGate
         constraints
     }
 
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -162,10 +182,14 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ArithmeticGate
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for ArithmeticGate {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ArithmeticGate
+where
+    
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
-        vars: EvaluationVarsBasePacked<P>,
+        vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<P>,
     ) {
         let const_0 = vars.local_constants[0];
@@ -184,15 +208,20 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ArithmeticBaseGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct ArithmeticBaseGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    
+{
     row: usize,
     const_0: F,
     const_1: F,
     i: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-    for ArithmeticBaseGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ArithmeticBaseGenerator<F, D>
+where
+    
 {
     fn id(&self) -> String {
         "ArithmeticBaseGenerator".to_string()
@@ -224,14 +253,21 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
         out_buffer.set_target(output_target, computed_output)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_field(self.const_0)?;
         dst.write_field(self.const_1)?;
         dst.write_usize(self.i)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let const_0 = src.read_field()?;
         let const_1 = src.read_field()?;
@@ -248,25 +284,27 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_goldilocks::Goldilocks;
 
-    use crate::field::goldilocks_field::GoldilocksField;
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<GoldilocksField, _, 4>(gate);
+        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
+        test_low_degree::<Goldilocks, _, 2, 4>(gate);
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_eval_fns::<F, C, _, D>(gate)
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

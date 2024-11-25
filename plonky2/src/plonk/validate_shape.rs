@@ -1,18 +1,20 @@
 use anyhow::ensure;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::plonk::config::GenericConfig;
 use crate::plonk::proof::{OpeningSet, Proof, ProofWithPublicInputs};
 
-pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize>(
-    proof_with_pis: &ProofWithPublicInputs<F, C, D>,
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn validate_proof_with_pis_shape<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    proof_with_pis: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<()>
 where
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    
 {
     let ProofWithPublicInputs {
         proof,
@@ -26,13 +28,14 @@ where
     Ok(())
 }
 
-fn validate_proof_shape<F, C, const D: usize>(
-    proof: &Proof<F, C, D>,
-    common_data: &CommonCircuitData<F, D>,
+fn validate_proof_shape<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    proof: &Proof<F, C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<()>
 where
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    
 {
     let config = &common_data.config;
     let Proof {

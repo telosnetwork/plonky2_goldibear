@@ -2,12 +2,12 @@ use core::arch::asm;
 use core::arch::x86_64::*;
 use core::mem::size_of;
 
+use p3_field::Field;
+use p3_goldilocks::Goldilocks;
 use static_assertions::const_assert;
 
-use crate::field::goldilocks_field::GoldilocksField;
-use crate::field::types::Field;
 use crate::hash::poseidon::{
-    Poseidon, ALL_ROUND_CONSTANTS, HALF_N_FULL_ROUNDS, N_PARTIAL_ROUNDS, N_ROUNDS,
+    ALL_ROUND_CONSTANTS, HALF_N_FULL_ROUNDS, N_PARTIAL_ROUNDS, N_ROUNDS, Poseidon,
 };
 use crate::util::branch_hint;
 
@@ -48,7 +48,7 @@ const fn check_mds_matrix() -> bool {
     let mut i = 0;
     let wanted_matrix_exps = [0, 0, 1, 0, 3, 5, 1, 8, 12, 3, 16, 10];
     while i < WIDTH {
-        if <GoldilocksField as Poseidon>::MDS_MATRIX_EXPS[i] != wanted_matrix_exps[i] {
+        if <Goldilocks as Poseidon>::MDS_MATRIX_EXPS[i] != wanted_matrix_exps[i] {
             return false;
         }
         i += 1;
@@ -63,7 +63,7 @@ const fn mds_matrix_inf_norm() -> u64 {
     let mut cumul = 0;
     let mut i = 0;
     while i < WIDTH {
-        cumul += 1 << <GoldilocksField as Poseidon>::MDS_MATRIX_EXPS[i];
+        cumul += 1 << <Goldilocks as Poseidon>::MDS_MATRIX_EXPS[i];
         i += 1;
     }
     cumul
@@ -919,7 +919,7 @@ unsafe fn all_partial_rounds(
 }
 
 #[inline(always)]
-unsafe fn load_state(state: &[GoldilocksField; 12]) -> (__m256i, __m256i, __m256i) {
+unsafe fn load_state(state: &[Goldilocks; 12]) -> (__m256i, __m256i, __m256i) {
     (
         _mm256_loadu_si256((&state[0..4]).as_ptr().cast::<__m256i>()),
         _mm256_loadu_si256((&state[4..8]).as_ptr().cast::<__m256i>()),
@@ -928,14 +928,14 @@ unsafe fn load_state(state: &[GoldilocksField; 12]) -> (__m256i, __m256i, __m256
 }
 
 #[inline(always)]
-unsafe fn store_state(buf: &mut [GoldilocksField; 12], state: (__m256i, __m256i, __m256i)) {
+unsafe fn store_state(buf: &mut [Goldilocks; 12], state: (__m256i, __m256i, __m256i)) {
     _mm256_storeu_si256((&mut buf[0..4]).as_mut_ptr().cast::<__m256i>(), state.0);
     _mm256_storeu_si256((&mut buf[4..8]).as_mut_ptr().cast::<__m256i>(), state.1);
     _mm256_storeu_si256((&mut buf[8..12]).as_mut_ptr().cast::<__m256i>(), state.2);
 }
 
 #[inline]
-pub unsafe fn poseidon(state: &[GoldilocksField; 12]) -> [GoldilocksField; 12] {
+pub unsafe fn poseidon(state: &[Goldilocks; 12]) -> [Goldilocks; 12] {
     let state = load_state(state);
 
     // The first constant layer must be done explicitly. The remaining constant layers are fused
@@ -946,13 +946,13 @@ pub unsafe fn poseidon(state: &[GoldilocksField; 12]) -> [GoldilocksField; 12] {
     let state = all_partial_rounds(state, HALF_N_FULL_ROUNDS);
     let state = half_full_rounds(state, HALF_N_FULL_ROUNDS + N_PARTIAL_ROUNDS);
 
-    let mut res = [GoldilocksField::ZERO; 12];
+    let mut res = [Goldilocks::ZERO; 12];
     store_state(&mut res, state);
     res
 }
 
 #[inline(always)]
-pub unsafe fn constant_layer(state_arr: &mut [GoldilocksField; WIDTH], round_ctr: usize) {
+pub unsafe fn constant_layer(state_arr: &mut [Goldilocks; WIDTH], round_ctr: usize) {
     let state = load_state(state_arr);
     let round_consts = &ALL_ROUND_CONSTANTS[WIDTH * round_ctr..][..WIDTH]
         .try_into()
@@ -962,20 +962,20 @@ pub unsafe fn constant_layer(state_arr: &mut [GoldilocksField; WIDTH], round_ctr
 }
 
 #[inline(always)]
-pub unsafe fn sbox_layer(state_arr: &mut [GoldilocksField; WIDTH]) {
+pub unsafe fn sbox_layer(state_arr: &mut [Goldilocks; WIDTH]) {
     let state = load_state(state_arr);
     let state = sbox_layer_full(state);
     store_state(state_arr, state);
 }
 
 #[inline(always)]
-pub unsafe fn mds_layer(state: &[GoldilocksField; WIDTH]) -> [GoldilocksField; WIDTH] {
+pub unsafe fn mds_layer(state: &[Goldilocks; WIDTH]) -> [Goldilocks; WIDTH] {
     let state = load_state(state);
     // We want to do an MDS layer without the constant layer.
     // The FUSED_ROUND_CONSTANTS for the last round are all 0 (shifted by 2**63 as required).
     let round_consts = FUSED_ROUND_CONSTANTS[WIDTH * (N_ROUNDS - 1)..].as_ptr();
     let state = mds_const_layers_full(state, (round_consts, 0));
-    let mut res = [GoldilocksField::ZERO; 12];
+    let mut res = [Goldilocks::ZERO; 12];
     store_state(&mut res, state);
     res
 }

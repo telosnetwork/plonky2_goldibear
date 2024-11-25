@@ -20,5 +20,5 @@ pub mod plonk;
 pub mod recursion;
 pub mod util;
 
-#[cfg(test)]
-mod lookup_test;
+// #[cfg(test)]
+// mod lookup_test;

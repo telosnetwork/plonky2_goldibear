@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
-use crate::types::PrimeField64;
+use p3_field::PrimeField64;
 
 /// Generates a series of non-negative integers less than `modulus` which cover a range of
 /// interesting test values.
-pub fn test_inputs(modulus: u64) -> Vec<u64> {
+fn test_inputs(modulus: u64) -> Vec<u64> {
     const CHUNK_SIZE: u64 = 10;
 
     (0..CHUNK_SIZE)
@@ -25,12 +25,12 @@ where
     UnaryOp: Fn(F) -> F,
     ExpectedOp: Fn(u64) -> u64,
 {
-    let inputs = test_inputs(F::ORDER);
+    let inputs = test_inputs(F::ORDER_U64);
     let expected: Vec<_> = inputs.iter().map(|&x| expected_op(x)).collect();
     let output: Vec<_> = inputs
         .iter()
         .cloned()
-        .map(|x| op(F::from_canonical_u64(x)).to_canonical_u64())
+        .map(|x| op(F::from_canonical_u64(x)).as_canonical_u64())
         .collect();
     // Compare expected outputs with actual outputs
     for i in 0..inputs.len() {
@@ -49,13 +49,13 @@ where
     BinaryOp: Fn(F, F) -> F,
     ExpectedOp: Fn(u64, u64) -> u64,
 {
-    let inputs = test_inputs(F::ORDER);
+    let inputs = test_inputs(F::ORDER_U64);
 
     for &lhs in &inputs {
         for &rhs in &inputs {
             let lhs_f = F::from_canonical_u64(lhs);
             let rhs_f = F::from_canonical_u64(rhs);
-            let actual = op(lhs_f, rhs_f).to_canonical_u64();
+            let actual = op(lhs_f, rhs_f).as_canonical_u64();
             let expected = expected_op(lhs, rhs);
             assert_eq!(
                 actual, expected,
@@ -72,12 +72,11 @@ macro_rules! test_prime_field_arithmetic {
         mod prime_field_arithmetic {
             use core::ops::{Add, Mul, Neg, Sub};
 
-            use $crate::ops::Square;
-            use $crate::types::{Field, Field64};
+            use p3_field::{AbstractField, Field, PrimeField64};
 
             #[test]
             fn arithmetic_addition() {
-                let modulus = <$field>::ORDER;
+                let modulus = <$field>::ORDER_U64;
                 $crate::prime_field_testing::run_binaryop_test_cases(<$field>::add, |x, y| {
                     ((x as u128 + y as u128) % (modulus as u128)) as u64
                 })
@@ -85,7 +84,7 @@ macro_rules! test_prime_field_arithmetic {
 
             #[test]
             fn arithmetic_subtraction() {
-                let modulus = <$field>::ORDER;
+                let modulus = <$field>::ORDER_U64;
                 $crate::prime_field_testing::run_binaryop_test_cases(<$field>::sub, |x, y| {
                     if x >= y {
                         x - y
@@ -97,7 +96,7 @@ macro_rules! test_prime_field_arithmetic {
 
             #[test]
             fn arithmetic_negation() {
-                let modulus = <$field>::ORDER;
+                let modulus = <$field>::ORDER_U64;
                 $crate::prime_field_testing::run_unaryop_test_cases(<$field>::neg, |x| {
                     if x == 0 {
                         0
@@ -109,7 +108,7 @@ macro_rules! test_prime_field_arithmetic {
 
             #[test]
             fn arithmetic_multiplication() {
-                let modulus = <$field>::ORDER;
+                let modulus = <$field>::ORDER_U64;
                 $crate::prime_field_testing::run_binaryop_test_cases(<$field>::mul, |x, y| {
                     ((x as u128) * (y as u128) % (modulus as u128)) as u64
                 })
@@ -117,18 +116,18 @@ macro_rules! test_prime_field_arithmetic {
 
             #[test]
             fn arithmetic_square() {
-                let modulus = <$field>::ORDER;
+                let modulus = <$field>::ORDER_U64;
                 $crate::prime_field_testing::run_unaryop_test_cases(
-                    |x: $field| x.square(),
+                    |x: $field| AbstractField::square(&x),
                     |x| ((x as u128 * x as u128) % (modulus as u128)) as u64,
                 )
             }
 
             #[test]
             fn inversion() {
-                let zero = <$field>::ZERO;
-                let one = <$field>::ONE;
-                let modulus = <$field>::ORDER;
+                let zero = <$field>::zero();
+                let one = <$field>::one();
+                let modulus = <$field>::ORDER_U64;
 
                 assert_eq!(zero.try_inverse(), None);
 
@@ -144,34 +143,24 @@ macro_rules! test_prime_field_arithmetic {
             }
 
             #[test]
-            fn inverse_2exp() {
-                type F = $field;
-
-                let v = <F as Field>::TWO_ADICITY;
-
-                for e in [0, 1, 2, 3, 4, v - 2, v - 1, v, v + 1, v + 2, 123 * v] {
-                    let x = F::TWO.exp_u64(e as u64);
-                    let y = F::inverse_2exp(e);
-                    assert_eq!(x * y, F::ONE);
-                }
-            }
-
-            #[test]
             fn subtraction_double_wraparound() {
                 type F = $field;
 
-                let (a, b) = (F::from_canonical_u64((F::ORDER + 1u64) / 2u64), F::TWO);
+                let (a, b) = (
+                    F::from_canonical_u64((F::ORDER_U64 + 1u64) / 2u64),
+                    F::two(),
+                );
                 let x = a * b;
-                assert_eq!(x, F::ONE);
-                assert_eq!(F::ZERO - x, F::NEG_ONE);
+                assert_eq!(x, F::one());
+                assert_eq!(F::zero() - x, F::neg_one());
             }
 
             #[test]
             fn addition_double_wraparound() {
                 type F = $field;
 
-                let a = F::from_canonical_u64(u64::MAX - F::ORDER);
-                let b = F::NEG_ONE;
+                let a = F::from_canonical_u64(u64::MAX - F::ORDER_U64);
+                let b = F::neg_one();
 
                 let c = (a + a) + (b + b);
                 let d = (a + b) + (a + b);
@@ -180,4 +169,20 @@ macro_rules! test_prime_field_arithmetic {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    mod goldilocks {
+        use crate::{test_field_arithmetic, test_prime_field_arithmetic};
+
+        test_prime_field_arithmetic!(p3_goldilocks::Goldilocks);
+        test_field_arithmetic!(p3_goldilocks::Goldilocks);
+    }
+    mod babybear {
+        use crate::{test_field_arithmetic, test_prime_field_arithmetic};
+
+        test_prime_field_arithmetic!(p3_baby_bear::BabyBear);
+        test_field_arithmetic!(p3_baby_bear::BabyBear);
+    }
 }

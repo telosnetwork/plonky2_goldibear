@@ -3,9 +3,10 @@
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
 
-use crate::field::extension::Extendable;
-use crate::field::packed::PackedField;
-use crate::field::types::Field;
+use p3_field::{Field, PackedField};
+
+use plonky2_field::types::HasExtension;
+
 use crate::fri::oracle::SALT_SIZE;
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::hash::hash_types::RichField;
@@ -51,7 +52,7 @@ pub const fn salt_size(salted: bool) -> usize {
 /// Evaluate the polynomial which vanishes on any multiplicative subgroup of a given order `n`.
 pub(crate) fn eval_zero_poly<F: Field>(n: usize, x: F) -> F {
     // Z(x) = x^n - 1
-    x.exp_u64(n as u64) - F::ONE
+    x.exp_u64(n as u64) - F::one()
 }
 
 /// Evaluate the Lagrange basis `L_0` with `L_0(1) = 1`, and `L_0(x) = 0` for other members of the
@@ -60,24 +61,31 @@ pub(crate) fn eval_l_0<F: Field>(n: usize, x: F) -> F {
     if x.is_one() {
         // The code below would divide by zero, since we have (x - 1) in both the numerator and
         // denominator.
-        return F::ONE;
+        return F::one();
     }
 
     // L_0(x) = (x^n - 1) / (n * (x - 1))
     //        = Z(x) / (n * (x - 1))
-    eval_zero_poly(n, x) / (F::from_canonical_usize(n) * (x - F::ONE))
+    eval_zero_poly(n, x) / (F::from_canonical_usize(n) * (x - F::one()))
 }
 
 /// Evaluates the Lagrange basis L_0(x), which has L_0(1) = 1 and vanishes at all other points in
 /// the order-`n` subgroup.
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound.
-pub(crate) fn eval_l_0_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub(crate) fn eval_l_0_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     n: usize,
     x: ExtensionTarget<D>,
     x_pow_n: ExtensionTarget<D>,
-) -> ExtensionTarget<D> {
+) -> ExtensionTarget<D>
+where
+    
+{
     // L_0(x) = (x^n - 1) / (n * (x - 1))
     //        = Z(x) / (n * (x - 1))
     let one = builder.one_extension();
@@ -105,12 +113,12 @@ pub(crate) fn reduce_with_powers_multi<
     terms: T,
     alphas: &[F],
 ) -> Vec<F> {
-    let mut cumul = vec![F::ZERO; alphas.len()];
+    let mut cumul = vec![F::zero(); alphas.len()];
     for &term in terms.into_iter().rev() {
         cumul
             .iter_mut()
             .zip(alphas)
-            .for_each(|(c, &alpha)| *c = term.multiply_accumulate(*c, alpha));
+            .for_each(|(c, &alpha)| *c = term + *c * alpha);
     }
     cumul
 }
@@ -122,18 +130,25 @@ pub fn reduce_with_powers<'a, P: PackedField, T: IntoIterator<Item = &'a P>>(
 where
     T::IntoIter: DoubleEndedIterator,
 {
-    let mut sum = P::ZEROS;
+    let mut sum = P::zero();
     for &term in terms.into_iter().rev() {
         sum = sum * alpha + term;
     }
     sum
 }
 
-pub fn reduce_with_powers_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub fn reduce_with_powers_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     terms: &[Target],
     alpha: Target,
-) -> Target {
+) -> Target
+where
+    
+{
     if terms.len() <= ArithmeticGate::new_from_config(&builder.config).num_ops + 1 {
         terms
             .iter()
@@ -146,11 +161,18 @@ pub fn reduce_with_powers_circuit<F: RichField + Extendable<D>, const D: usize>(
     }
 }
 
-pub fn reduce_with_powers_ext_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub fn reduce_with_powers_ext_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     terms: &[ExtensionTarget<D>],
     alpha: Target,
-) -> ExtensionTarget<D> {
+) -> ExtensionTarget<D>
+where
+    
+{
     let alpha = builder.convert_to_ext(alpha);
     let mut alpha = ReducingFactorTarget::new(alpha);
     alpha.reduce(terms, builder)

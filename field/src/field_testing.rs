@@ -1,6 +1,7 @@
-use crate::extension::{Extendable, Frobenius};
-use crate::ops::Square;
-use crate::types::{Field, Sample};
+use p3_field::extension::{BinomialExtensionField, HasFrobenius, HasTwoAdicBionmialExtension};
+use p3_field::{AbstractExtensionField, AbstractField, Field, TwoAdicField};
+
+use crate::types::{HasExtension, Sample};
 
 #[macro_export]
 macro_rules! test_field_arithmetic {
@@ -8,23 +9,8 @@ macro_rules! test_field_arithmetic {
         mod field_arithmetic {
             use alloc::vec::Vec;
 
-            use num::bigint::BigUint;
-            use rand::rngs::OsRng;
-            use rand::{Rng, RngCore};
-            use $crate::types::{Field, Sample};
-
-            #[test]
-            fn modular_reduction() {
-                let mut rng = OsRng;
-                for _ in 0..10 {
-                    let x_lo = rng.next_u64();
-                    let x_hi = rng.next_u32();
-                    let x = (x_lo as u128) + ((x_hi as u128) << 64);
-                    let a = <$field>::from_noncanonical_u128(x);
-                    let b = <$field>::from_noncanonical_u96((x_lo, x_hi));
-                    assert_eq!(a, b);
-                }
-            }
+            use p3_field::{batch_multiplicative_inverse, AbstractField, Field, TwoAdicField};
+            use $crate::types::Sample;
 
             #[test]
             fn batch_inversion() {
@@ -32,10 +18,11 @@ macro_rules! test_field_arithmetic {
                     let xs = (1..=n as u64)
                         .map(|i| <$field>::from_canonical_u64(i))
                         .collect::<Vec<_>>();
-                    let invs = <$field>::batch_multiplicative_inverse(&xs);
+
+                    let invs = batch_multiplicative_inverse::<$field>(xs.as_slice());
                     assert_eq!(invs.len(), n);
                     for (x, inv) in xs.into_iter().zip(invs) {
-                        assert_eq!(x * inv, <$field>::ONE);
+                        assert_eq!(x * inv, <$field>::one());
                     }
                 }
             }
@@ -44,8 +31,8 @@ macro_rules! test_field_arithmetic {
             fn primitive_root_order() {
                 let max_power = 8.min(<$field>::TWO_ADICITY);
                 for n_power in 0..max_power {
-                    let root = <$field>::primitive_root_of_unity(n_power);
-                    let order = <$field>::generator_order(root);
+                    let root = <$field>::two_adic_generator(n_power);
+                    let order = root.powers().skip(1).position(|y| y.is_one()).unwrap() + 1;
                     assert_eq!(order, 1 << n_power, "2^{}'th primitive root", n_power);
                 }
             }
@@ -54,8 +41,8 @@ macro_rules! test_field_arithmetic {
             fn negation() {
                 type F = $field;
 
-                for x in [F::ZERO, F::ONE, F::TWO, F::NEG_ONE] {
-                    assert_eq!(x + -x, F::ZERO);
+                for x in [F::zero(), F::one(), F::two(), F::neg_one()] {
+                    assert_eq!(x + -x, F::zero());
                 }
             }
 
@@ -63,41 +50,13 @@ macro_rules! test_field_arithmetic {
             fn exponentiation() {
                 type F = $field;
 
-                assert_eq!(F::ZERO.exp_u64(0), <F>::ONE);
-                assert_eq!(F::ONE.exp_u64(0), <F>::ONE);
-                assert_eq!(F::TWO.exp_u64(0), <F>::ONE);
+                assert_eq!(F::zero().exp_u64(0), <F>::one());
+                assert_eq!(F::one().exp_u64(0), <F>::one());
+                assert_eq!(F::two().exp_u64(0), <F>::one());
 
-                assert_eq!(F::ZERO.exp_u64(1), <F>::ZERO);
-                assert_eq!(F::ONE.exp_u64(1), <F>::ONE);
-                assert_eq!(F::TWO.exp_u64(1), <F>::TWO);
-
-                assert_eq!(F::ZERO.kth_root_u64(1), <F>::ZERO);
-                assert_eq!(F::ONE.kth_root_u64(1), <F>::ONE);
-                assert_eq!(F::TWO.kth_root_u64(1), <F>::TWO);
-
-                for power in 1..10 {
-                    if F::is_monomial_permutation_u64(power) {
-                        let x = F::rand();
-                        assert_eq!(x.exp_u64(power).kth_root_u64(power), x);
-                    }
-                }
-            }
-
-            #[test]
-            fn exponentiation_large() {
-                type F = $field;
-
-                let mut rng = OsRng;
-
-                let base = F::rand();
-                let pow = BigUint::from(rng.gen::<u64>());
-                let cycles = rng.gen::<u32>();
-                let mul_group_order = F::order() - 1u32;
-                let big_pow = &pow + &mul_group_order * cycles;
-                let big_pow_wrong = &pow + &mul_group_order * cycles + 1u32;
-
-                assert_eq!(base.exp_biguint(&pow), base.exp_biguint(&big_pow));
-                assert_ne!(base.exp_biguint(&pow), base.exp_biguint(&big_pow_wrong));
+                assert_eq!(F::zero().exp_u64(1), <F>::zero());
+                assert_eq!(F::one().exp_u64(1), <F>::one());
+                assert_eq!(F::two().exp_u64(1), <F>::two());
             }
 
             #[test]
@@ -116,15 +75,16 @@ macro_rules! test_field_arithmetic {
     };
 }
 
+/// Test of consistency of the arithmetic operations.
 #[allow(clippy::eq_op)]
-pub(crate) fn test_add_neg_sub_mul<BF: Extendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
-    let y = BF::Extension::rand();
-    let z = BF::Extension::rand();
-    assert_eq!(x + (-x), BF::Extension::ZERO);
-    assert_eq!(-x, BF::Extension::ZERO - x);
-    assert_eq!(x + x, x * BF::Extension::TWO);
-    assert_eq!(x * (-x), -x.square());
+pub(crate) fn test_add_neg_sub_mul<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
+    let y = BinomialExtensionField::<AF, D>::rand();
+    let z = BinomialExtensionField::<AF, D>::rand();
+    assert_eq!(x + (-x), BinomialExtensionField::<AF, D>::zero());
+    assert_eq!(-x, BinomialExtensionField::<AF, D>::zero() - x);
+    assert_eq!(x + x, x * BinomialExtensionField::<AF, D>::two());
+    assert_eq!(x * (-x), -AbstractField::square(&x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
     assert_eq!(x * (y * z), (x * y) * z);
@@ -133,21 +93,26 @@ pub(crate) fn test_add_neg_sub_mul<BF: Extendable<D>, const D: usize>() {
     assert_eq!(x * (y + z), x * y + x * z);
 }
 
-pub(crate) fn test_inv_div<BF: Extendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
-    let y = BF::Extension::rand();
-    let z = BF::Extension::rand();
-    assert_eq!(x * x.inverse(), BF::Extension::ONE);
-    assert_eq!(x.inverse() * x, BF::Extension::ONE);
-    assert_eq!(x.square().inverse(), x.inverse().square());
+/// Test of consistency of division.
+pub(crate) fn test_inv_div<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
+    let y = BinomialExtensionField::<AF, D>::rand();
+    let z = BinomialExtensionField::<AF, D>::rand();
+    assert_eq!(x * x.inverse(), BinomialExtensionField::<AF, D>::one());
+    assert_eq!(x.inverse() * x, BinomialExtensionField::<AF, D>::one());
+    assert_eq!(
+        AbstractField::square(&x).inverse(),
+        AbstractField::square(&x.inverse())
+    );
     assert_eq!((x / y) * y, x);
     assert_eq!(x / (y * z), (x / y) / z);
     assert_eq!((x * y) / z, x * (y / z));
 }
 
-pub(crate) fn test_frobenius<BF: Extendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
-    assert_eq!(x.exp_biguint(&BF::order()), x.frobenius());
+/// Test that the Frobenius automorphism is consistent with the naive version.
+pub(crate) fn test_frobenius<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
+    assert_eq!(exp_biguint(x, &AF::order()), x.frobenius());
     for count in 2..D {
         assert_eq!(
             x.repeated_frobenius(count),
@@ -156,24 +121,41 @@ pub(crate) fn test_frobenius<BF: Extendable<D>, const D: usize>() {
     }
 }
 
-pub(crate) fn test_field_order<BF: Extendable<D>, const D: usize>() {
-    let x = BF::Extension::rand();
+/// Exponentiation of an extension field element by an arbitrary large integer.
+fn exp_biguint<AF: AbstractField + HasExtension<D> + Sample, const D: usize>(
+    x: BinomialExtensionField<AF, D>,
+    power: &num::BigUint,
+) -> BinomialExtensionField<AF, D> {
+    let mut result = BinomialExtensionField::<AF, D>::one();
+    for &digit in power.to_u64_digits().iter().rev() {
+        result = result.exp_power_of_2(64);
+        result *= x.exp_u64(digit);
+    }
+    result
+}
+
+/// Test that x^(|F| - 1) for a random (non-zero) x in F.
+pub(crate) fn test_field_order<AF: AbstractField + HasExtension<D> + Sample, const D: usize>() {
+    let x = BinomialExtensionField::<AF, D>::rand();
     assert_eq!(
-        x.exp_biguint(&(BF::Extension::order() - 1u8)),
-        BF::Extension::ONE
+        exp_biguint::<AF, D>(x, &(BinomialExtensionField::<AF, D>::order() - 1u8)),
+        BinomialExtensionField::<AF, D>::one()
     );
 }
 
-pub(crate) fn test_power_of_two_gen<BF: Extendable<D>, const D: usize>() {
+/// Tests of consistency  the extension field generator,
+/// the two_adicities of base and extension field and
+/// the two_adic generators of the base field and the extension field.
+pub(crate) fn test_power_of_two_gen<
+    AF: Field + TwoAdicField + HasTwoAdicBionmialExtension<D> + HasExtension<D> + Sample,
+    const D: usize,
+>() {
     assert_eq!(
-        BF::Extension::MULTIPLICATIVE_GROUP_GENERATOR
-            .exp_biguint(&(BF::Extension::order() >> BF::Extension::TWO_ADICITY)),
-        BF::Extension::POWER_OF_TWO_GENERATOR,
-    );
-    assert_eq!(
-        BF::Extension::POWER_OF_TWO_GENERATOR
-            .exp_u64(1 << (BF::Extension::TWO_ADICITY - BF::TWO_ADICITY)),
-        BF::POWER_OF_TWO_GENERATOR.into()
+        BinomialExtensionField::<AF, D>::from_base_slice(&AF::ext_two_adic_generator(
+            BinomialExtensionField::<AF, D>::TWO_ADICITY
+        ))
+        .exp_u64(1 << (BinomialExtensionField::<AF, D>::TWO_ADICITY - AF::TWO_ADICITY)),
+        BinomialExtensionField::<AF, D>::from_base(AF::two_adic_generator(AF::TWO_ADICITY))
     );
 }
 
@@ -203,4 +185,37 @@ macro_rules! test_field_extension {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+
+    mod goldilocks {
+        use crate::test_field_arithmetic;
+
+        test_field_arithmetic!(p3_goldilocks::Goldilocks);
+    }
+    mod goldilocks_ext {
+        use crate::{test_field_arithmetic, test_field_extension};
+
+        test_field_extension!(p3_goldilocks::Goldilocks, 2);
+        test_field_arithmetic!(
+            p3_field::extension::BinomialExtensionField<p3_goldilocks::Goldilocks, 2>
+        );
+    }
+
+    mod babybear {
+        use crate::test_field_arithmetic;
+
+        test_field_arithmetic!(p3_baby_bear::BabyBear);
+    }
+
+    mod babybear_ext {
+        use crate::{test_field_arithmetic, test_field_extension};
+
+        test_field_extension!(p3_baby_bear::BabyBear, 4);
+        test_field_arithmetic!(
+            p3_field::extension::BinomialExtensionField<p3_baby_bear::BabyBear, 4>
+        );
+    }
 }

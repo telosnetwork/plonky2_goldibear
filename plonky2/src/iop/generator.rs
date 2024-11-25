@@ -8,8 +8,10 @@ use alloc::{
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
+use p3_field::Field;
+
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::Target;
@@ -23,14 +25,18 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// given set of generators.
 pub fn generate_partial_witness<
     'a,
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     inputs: PartialWitness<F>,
-    prover_data: &'a ProverOnlyCircuitData<F, C, D>,
-    common_data: &'a CommonCircuitData<F, D>,
-) -> PartitionWitness<'a, F> {
+    prover_data: &'a ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &'a CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+) -> PartitionWitness<'a, F>
+where
+    
+{
     let config = &common_data.config;
     let generators = &prover_data.generators;
     let generator_indices_by_watches = &prover_data.generator_indices_by_watches;
@@ -103,8 +109,12 @@ pub fn generate_partial_witness<
 }
 
 /// A generator participates in the generation of the witness.
-pub trait WitnessGenerator<F: RichField + Extendable<D>, const D: usize>:
-    'static + Send + Sync + Debug
+pub trait WitnessGenerator<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>: 'static + Send + Sync + Debug where
+    
 {
     fn id(&self) -> String;
 
@@ -117,34 +127,62 @@ pub trait WitnessGenerator<F: RichField + Extendable<D>, const D: usize>:
     /// run next time a target in its watch list is populated.
     fn run(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) -> bool;
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()>;
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()>;
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized;
 }
 
 /// A wrapper around an `Box<WitnessGenerator>` which implements `PartialEq`
 /// and `Eq` based on generator IDs.
-pub struct WitnessGeneratorRef<F: RichField + Extendable<D>, const D: usize>(
-    pub Box<dyn WitnessGenerator<F, D>>,
-);
+pub struct WitnessGeneratorRef<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(pub Box<dyn WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>>);
 
-impl<F: RichField + Extendable<D>, const D: usize> WitnessGeneratorRef<F, D> {
-    pub fn new<G: WitnessGenerator<F, D>>(generator: G) -> WitnessGeneratorRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
+    pub fn new<G: WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>>(
+        generator: G,
+    ) -> WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS> {
         WitnessGeneratorRef(Box::new(generator))
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PartialEq for WitnessGeneratorRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
+    for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Eq for WitnessGeneratorRef<F, D> {}
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
+    for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
+}
 
-impl<F: RichField + Extendable<D>, const D: usize> Debug for WitnessGeneratorRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
+    for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0.id())
     }
@@ -190,7 +228,8 @@ impl<F: Field> GeneratedValues<F> {
         value: F::Extension,
     ) -> Self
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         let mut witness = Self::with_capacity(D);
         witness.set_extension_target(et, value);
@@ -199,8 +238,12 @@ impl<F: Field> GeneratedValues<F> {
 }
 
 /// A generator which runs once after a list of dependencies is present in the witness.
-pub trait SimpleGenerator<F: RichField + Extendable<D>, const D: usize>:
-    'static + Send + Sync + Debug
+pub trait SimpleGenerator<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>: 'static + Send + Sync + Debug where
+    
 {
     fn id(&self) -> String;
 
@@ -208,7 +251,7 @@ pub trait SimpleGenerator<F: RichField + Extendable<D>, const D: usize>:
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>);
 
-    fn adapter(self) -> SimpleGeneratorAdapter<F, Self, D>
+    fn adapter(self) -> SimpleGeneratorAdapter<F, Self, D, NUM_HASH_OUT_ELTS>
     where
         Self: Sized,
     {
@@ -218,25 +261,42 @@ pub trait SimpleGenerator<F: RichField + Extendable<D>, const D: usize>:
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()>;
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()>;
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized;
 }
 
 #[derive(Debug)]
 pub struct SimpleGeneratorAdapter<
-    F: RichField + Extendable<D>,
-    SG: SimpleGenerator<F, D> + ?Sized,
+    F: RichField + HasExtension<D>,
+    SG: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> + ?Sized,
     const D: usize,
-> {
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
     _phantom: PhantomData<F>,
     inner: SG,
 }
 
-impl<F: RichField + Extendable<D>, SG: SimpleGenerator<F, D>, const D: usize> WitnessGenerator<F, D>
-    for SimpleGeneratorAdapter<F, SG, D>
+impl<
+        F: RichField + HasExtension<D>,
+        SG: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>
+    for SimpleGeneratorAdapter<F, SG, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     fn id(&self) -> String {
         self.inner.id()
@@ -255,11 +315,18 @@ impl<F: RichField + Extendable<D>, SG: SimpleGenerator<F, D>, const D: usize> Wi
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         self.inner.serialize(dst, common_data)
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         Ok(Self {
             inner: SG::deserialize(src, common_data)?,
             _phantom: PhantomData,
@@ -274,7 +341,11 @@ pub struct CopyGenerator {
     pub(crate) dst: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for CopyGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for CopyGenerator
+where
+    
+{
     fn id(&self) -> String {
         "CopyGenerator".to_string()
     }
@@ -288,12 +359,19 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Cop
         out_buffer.set_target(self.dst, value);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.src)?;
         dst.write_target(self.dst)
     }
 
-    fn deserialize(source: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        source: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let src = source.read_target()?;
         let dst = source.read_target()?;
         Ok(Self { src, dst })
@@ -306,7 +384,11 @@ pub struct RandomValueGenerator {
     pub(crate) target: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for RandomValueGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomValueGenerator
+where
+    
+{
     fn id(&self) -> String {
         "RandomValueGenerator".to_string()
     }
@@ -320,11 +402,18 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Ran
         out_buffer.set_target(self.target, random_value);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.target)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let target = src.read_target()?;
         Ok(Self { target })
     }
@@ -337,7 +426,11 @@ pub struct NonzeroTestGenerator {
     pub(crate) dummy: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for NonzeroTestGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for NonzeroTestGenerator
+where
+    
+{
     fn id(&self) -> String {
         "NonzeroTestGenerator".to_string()
     }
@@ -349,8 +442,8 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Non
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
         let to_test_value = witness.get_target(self.to_test);
 
-        let dummy_value = if to_test_value == F::ZERO {
-            F::ONE
+        let dummy_value = if to_test_value == F::zero() {
+            F::one()
         } else {
             to_test_value.inverse()
         };
@@ -358,12 +451,19 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Non
         out_buffer.set_target(self.dummy, dummy_value);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.to_test)?;
         dst.write_target(self.dummy)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let to_test = src.read_target()?;
         let dummy = src.read_target()?;
         Ok(Self { to_test, dummy })
@@ -385,7 +485,11 @@ impl<F: Field> ConstantGenerator<F> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for ConstantGenerator<F> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ConstantGenerator<F>
+where
+    
+{
     fn id(&self) -> String {
         "ConstantGenerator".to_string()
     }
@@ -398,14 +502,21 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Con
         out_buffer.set_target(Target::wire(self.row, self.wire_index), self.constant);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.constant_index)?;
         dst.write_usize(self.wire_index)?;
         dst.write_field(self.constant)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let constant_index = src.read_usize()?;
         let wire_index = src.read_usize()?;

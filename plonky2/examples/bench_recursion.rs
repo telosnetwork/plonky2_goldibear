@@ -17,28 +17,33 @@ use std::sync::Arc;
 use anyhow::{anyhow, Context as _, Result};
 use itertools::Itertools;
 use log::{info, Level, LevelFilter};
+use p3_baby_bear::BabyBear;
+use p3_goldilocks::Goldilocks;
 use plonky2::gadgets::lookup::TIP5_TABLE;
 use plonky2::gates::noop::NoopGate;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::{CircuitConfig, CommonCircuitData, VerifierOnlyCircuitData};
-use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
+use plonky2::plonk::config::{
+    AlgebraicHasher, GenericConfig, Poseidon2BabyBearConfig, PoseidonGoldilocksConfig,
+};
 use plonky2::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
 use plonky2::plonk::prover::prove;
 use plonky2::util::serialization::DefaultGateSerializer;
 use plonky2::util::timing::TimingTree;
-use plonky2_field::extension::Extendable;
+use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::rayon;
 use rand::rngs::OsRng;
 use rand::{RngCore, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use structopt::StructOpt;
+use tynm::type_name;
 
-type ProofTuple<F, C, const D: usize> = (
-    ProofWithPublicInputs<F, C, D>,
-    VerifierOnlyCircuitData<C, D>,
-    CommonCircuitData<F, D>,
+type ProofTuple<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> = (
+    ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 );
 
 #[derive(Clone, StructOpt, Debug)]
@@ -75,10 +80,18 @@ struct Options {
 }
 
 /// Creates a dummy proof which should have `2 ** log2_size` rows.
-fn dummy_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn dummy_proof<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     config: &CircuitConfig,
     log2_size: usize,
-) -> Result<ProofTuple<F, C, D>> {
+) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
+where
+    
+{
     // 'size' is in degree, but we want number of noop gates. A non-zero amount of padding will be added and size will be rounded to the next power of two. To hit our target size, we go just under the previous power of two and hope padding is less than half the proof.
     let num_dummy_gates = match log2_size {
         0 => return Err(anyhow!("size must be at least 1")),
@@ -87,7 +100,7 @@ fn dummy_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D
         n => (1 << (n - 1)) + 1,
     };
     info!("Constructing inner proof with {} gates", num_dummy_gates);
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     for _ in 0..num_dummy_gates {
         builder.add_gate(NoopGate, vec![]);
     }
@@ -97,18 +110,27 @@ fn dummy_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D
     let inputs = PartialWitness::new();
 
     let mut timing = TimingTree::new("prove", Level::Debug);
-    let proof = prove::<F, C, D>(&data.prover_only, &data.common, inputs, &mut timing)?;
+    let proof =
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
     data.verify(proof.clone())?;
 
     Ok((proof, data.verifier_only, data.common))
 }
 
-fn dummy_lookup_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn dummy_lookup_proof<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     config: &CircuitConfig,
     log2_size: usize,
-) -> Result<ProofTuple<F, C, D>> {
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
+where
+    
+{
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
     let inps = 0..256;
     let table = Arc::new(inps.zip_eq(tip5_table).collect());
@@ -138,7 +160,7 @@ fn dummy_lookup_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, 
 
     let data = builder.build::<C>();
     let mut inputs = PartialWitness::<F>::new();
-    inputs.set_target(initial_a, F::ONE);
+    inputs.set_target(initial_a, F::one());
     let mut timing = TimingTree::new("prove with one lookup", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
@@ -149,14 +171,18 @@ fn dummy_lookup_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, 
 
 /// Creates a dummy proof which has more than 256 lookups to one LUT
 fn dummy_many_rows_proof<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     config: &CircuitConfig,
     log2_size: usize,
-) -> Result<ProofTuple<F, C, D>> {
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
+where
+    
+{
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
     let inps: Vec<u16> = (0..256).collect();
     let tip5_idx = builder.add_lookup_table_from_table(&inps, &tip5_table);
@@ -189,7 +215,7 @@ fn dummy_many_rows_proof<
     builder.register_public_input(output);
 
     let mut pw = PartialWitness::new();
-    pw.set_target(initial_a, F::ONE);
+    pw.set_target(initial_a, F::one());
     let data = builder.build::<C>();
     let mut timing = TimingTree::new("prove with many lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
@@ -200,20 +226,22 @@ fn dummy_many_rows_proof<
 }
 
 fn recursive_proof<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
-    InnerC: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    InnerC: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    inner: &ProofTuple<F, InnerC, D>,
+    inner: &ProofTuple<F, InnerC, D, NUM_HASH_OUT_ELTS>,
     config: &CircuitConfig,
     min_degree_bits: Option<usize>,
-) -> Result<ProofTuple<F, C, D>>
+) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
 where
-    InnerC::Hasher: AlgebraicHasher<F>,
+    InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    
 {
     let (inner_proof, inner_vd, inner_cd) = inner;
-    let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let pt = builder.add_virtual_proof_with_pis(inner_cd);
 
     let inner_data = builder.add_virtual_verifier_data(inner_cd.config.fri_config.cap_height);
@@ -239,7 +267,8 @@ where
     pw.set_verifier_data_target(&inner_data, inner_vd);
 
     let mut timing = TimingTree::new("prove", Level::Debug);
-    let proof = prove::<F, C, D>(&data.prover_only, &data.common, pw, &mut timing)?;
+    let proof =
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
 
     data.verify(proof.clone())?;
@@ -248,11 +277,19 @@ where
 }
 
 /// Test serialization and print some size info.
-fn test_serialization<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
-    proof: &ProofWithPublicInputs<F, C, D>,
-    vd: &VerifierOnlyCircuitData<C, D>,
-    common_data: &CommonCircuitData<F, D>,
-) -> Result<()> {
+fn test_serialization<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+) -> Result<()>
+where
+    
+{
     let proof_bytes = proof.to_bytes();
     info!("Proof length: {} bytes", proof_bytes.len());
     let proof_from_bytes = ProofWithPublicInputs::from_bytes(proof_bytes, common_data)?;
@@ -283,28 +320,35 @@ fn test_serialization<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, 
         "Common circuit data length: {} bytes",
         common_data_bytes.len()
     );
-    let common_data_from_bytes =
-        CommonCircuitData::<F, D>::from_bytes(common_data_bytes, &gate_serializer)
-            .map_err(|_| anyhow::Error::msg("CommonCircuitData deserialization failed."))?;
+    let common_data_from_bytes = CommonCircuitData::<F, D, NUM_HASH_OUT_ELTS>::from_bytes(
+        common_data_bytes,
+        &gate_serializer,
+    )
+    .map_err(|_| anyhow::Error::msg("CommonCircuitData deserialization failed."))?;
     assert_eq!(common_data, &common_data_from_bytes);
 
     Ok(())
 }
 
-pub fn benchmark_function(
+pub fn benchmark_function<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     config: &CircuitConfig,
     log2_inner_size: usize,
     lookup_type: u64,
-) -> Result<()> {
-    const D: usize = 2;
-    type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
-
+) -> Result<()>
+where
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    
+{
     let dummy_proof_function = match lookup_type {
-        0 => dummy_proof::<F, C, D>,
-        1 => dummy_lookup_proof::<F, C, D>,
-        2 => dummy_many_rows_proof::<F, C, D>,
-        _ => dummy_proof::<F, C, D>,
+        0 => dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
+        1 => dummy_lookup_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
+        2 => dummy_many_rows_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
+        _ => dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
     };
 
     let name = match lookup_type {
@@ -324,7 +368,7 @@ pub fn benchmark_function(
     );
 
     // Recursively verify the proof
-    let middle = recursive_proof::<F, C, C, D>(&inner, config, None)?;
+    let middle = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(&inner, config, None)?;
     let (_, _, common_data) = &middle;
     info!(
         "Single recursion {} degree {} = 2^{}",
@@ -334,7 +378,7 @@ pub fn benchmark_function(
     );
 
     // Add a second layer of recursion to shrink the proof size further
-    let outer = recursive_proof::<F, C, C, D>(&middle, config, None)?;
+    let outer = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(&middle, config, None)?;
     let (proof, vd, common_data) = &outer;
     info!(
         "Double recursion {} degree {} = 2^{}",
@@ -349,7 +393,6 @@ pub fn benchmark_function(
 }
 
 fn main() -> Result<()> {
-    // Parse command line arguments, see `--help` for details.
     let options = Options::from_args_safe()?;
     // Initialize logging
     let mut builder = env_logger::Builder::from_default_env();
@@ -363,16 +406,39 @@ fn main() -> Result<()> {
     };
     builder.try_init()?;
 
+    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(
+        CircuitConfig::standard_recursion_config_bb_wide(),
+    )?;
+    do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(
+        CircuitConfig::standard_recursion_config_gl(),
+    )
+}
+fn do_bench<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    config: CircuitConfig,
+) -> Result<()>
+where
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    
+{
+    // Parse command line arguments, see `--help` for details.
+    let options = Options::from_args_safe()?;
     // Initialize randomness source
     let rng_seed = options.seed.unwrap_or_else(|| OsRng.next_u64());
-    info!("Using random seed {rng_seed:16x}");
+    info!(
+        "\n\n\nBenching **************{:?}**************",
+        type_name::<F>()
+    );
+    info!("using random seed {rng_seed:16x}");
     let _rng = ChaCha8Rng::seed_from_u64(rng_seed);
     // TODO: Use `rng` to create deterministic runs
 
     let num_cpus = num_cpus::get();
     let threads = options.threads.unwrap_or(num_cpus..=num_cpus);
-
-    let config = CircuitConfig::standard_recursion_config();
 
     for log2_inner_size in options.size {
         // Since the `size` is most likely to be an unbounded range we make that the outer iterator.
@@ -388,7 +454,11 @@ fn main() -> Result<()> {
                         num_cpus
                     );
                     // Run the benchmark. `options.lookup_type` determines which benchmark to run.
-                    benchmark_function(&config, log2_inner_size, options.lookup_type)
+                    benchmark_function::<F, C, D, NUM_HASH_OUT_ELTS>(
+                        &config,
+                        log2_inner_size,
+                        options.lookup_type,
+                    )
                 })?;
         }
     }

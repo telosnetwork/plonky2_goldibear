@@ -19,19 +19,19 @@ use core::ops::{Range, RangeFrom};
 use std::collections::BTreeMap;
 
 use anyhow::Result;
+use p3_field::{AbstractExtensionField, TwoAdicField};
 use serde::Serialize;
 
-use super::circuit_builder::LookupWire;
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
 use crate::field::fft::FftRootTable;
-use crate::field::types::Field;
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::reduction_strategies::FriReductionStrategy;
 use crate::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
 };
-use crate::fri::{FriConfig, FriParams};
 use crate::gates::gate::GateRef;
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
@@ -41,6 +41,7 @@ use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{generate_partial_witness, WitnessGeneratorRef};
 use crate::iop::target::Target;
+use crate::iop::wire::Wire;
 use crate::iop::witness::{PartialWitness, PartitionWitness};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{GenericConfig, Hasher};
@@ -52,6 +53,8 @@ use crate::util::serialization::{
     Buffer, GateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
 use crate::util::timing::TimingTree;
+
+use super::circuit_builder::LookupWire;
 
 /// Configuration to be used when building a circuit. This defines the shape of the circuit
 /// as well as its targeted security level and sub-protocol (e.g. FRI) parameters.
@@ -88,7 +91,7 @@ pub struct CircuitConfig {
 
 impl Default for CircuitConfig {
     fn default() -> Self {
-        Self::standard_recursion_config()
+        Self::standard_recursion_config_gl()
     }
 }
 
@@ -98,9 +101,32 @@ impl CircuitConfig {
     }
 
     /// A typical recursion config, without zero-knowledge, targeting ~100 bit security.
-    pub const fn standard_recursion_config() -> Self {
+    pub fn standard_recursion_config_gl() -> Self {
         Self {
             num_wires: 135,
+            ..Self::standard_recursion_config()
+        }
+    }
+    pub fn standard_recursion_config_bb_wide() -> Self {
+        Self {
+            //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
+            num_wires: 334,
+            num_routed_wires: 160,
+            ..Self::standard_recursion_config()
+        }
+    }
+    pub fn standard_recursion_config_bb_narrow() -> Self {
+        Self {
+            //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
+            num_wires: 167,
+            num_routed_wires: 128,
+            ..Self::standard_recursion_config()
+        }
+    }
+
+    fn standard_recursion_config() -> Self {
+        Self {
+            num_wires: 0,
             num_routed_wires: 80,
             num_constants: 2,
             use_base_arithmetic_gate: true,
@@ -121,56 +147,91 @@ impl CircuitConfig {
     pub fn standard_ecc_config() -> Self {
         Self {
             num_wires: 136,
-            ..Self::standard_recursion_config()
+            ..Self::standard_recursion_config_gl()
         }
     }
 
     pub fn wide_ecc_config() -> Self {
         Self {
             num_wires: 234,
-            ..Self::standard_recursion_config()
+            ..Self::standard_recursion_config_gl()
         }
     }
 
-    pub fn standard_recursion_zk_config() -> Self {
+    pub fn standard_recursion_zk_config_gl() -> Self {
         CircuitConfig {
             zero_knowledge: true,
-            ..Self::standard_recursion_config()
+            ..Self::standard_recursion_config_gl()
+        }
+    }
+    pub fn standard_recursion_zk_config_bb() -> Self {
+        CircuitConfig {
+            zero_knowledge: true,
+            ..Self::standard_recursion_config_bb_wide()
         }
     }
 }
 
 /// Mock circuit data to only do witness generation without generating a proof.
 #[derive(Eq, PartialEq, Debug)]
-pub struct MockCircuitData<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct MockCircuitData<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
 {
-    pub prover_only: ProverOnlyCircuitData<F, C, D>,
-    pub common: CommonCircuitData<F, D>,
+    pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    MockCircuitData<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
-        generate_partial_witness::<F, C, D>(inputs, &self.prover_only, &self.common)
+        generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(
+            inputs,
+            &self.prover_only,
+            &self.common,
+        )
     }
 }
 
 /// Circuit data required by the prover or the verifier.
 #[derive(Eq, PartialEq, Debug)]
-pub struct CircuitData<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
-    pub prover_only: ProverOnlyCircuitData<F, C, D>,
-    pub verifier_only: VerifierOnlyCircuitData<C, D>,
-    pub common: CommonCircuitData<F, D>,
+pub struct CircuitData<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+    pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    CircuitData<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     pub fn to_bytes(
         &self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_circuit_data(self, gate_serializer, generator_serializer)?;
@@ -179,48 +240,66 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn from_bytes(
         bytes: &[u8],
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(bytes);
         buffer.read_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D>> {
-        prove::<F, C, D>(
-            &self.prover_only,
-            &self.common,
+    pub fn prove(
+        &self,
+        inputs: PartialWitness<F>,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
+        self.prove_with_timing(
             inputs,
             &mut TimingTree::default(),
         )
     }
 
-    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D>) -> Result<()> {
-        verify::<F, C, D>(proof_with_pis, &self.verifier_only, &self.common)
+    pub fn prove_with_timing(
+        &self,
+        inputs: PartialWitness<F>,
+        timing: &mut TimingTree,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
+            &self.prover_only,
+            &self.common,
+            inputs,
+            timing,
+        )
+    }
+    pub fn verify(
+        &self,
+        proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<()> {
+        let res =
+            verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common);
+        res
     }
 
     pub fn verify_compressed(
         &self,
-        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D>,
+        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()> {
         compressed_proof_with_pis.verify(&self.verifier_only, &self.common)
     }
 
     pub fn compress(
         &self,
-        proof: ProofWithPublicInputs<F, C, D>,
-    ) -> Result<CompressedProofWithPublicInputs<F, C, D>> {
+        proof: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         proof.compress(&self.verifier_only.circuit_digest, &self.common)
     }
 
     pub fn decompress(
         &self,
-        proof: CompressedProofWithPublicInputs<F, C, D>,
-    ) -> Result<ProofWithPublicInputs<F, C, D>> {
+        proof: CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         proof.decompress(&self.verifier_only.circuit_digest, &self.common)
     }
 
-    pub fn verifier_data(&self) -> VerifierCircuitData<F, C, D> {
+    pub fn verifier_data(&self) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS> {
         let CircuitData {
             verifier_only,
             common,
@@ -232,7 +311,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
         }
     }
 
-    pub fn prover_data(self) -> ProverCircuitData<F, C, D> {
+    pub fn prover_data(self) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS> {
         let CircuitData {
             prover_only,
             common,
@@ -254,21 +333,30 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 /// construct a more minimal prover structure and convert back and forth.
 #[derive(Debug)]
 pub struct ProverCircuitData<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-> {
-    pub prover_only: ProverOnlyCircuitData<F, C, D>,
-    pub common: CommonCircuitData<F, D>,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    ProverCircuitData<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     pub fn to_bytes(
         &self,
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_prover_circuit_data(self, gate_serializer, generator_serializer)?;
@@ -277,38 +365,57 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn from_bytes(
         bytes: &[u8],
-        gate_serializer: &dyn GateSerializer<F, D>,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(bytes);
         buffer.read_prover_circuit_data(gate_serializer, generator_serializer)
     }
 
-    pub fn prove(&self, inputs: PartialWitness<F>) -> Result<ProofWithPublicInputs<F, C, D>> {
-        prove::<F, C, D>(
+    pub fn prove(
+        &self,
+        inputs: PartialWitness<F>,
+    ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
+    where
+        
+    {
+        let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
             inputs,
             &mut TimingTree::default(),
-        )
+        );
+        proof
     }
 }
 
 /// Circuit data required by the prover.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifierCircuitData<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-> {
-    pub verifier_only: VerifierOnlyCircuitData<C, D>,
-    pub common: CommonCircuitData<F, D>,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    VerifierCircuitData<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
-    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
+    pub fn to_bytes(
+        &self,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_verifier_circuit_data(self, gate_serializer)?;
         Ok(buffer)
@@ -316,19 +423,22 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(&bytes);
         buffer.read_verifier_circuit_data(gate_serializer)
     }
 
-    pub fn verify(&self, proof_with_pis: ProofWithPublicInputs<F, C, D>) -> Result<()> {
-        verify::<F, C, D>(proof_with_pis, &self.verifier_only, &self.common)
+    pub fn verify(
+        &self,
+        proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<()> {
+        verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
     pub fn verify_compressed(
         &self,
-        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D>,
+        compressed_proof_with_pis: CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()> {
         compressed_proof_with_pis.verify(&self.verifier_only, &self.common)
     }
@@ -337,16 +447,19 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 /// Circuit data required by the prover, but not the verifier.
 #[derive(Eq, PartialEq, Debug)]
 pub struct ProverOnlyCircuitData<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-> {
-    pub generators: Vec<WitnessGeneratorRef<F, D>>,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
     /// Generator indices (within the `Vec` above), indexed by the representative of each target
     /// they watch.
     pub generator_indices_by_watches: BTreeMap<usize, Vec<usize>>,
     /// Commitments to the constants polynomials and sigma polynomials.
-    pub constants_sigmas_commitment: PolynomialBatch<F, C, D>,
+    pub constants_sigmas_commitment: PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     /// The transpose of the list of sigma polynomials.
     pub sigmas: Vec<Vec<F>>,
     /// Subgroup of order `degree`.
@@ -360,20 +473,29 @@ pub struct ProverOnlyCircuitData<
     pub fft_root_table: Option<FftRootTable<F>>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<F>>::Hash,
+    pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<F>>::Hash,
     ///The concrete placement of the lookup gates for each lookup table index.
     pub lookup_rows: Vec<LookupWire>,
-    /// A vector of (looking_in, looking_out) pairs for for each lookup table index.
+    /// A vector of (looking_in, looking_out) pairs for each lookup table index.
     pub lut_to_lookups: Vec<Lookup>,
+    /// The random wire taken from the public input gate used to randomize the witnesses in case of
+    /// division by zero in permutation argument (see issue https://github.com/0xPolygonZero/plonky2/issues/456)
+    pub random_wire: Option<Wire>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    ProverOnlyCircuitData<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     pub fn to_bytes(
         &self,
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_prover_only_circuit_data(self, generator_serializer, common_data)?;
@@ -382,8 +504,8 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn from_bytes(
         bytes: &[u8],
-        generator_serializer: &dyn WitnessGeneratorSerializer<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(bytes);
         buffer.read_prover_only_circuit_data(generator_serializer, common_data)
@@ -392,18 +514,34 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
 /// Circuit data required by the verifier, but not the prover.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct VerifierOnlyCircuitData<C: GenericConfig<D>, const D: usize> {
+pub struct VerifierOnlyCircuitData<
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> {
     /// A commitment to each constant polynomial and each permutation polynomial.
     pub constants_sigmas_cap: MerkleCap<C::F, C::Hasher>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: <<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
+    pub circuit_digest: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
 }
 
-impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
+impl<
+        C: GenericConfig<
+            D,
+            NUM_HASH_OUT_ELTS,
+            FE = <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension,
+        >,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
+where
+    C::F: HasExtension<D>,
+    <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
+{
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
-        buffer.write_verifier_only_circuit_data(self)?;
+        buffer.write_verifier_only_circuit_data::<C::F, C, D, NUM_HASH_OUT_ELTS>(self)?;
         Ok(buffer)
     }
 
@@ -415,13 +553,19 @@ impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
 
 /// Circuit data required by both the prover and the verifier.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CommonCircuitData<F: RichField + Extendable<D>, const D: usize> {
+pub struct CommonCircuitData<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
     pub config: CircuitConfig,
 
     pub fri_params: FriParams,
 
     /// The types of gates used in this circuit, along with their prefixes.
-    pub gates: Vec<GateRef<F, D>>,
+    pub gates: Vec<GateRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// Information on the circuit's selector polynomials.
     pub selectors_info: SelectorsInfo,
@@ -453,8 +597,15 @@ pub struct CommonCircuitData<F: RichField + Extendable<D>, const D: usize> {
     pub luts: Vec<LookupTable>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
-    pub fn to_bytes(&self, gate_serializer: &dyn GateSerializer<F, D>) -> IoResult<Vec<u8>> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
+    pub fn to_bytes(
+        &self,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_common_circuit_data(self, gate_serializer)?;
         Ok(buffer)
@@ -462,7 +613,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        gate_serializer: &dyn GateSerializer<F, D>,
+        gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
         let mut buffer = Buffer::new(&bytes);
         buffer.read_common_circuit_data(gate_serializer)
@@ -481,7 +632,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
     }
 
     pub fn lde_generator(&self) -> F {
-        F::primitive_root_of_unity(self.degree_bits() + self.config.fri_config.rate_bits)
+        F::two_adic_generator(self.degree_bits() + self.config.fri_config.rate_bits)
     }
 
     pub fn constraint_degree(&self) -> usize {
@@ -535,7 +686,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
         };
 
         // The Z polynomials are also opened at g * zeta.
-        let g = F::Extension::primitive_root_of_unity(self.degree_bits());
+        let g = <F::Extension as AbstractExtensionField<F>>::from_base(F::two_adic_generator(
+            self.degree_bits(),
+        ));
         let zeta_next = g * zeta;
         let zeta_next_batch = FriBatchInfo {
             point: zeta_next,
@@ -551,7 +704,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
 
     pub(crate) fn get_fri_instance_target(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         zeta: ExtensionTarget<D>,
     ) -> FriInstanceInfoTarget<D> {
         // All polynomials are opened at zeta.
@@ -561,7 +714,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
         };
 
         // The Z polynomials are also opened at g * zeta.
-        let g = F::primitive_root_of_unity(self.degree_bits());
+        let g = F::two_adic_generator(self.degree_bits());
         let zeta_next = builder.mul_const_extension(g, zeta);
         let zeta_next_batch = FriBatchInfoTarget {
             point: zeta_next,
@@ -669,10 +822,10 @@ impl<F: RichField + Extendable<D>, const D: usize> CommonCircuitData<F, D> {
 /// limited form of dynamic inner circuits. We can't practically make things like the wire count
 /// dynamic, at least not without setting a maximum wire count and paying for the worst case.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct VerifierCircuitTarget {
+pub struct VerifierCircuitTarget<const NUM_HASH_OUT_ELTS: usize> {
     /// A commitment to each constant polynomial and each permutation polynomial.
-    pub constants_sigmas_cap: MerkleCapTarget,
+    pub constants_sigmas_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
     /// A digest of the "circuit" (i.e. the instance, minus public inputs), which can be used to
     /// seed Fiat-Shamir.
-    pub circuit_digest: HashOutTarget,
+    pub circuit_digest: HashOutTarget<NUM_HASH_OUT_ELTS>,
 }

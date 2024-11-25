@@ -2,10 +2,11 @@
 use alloc::{vec, vec::Vec};
 use core::borrow::Borrow;
 
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::packed::PackedField;
+use p3_field::{AbstractExtensionField, ExtensionField, Field, PackedField, TwoAdicField};
+
+use plonky2_field::types::HasExtension;
+
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::field::types::Field;
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
 use crate::gates::reducing::ReducingGate;
 use crate::gates::reducing_extension::ReducingExtensionGate;
@@ -37,42 +38,48 @@ impl<F: Field> ReducingFactor<F> {
         self.base * x
     }
 
-    fn mul_ext<FE, P, const D: usize>(&mut self, x: P) -> P
+    fn mul_ext<P, const D: usize>(&mut self, x: P) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        F: HasExtension<D>,
+        P: PackedField<Scalar = F::Extension>,
     {
         self.count += 1;
         // TODO: Would like to use `FE::scalar_mul`, but it doesn't work with Packed currently.
-        x * FE::from_basefield(self.base)
+        x * F::Extension::from_base(self.base)
     }
 
-    fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>) {
+    fn mul_poly(&mut self, p: &mut PolynomialCoeffs<F>)
+    where
+        F: TwoAdicField,
+    {
         self.count += 1;
         *p *= self.base;
     }
 
     pub fn reduce(&mut self, iter: impl DoubleEndedIterator<Item = impl Borrow<F>>) -> F {
         iter.rev()
-            .fold(F::ZERO, |acc, x| self.mul(acc) + *x.borrow())
+            .fold(F::zero(), |acc, x| self.mul(acc) + *x.borrow())
     }
 
-    pub fn reduce_ext<FE, P, const D: usize>(
+    pub fn reduce_ext<P, const D: usize>(
         &mut self,
         iter: impl DoubleEndedIterator<Item = impl Borrow<P>>,
     ) -> P
     where
-        FE: FieldExtension<D, BaseField = F>,
-        P: PackedField<Scalar = FE>,
+        F: HasExtension<D>,
+        P: PackedField<Scalar = F::Extension>,
     {
         iter.rev()
-            .fold(P::ZEROS, |acc, x| self.mul_ext(acc) + *x.borrow())
+            .fold(P::zero(), |acc, x| self.mul_ext(acc) + *x.borrow())
     }
 
     pub fn reduce_polys(
         &mut self,
         polys: impl DoubleEndedIterator<Item = impl Borrow<PolynomialCoeffs<F>>>,
-    ) -> PolynomialCoeffs<F> {
+    ) -> PolynomialCoeffs<F>
+    where
+        F: TwoAdicField,
+    {
         polys.rev().fold(PolynomialCoeffs::empty(), |mut acc, x| {
             self.mul_poly(&mut acc);
             acc += x.borrow();
@@ -80,10 +87,13 @@ impl<F: Field> ReducingFactor<F> {
         })
     }
 
-    pub fn reduce_polys_base<BF: Extendable<D, Extension = F>, const D: usize>(
+    pub fn reduce_polys_base<BF: HasExtension<D> + TwoAdicField, const D: usize>(
         &mut self,
         polys: impl IntoIterator<Item = impl Borrow<PolynomialCoeffs<BF>>>,
-    ) -> PolynomialCoeffs<F> {
+    ) -> PolynomialCoeffs<F>
+    where
+        F: ExtensionField<BF> + TwoAdicField,
+    {
         self.base
             .powers()
             .zip(polys)
@@ -100,7 +110,10 @@ impl<F: Field> ReducingFactor<F> {
         tmp
     }
 
-    pub fn shift_poly(&mut self, p: &mut PolynomialCoeffs<F>) {
+    pub fn shift_poly(&mut self, p: &mut PolynomialCoeffs<F>)
+    where
+        F: TwoAdicField,
+    {
         *p *= self.base.exp_u64(self.count);
         self.count = 0;
     }
@@ -122,13 +135,14 @@ impl<const D: usize> ReducingFactorTarget<D> {
     }
 
     /// Reduces a vector of `Target`s using `ReducingGate`s.
-    pub fn reduce_base<F>(
+    pub fn reduce_base<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         terms: &[Target],
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         let l = terms.len();
 
@@ -177,13 +191,14 @@ impl<const D: usize> ReducingFactorTarget<D> {
     }
 
     /// Reduces a vector of `ExtensionTarget`s using `ReducingExtensionGate`s.
-    pub fn reduce<F>(
+    pub fn reduce<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         terms: &[ExtensionTarget<D>], // Could probably work with a `DoubleEndedIterator` too.
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         let l = terms.len();
 
@@ -230,13 +245,14 @@ impl<const D: usize> ReducingFactorTarget<D> {
     }
 
     /// Reduces a vector of `ExtensionTarget`s using `ArithmeticGate`s.
-    fn reduce_arithmetic<F>(
+    fn reduce_arithmetic<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         terms: &[ExtensionTarget<D>],
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         self.count += terms.len() as u64;
         terms
@@ -247,13 +263,14 @@ impl<const D: usize> ReducingFactorTarget<D> {
             })
     }
 
-    pub fn shift<F>(
+    pub fn shift<F, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
         x: ExtensionTarget<D>,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         let zero_ext = builder.zero_extension();
         let exp = if x == zero_ext {
@@ -275,24 +292,28 @@ impl<const D: usize> ReducingFactorTarget<D> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::AbstractField;
 
-    use super::*;
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
 
+    use super::*;
+
     fn test_reduce_gadget_base(n: usize) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let alpha = FF::rand();
         let vs = F::rand_vec(n);
@@ -318,16 +339,19 @@ mod tests {
     fn test_reduce_gadget(n: usize) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let alpha = FF::rand();
-        let vs = (0..n).map(FF::from_canonical_usize).collect::<Vec<_>>();
+        let vs = (0..n)
+            .map(<FF as AbstractField>::from_canonical_usize)
+            .collect::<Vec<_>>();
 
         let manual_reduce = ReducingFactor::new(alpha).reduce(vs.iter());
         let manual_reduce = builder.constant_extension(manual_reduce);

@@ -1,21 +1,23 @@
 use anyhow::ensure;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
+use crate::fri::FriParams;
 use crate::fri::proof::{FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::structure::FriInstanceInfo;
-use crate::fri::FriParams;
 use crate::hash::hash_types::RichField;
 use crate::plonk::config::GenericConfig;
 use crate::plonk::plonk_common::salt_size;
 
-pub(crate) fn validate_fri_proof_shape<F, C, const D: usize>(
+pub(crate) fn validate_fri_proof_shape<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     proof: &FriProof<F, C::Hasher, D>,
     instance: &FriInstanceInfo<F, D>,
     params: &FriParams,
 ) -> anyhow::Result<()>
 where
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    
 {
     let FriProof {
         commit_phase_merkle_caps,

@@ -8,10 +8,10 @@ use alloc::{
 use core::marker::PhantomData;
 
 use itertools::Itertools;
+use p3_field::{AbstractField, PackedField};
 
-use crate::field::extension::Extendable;
-use crate::field::packed::PackedField;
-use crate::field::types::Field;
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -31,7 +31,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for checking that a particular element of a list matches a given value.
 #[derive(Copy, Clone, Debug, Default)]
-pub struct RandomAccessGate<F: RichField + Extendable<D>, const D: usize> {
+pub struct RandomAccessGate<F: RichField + HasExtension<D>, const D: usize> {
     /// Number of bits in the index (log2 of the list size).
     pub bits: usize,
 
@@ -44,7 +44,10 @@ pub struct RandomAccessGate<F: RichField + Extendable<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> RandomAccessGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D>
+where
+    
+{
     const fn new(num_copies: usize, bits: usize, num_extra_constants: usize) -> Self {
         Self {
             bits,
@@ -121,27 +124,40 @@ impl<F: RichField + Extendable<D>, const D: usize> RandomAccessGate<F, D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
+where
+    
+{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.bits)?;
         dst.write_usize(self.num_copies)?;
         dst.write_usize(self.num_extra_constants)?;
         Ok(())
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let bits = src.read_usize()?;
         let num_copies = src.read_usize()?;
         let num_extra_constants = src.read_usize()?;
         Ok(Self::new(num_copies, bits, num_extra_constants))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         for copy in 0..self.num_copies {
             let access_index = vars.local_wires[self.wire_access_index(copy)];
@@ -155,14 +171,16 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGa
 
             // Assert that each bit wire value is indeed boolean.
             for &b in &bits {
-                constraints.push(b * (b - F::Extension::ONE));
+                constraints.push(b * (b - <F::Extension as AbstractField>::one()));
             }
 
             // Assert that the binary decomposition was correct.
             let reconstructed_index = bits
                 .iter()
                 .rev()
-                .fold(F::Extension::ZERO, |acc, &b| acc.double() + b);
+                .fold(<F::Extension as AbstractField>::zero(), |acc, &b| {
+                    acc.double() + b
+                });
             constraints.push(reconstructed_index - access_index);
 
             // Repeatedly fold the list, selecting the left or right item from each pair based on
@@ -189,24 +207,29 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGa
 
     fn eval_unfiltered_base_one(
         &self,
-        _vars: EvaluationVarsBase<F>,
+        _vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         _yield_constr: StridedConstraintConsumer<F>,
     ) {
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let zero = builder.zero_extension();
         let two = builder.two_extension();
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         for copy in 0..self.num_copies {
             let access_index = vars.local_wires[self.wire_access_index(copy)];
@@ -256,7 +279,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGa
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_copies)
             .map(|copy| {
                 WitnessGeneratorRef::new(
@@ -295,12 +322,14 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for RandomAccessGa
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
-    for RandomAccessGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
+where
+    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
-        vars: EvaluationVarsBasePacked<P>,
+        vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<P>,
     ) {
         for copy in 0..self.num_copies {
@@ -315,11 +344,11 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
 
             // Assert that each bit wire value is indeed boolean.
             for &b in &bits {
-                yield_constr.one(b * (b - F::ONE));
+                yield_constr.one(b * (b - F::one()));
             }
 
             // Assert that the binary decomposition was correct.
-            let reconstructed_index = bits.iter().rev().fold(P::ZEROS, |acc, &b| acc + acc + b);
+            let reconstructed_index = bits.iter().rev().fold(P::zero(), |acc, &b| acc + acc + b);
             yield_constr.one(reconstructed_index - access_index);
 
             // Repeatedly fold the list, selecting the left or right item from each pair based on
@@ -343,14 +372,19 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct RandomAccessGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    
+{
     row: usize,
     gate: RandomAccessGate<F, D>,
     copy: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-    for RandomAccessGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGenerator<F, D>
+where
+    
 {
     fn id(&self) -> String {
         "RandomAccessGenerator".to_string()
@@ -379,7 +413,7 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
         let vec_size = self.gate.vec_size();
 
         let access_index_f = get_local_wire(self.gate.wire_access_index(copy));
-        let access_index = access_index_f.to_canonical_u64() as usize;
+        let access_index = access_index_f.as_canonical_u64() as usize;
         debug_assert!(
             access_index < vec_size,
             "Access index {} is larger than the vector size {}",
@@ -398,13 +432,20 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.copy)?;
         self.gate.serialize(dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let copy = src.read_usize()?;
         let gate = RandomAccessGate::<F, D>::deserialize(src, _common_data)?;
@@ -415,35 +456,39 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use rand::rngs::OsRng;
+    use p3_field::Field;
+    use p3_goldilocks::Goldilocks;
     use rand::Rng;
+    use rand::rngs::OsRng;
 
-    use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::HashOut;
+    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+
+    use super::*;
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(RandomAccessGate::new(4, 4, 1));
+        test_low_degree::<Goldilocks, _, 2, 4>(RandomAccessGate::new(4, 4, 1));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        test_eval_fns::<F, C, _, D>(RandomAccessGate::new(4, 4, 1))
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(RandomAccessGate::new(4, 4, 1))
     }
 
     #[test]
     fn test_gate_constraint() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         /// Returns the local wires for a random access gate given the vectors, elements to compare,
         /// and indices.
@@ -492,14 +537,16 @@ mod tests {
             num_extra_constants: 1,
             _phantom: PhantomData,
         };
-        let constants = F::rand_vec(gate.num_constants());
+        let constants = F::rand_vec(
+            <RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constants(&gate),
+        );
 
         let good_claimed_elements = lists
             .iter()
             .zip(&access_indices)
             .map(|(l, &i)| l[i])
             .collect();
-        let good_vars = EvaluationVars {
+        let good_vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
             local_constants: &constants.iter().map(|&x| x.into()).collect::<Vec<_>>(),
             local_wires: &get_wires(
                 bits,
@@ -511,7 +558,7 @@ mod tests {
             public_inputs_hash: &HashOut::rand(),
         };
         let bad_claimed_elements = F::rand_vec(4);
-        let bad_vars = EvaluationVars {
+        let bad_vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
             local_constants: &constants.iter().map(|&x| x.into()).collect::<Vec<_>>(),
             local_wires: &get_wires(
                 bits,

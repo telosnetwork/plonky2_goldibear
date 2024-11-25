@@ -64,7 +64,7 @@ impl<F: RichField> PlonkyPermutation<F> for KeccakPermutation<F> {
         let mut state_bytes = vec![0u8; SPONGE_WIDTH * size_of::<u64>()];
         for i in 0..SPONGE_WIDTH {
             state_bytes[i * size_of::<u64>()..(i + 1) * size_of::<u64>()]
-                .copy_from_slice(&self.state[i].to_canonical_u64().to_le_bytes());
+                .copy_from_slice(&self.state[i].as_canonical_u64().to_le_bytes());
         }
 
         let hash_onion = core::iter::repeat_with(|| {
@@ -83,7 +83,7 @@ impl<F: RichField> PlonkyPermutation<F> for KeccakPermutation<F> {
         // Parse field elements from u64 stream, using rejection sampling such that words that don't
         // fit in F are ignored.
         let hash_onion_elems = hash_onion_u64s
-            .filter(|&word| word < F::ORDER)
+            .filter(|&word| word < F::ORDER_U64)
             .map(F::from_canonical_u64);
 
         self.state = hash_onion_elems

@@ -1,8 +1,7 @@
 use alloc::vec::Vec;
 
 use num::bigint::BigUint;
-
-use crate::types::Field;
+use p3_field::Field;
 
 /// Finds a set of shifts that result in unique cosets for the multiplicative subgroup of size
 /// `2^subgroup_bits`.
@@ -17,34 +16,43 @@ pub fn get_unique_coset_shifts<F: Field>(subgroup_size: usize, num_shifts: usize
     // Let g be a generator of the entire multiplicative group. Let n be the order of the subgroup.
     // The subgroup can be written as <g^(|F*| / n)>. We can use g^0, ..., g^(num_shifts - 1) as our
     // shifts, since g^i <g^(|F*| / n)> are distinct cosets provided i < |F*| / n, which we checked.
-    F::MULTIPLICATIVE_GROUP_GENERATOR
-        .powers()
-        .take(num_shifts)
-        .collect()
+    F::generator().powers().take(num_shifts).collect()
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
     use std::collections::HashSet;
 
-    use crate::cosets::get_unique_coset_shifts;
-    use crate::goldilocks_field::GoldilocksField;
-    use crate::types::Field;
+    use p3_field::TwoAdicField;
+    use p3_goldilocks::Goldilocks;
 
+    use crate::cosets::get_unique_coset_shifts;
+
+    extern crate std;
+
+    fn cyclic_subgroup_coset_known_order<F: TwoAdicField>(
+        generator: F,
+        shift: F,
+        order: usize,
+    ) -> Vec<F> {
+        let subgroup: Vec<F> = generator.powers().take(order).collect();
+        subgroup.into_iter().map(|x| x * shift).collect()
+    }
     #[test]
     fn distinct_cosets() {
-        type F = GoldilocksField;
+        type F = Goldilocks;
         const SUBGROUP_BITS: usize = 5;
         const NUM_SHIFTS: usize = 50;
 
-        let generator = F::primitive_root_of_unity(SUBGROUP_BITS);
+        let generator = F::two_adic_generator(SUBGROUP_BITS);
         let subgroup_size = 1 << SUBGROUP_BITS;
 
         let shifts = get_unique_coset_shifts::<F>(subgroup_size, NUM_SHIFTS);
 
         let mut union = HashSet::new();
         for shift in shifts {
-            let coset = F::cyclic_subgroup_coset_known_order(generator, shift, subgroup_size);
+            let coset = cyclic_subgroup_coset_known_order(generator, shift, subgroup_size);
             assert!(
                 coset.into_iter().all(|x| union.insert(x)),
                 "Duplicate element!"

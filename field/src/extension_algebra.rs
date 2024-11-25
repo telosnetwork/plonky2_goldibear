@@ -3,46 +3,61 @@ use core::fmt::{self, Debug, Display, Formatter};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::extension::OEF;
+use p3_field::{AbstractExtensionField, AbstractField};
+
+use crate::types::HasExtension;
 
 /// Let `F_D` be the optimal extension field `F[X]/(X^D-W)`. Then `ExtensionAlgebra<F_D>` is the quotient `F_D[X]/(X^D-W)`.
 /// It's a `D`-dimensional algebra over `F_D` useful to lift the multiplication over `F_D` to a multiplication over `(F_D)^D`.
 #[derive(Copy, Clone)]
-pub struct ExtensionAlgebra<F: OEF<D>, const D: usize>(pub [F; D]);
+pub struct ExtensionAlgebra<F: HasExtension<D>, const D: usize>(pub [F::Extension; D]);
 
-impl<F: OEF<D>, const D: usize> ExtensionAlgebra<F, D> {
-    pub const ZERO: Self = Self([F::ZERO; D]);
-
-    pub fn one() -> Self {
-        F::ONE.into()
+impl<F: HasExtension<D>, const D: usize> ExtensionAlgebra<F, D> {
+    pub fn zero() -> Self {
+        Self([<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D])
     }
 
-    pub const fn from_basefield_array(arr: [F; D]) -> Self {
+    pub fn one() -> Self {
+        let mut res = Self::zero();
+        res.0[0] = <F::Extension as AbstractExtensionField<F>>::from_base(F::one());
+        res
+    }
+
+    pub const fn from_basefield_array(arr: [F::Extension; D]) -> Self {
         Self(arr)
     }
 
-    pub const fn to_basefield_array(self) -> [F; D] {
+    pub const fn to_basefield_array(self) -> [F::Extension; D] {
         self.0
     }
 
-    pub fn scalar_mul(&self, scalar: F) -> Self {
+    pub fn scalar_mul(&self, scalar: F::Extension) -> Self {
         let mut res = self.0;
         res.iter_mut().for_each(|x| {
             *x *= scalar;
         });
         Self(res)
     }
-}
 
-impl<F: OEF<D>, const D: usize> From<F> for ExtensionAlgebra<F, D> {
-    fn from(x: F) -> Self {
-        let mut arr = [F::ZERO; D];
+    pub fn from_base(x: F::Extension) -> Self {
+        let mut arr = [<F::Extension as AbstractField>::zero(); D];
         arr[0] = x;
         Self(arr)
     }
 }
 
-impl<F: OEF<D>, const D: usize> Display for ExtensionAlgebra<F, D> {
+// impl<F: HasExtension<D>, const D: usize> From<F::Extension>
+//     for ExtensionAlgebra<F, D>
+// {
+//     fn from(x: F::Extension) -> Self {
+//         let mut arr =
+//             [F::Extension::from_base(F::zero()); D];
+//         arr[0] = x;
+//         Self(arr)
+//     }
+// }
+
+impl<F: HasExtension<D>, const D: usize> Display for ExtensionAlgebra<F, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "({})", self.0[0])?;
         for i in 1..D {
@@ -52,13 +67,13 @@ impl<F: OEF<D>, const D: usize> Display for ExtensionAlgebra<F, D> {
     }
 }
 
-impl<F: OEF<D>, const D: usize> Debug for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Debug for ExtensionAlgebra<F, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self, f)
     }
 }
 
-impl<F: OEF<D>, const D: usize> Neg for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Neg for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -69,7 +84,7 @@ impl<F: OEF<D>, const D: usize> Neg for ExtensionAlgebra<F, D> {
     }
 }
 
-impl<F: OEF<D>, const D: usize> Add for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Add for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -80,19 +95,19 @@ impl<F: OEF<D>, const D: usize> Add for ExtensionAlgebra<F, D> {
     }
 }
 
-impl<F: OEF<D>, const D: usize> AddAssign for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> AddAssign for ExtensionAlgebra<F, D> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
-impl<F: OEF<D>, const D: usize> Sum for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Sum for ExtensionAlgebra<F, D> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Self::ZERO, |acc, x| acc + x)
+        iter.fold(Self::zero(), |acc, x| acc + x)
     }
 }
 
-impl<F: OEF<D>, const D: usize> Sub for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Sub for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
@@ -103,41 +118,41 @@ impl<F: OEF<D>, const D: usize> Sub for ExtensionAlgebra<F, D> {
     }
 }
 
-impl<F: OEF<D>, const D: usize> SubAssign for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> SubAssign for ExtensionAlgebra<F, D> {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 
-impl<F: OEF<D>, const D: usize> Mul for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Mul for ExtensionAlgebra<F, D> {
     type Output = Self;
 
     #[inline]
     fn mul(self, rhs: Self) -> Self {
-        let mut res = [F::ZERO; D];
-        let w = F::from_basefield(F::W);
+        let mut res = Self::zero();
+        let w = <F::Extension as AbstractExtensionField<F>>::from_base(F::w());
         for i in 0..D {
             for j in 0..D {
-                res[(i + j) % D] += if i + j < D {
+                res.0[(i + j) % D] += if i + j < D {
                     self.0[i] * rhs.0[j]
                 } else {
                     w * self.0[i] * rhs.0[j]
                 }
             }
         }
-        Self(res)
+        res
     }
 }
 
-impl<F: OEF<D>, const D: usize> MulAssign for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> MulAssign for ExtensionAlgebra<F, D> {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
 
-impl<F: OEF<D>, const D: usize> Product for ExtensionAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> Product for ExtensionAlgebra<F, D> {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::one(), |acc, x| acc * x)
     }
@@ -145,11 +160,11 @@ impl<F: OEF<D>, const D: usize> Product for ExtensionAlgebra<F, D> {
 
 /// A polynomial in coefficient form.
 #[derive(Clone, Debug)]
-pub struct PolynomialCoeffsAlgebra<F: OEF<D>, const D: usize> {
+pub struct PolynomialCoeffsAlgebra<F: HasExtension<D>, const D: usize> {
     pub(crate) coeffs: Vec<ExtensionAlgebra<F, D>>,
 }
 
-impl<F: OEF<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
+impl<F: HasExtension<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
     pub fn new(coeffs: Vec<ExtensionAlgebra<F, D>>) -> Self {
         PolynomialCoeffsAlgebra { coeffs }
     }
@@ -158,7 +173,7 @@ impl<F: OEF<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
         self.coeffs
             .iter()
             .rev()
-            .fold(ExtensionAlgebra::ZERO, |acc, &c| acc * x + c)
+            .fold(ExtensionAlgebra::zero(), |acc, &c| acc * x + c)
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
@@ -171,15 +186,15 @@ impl<F: OEF<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
             .fold(acc, |acc, (&x, &c)| acc + c * x)
     }
 
-    pub fn eval_base(&self, x: F) -> ExtensionAlgebra<F, D> {
+    pub fn eval_base(&self, x: F::Extension) -> ExtensionAlgebra<F, D> {
         self.coeffs
             .iter()
             .rev()
-            .fold(ExtensionAlgebra::ZERO, |acc, &c| acc.scalar_mul(x) + c)
+            .fold(ExtensionAlgebra::zero(), |acc, &c| acc.scalar_mul(x) + c)
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
-    pub fn eval_base_with_powers(&self, powers: &[F]) -> ExtensionAlgebra<F, D> {
+    pub fn eval_base_with_powers(&self, powers: &[F::Extension]) -> ExtensionAlgebra<F, D> {
         debug_assert_eq!(self.coeffs.len(), powers.len() + 1);
         let acc = self.coeffs[0];
         self.coeffs[1..]
@@ -191,17 +206,20 @@ impl<F: OEF<D>, const D: usize> PolynomialCoeffsAlgebra<F, D> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
     use alloc::vec::Vec;
 
     use itertools::Itertools;
+    use p3_field::AbstractExtensionField;
 
-    use crate::extension::algebra::ExtensionAlgebra;
-    use crate::extension::{Extendable, FieldExtension};
-    use crate::goldilocks_field::GoldilocksField;
-    use crate::types::{Field, Sample};
+    use crate::extension_algebra::ExtensionAlgebra;
+    use crate::types::{HasExtension, Sample};
 
     /// Tests that the multiplication on the extension algebra lifts that of the field extension.
-    fn test_extension_algebra<F: Extendable<D>, const D: usize>() {
+    fn test_extension_algebra<F: HasExtension<D> + Sample, const D: usize>()
+    where
+        F::Extension: Sample,
+    {
         #[derive(Copy, Clone, Debug)]
         enum ZeroOne {
             Zero,
@@ -209,17 +227,17 @@ mod tests {
         }
 
         let to_field = |zo: &ZeroOne| match zo {
-            ZeroOne::Zero => F::ZERO,
-            ZeroOne::One => F::ONE,
+            ZeroOne::Zero => F::zero(),
+            ZeroOne::One => F::one(),
         };
         let to_fields = |x: &[ZeroOne], y: &[ZeroOne]| -> (F::Extension, F::Extension) {
-            let mut arr0 = [F::ZERO; D];
-            let mut arr1 = [F::ZERO; D];
+            let mut arr0 = [F::zero(); D];
+            let mut arr1 = [F::zero(); D];
             arr0.copy_from_slice(&x.iter().map(to_field).collect::<Vec<_>>());
             arr1.copy_from_slice(&y.iter().map(to_field).collect::<Vec<_>>());
             (
-                <F as Extendable<D>>::Extension::from_basefield_array(arr0),
-                <F as Extendable<D>>::Extension::from_basefield_array(arr1),
+                <F::Extension as AbstractExtensionField<F>>::from_base_slice(&arr0),
+                <F::Extension as AbstractExtensionField<F>>::from_base_slice(&arr1),
             )
         };
 
@@ -227,14 +245,16 @@ mod tests {
         let selector = |xs: Vec<ZeroOne>, ts: &[F::Extension]| -> F::Extension {
             (0..2 * D)
                 .map(|i| match xs[i] {
-                    ZeroOne::Zero => F::Extension::ONE - ts[i],
+                    ZeroOne::Zero => {
+                        <F::Extension as AbstractExtensionField<F>>::from_base(F::one()) - ts[i]
+                    }
                     ZeroOne::One => ts[i],
                 })
                 .product()
         };
 
         let mul_mle = |ts: Vec<F::Extension>| -> [F::Extension; D] {
-            let mut ans = [F::Extension::ZERO; D];
+            let mut ans = [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
             for xs in (0..2 * D)
                 .map(|_| vec![ZeroOne::Zero, ZeroOne::One])
                 .multi_cartesian_product()
@@ -242,49 +262,46 @@ mod tests {
                 let (a, b) = to_fields(&xs[..D], &xs[D..]);
                 let c = a * b;
                 let res = selector(xs, &ts);
+                let c_slice: &[F] = c.as_base_slice();
                 for i in 0..D {
-                    ans[i] += res.scalar_mul(c.to_basefield_array()[i]);
+                    ans[i] +=
+                        res * <F::Extension as AbstractExtensionField<F>>::from_base(c_slice[i]);
                 }
             }
             ans
         };
 
-        let ts = F::Extension::rand_vec(2 * D);
-        let mut arr0 = [F::Extension::ZERO; D];
-        let mut arr1 = [F::Extension::ZERO; D];
+        let ts = <F::Extension as Sample>::rand_vec(2 * D);
+        let mut arr0 = [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
+        let mut arr1 = [<F::Extension as AbstractExtensionField<F>>::from_base(F::zero()); D];
         arr0.copy_from_slice(&ts[..D]);
         arr1.copy_from_slice(&ts[D..]);
-        let x = ExtensionAlgebra::from_basefield_array(arr0);
-        let y = ExtensionAlgebra::from_basefield_array(arr1);
-        let z = x * y;
+        let x: ExtensionAlgebra<F, D> = ExtensionAlgebra::from_basefield_array(arr0);
+        let y: ExtensionAlgebra<F, D> = ExtensionAlgebra::from_basefield_array(arr1);
+        let z: ExtensionAlgebra<F, D> = x * y;
 
         assert_eq!(z.0, mul_mle(ts));
     }
 
-    mod base {
-        use super::*;
-
-        #[test]
-        fn test_algebra() {
-            test_extension_algebra::<GoldilocksField, 1>();
-        }
-    }
-
     mod quadratic {
+        use p3_goldilocks::Goldilocks;
+
         use super::*;
 
         #[test]
         fn test_algebra() {
-            test_extension_algebra::<GoldilocksField, 2>();
+            test_extension_algebra::<Goldilocks, 2>();
         }
     }
 
     mod quartic {
+        use p3_baby_bear::BabyBear;
+
         use super::*;
 
         #[test]
         fn test_algebra() {
-            test_extension_algebra::<GoldilocksField, 4>();
+            test_extension_algebra::<BabyBear, 4>();
         }
     }
 }

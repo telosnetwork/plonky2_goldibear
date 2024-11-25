@@ -2,12 +2,12 @@
 
 #![allow(clippy::needless_range_loop)]
 
-use plonky2::field::goldilocks_field::GoldilocksField;
-use plonky2::field::types::Field64;
+use p3_field::PrimeField64;
+use p3_goldilocks::Goldilocks;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
-const SAMPLE_RANGE_END: u64 = GoldilocksField::ORDER;
+const SAMPLE_RANGE_END: u64 = Goldilocks::ORDER_U64;
 
 const N: usize = 12 * 30; // For Poseidon-12
 

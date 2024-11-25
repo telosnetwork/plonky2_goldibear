@@ -1,7 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use crate::field::extension::Extendable;
+
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::iop::target::Target;
@@ -20,21 +22,27 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         self.len() == 0
     }
 
-    pub fn eval_scalar<F: RichField + Extendable<D>>(
+    pub fn eval_scalar<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: Target,
-    ) -> ExtensionTarget<D> {
+    ) -> ExtensionTarget<D>
+    where
+        
+    {
         let point = builder.convert_to_ext(point);
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
     }
 
-    pub fn eval<F: RichField + Extendable<D>>(
+    pub fn eval<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
-    ) -> ExtensionTarget<D> {
+    ) -> ExtensionTarget<D>
+    where
+        
+    {
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
     }
@@ -44,13 +52,14 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
 pub struct PolynomialCoeffsExtAlgebraTarget<const D: usize>(pub Vec<ExtensionAlgebraTarget<D>>);
 
 impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
-    pub fn eval_scalar<F>(
+    pub fn eval_scalar<F, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
     ) -> ExtensionAlgebraTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -59,13 +68,14 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
         acc
     }
 
-    pub fn eval<F>(
+    pub fn eval<F, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionAlgebraTarget<D>,
     ) -> ExtensionAlgebraTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -75,13 +85,14 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     }
 
     /// Evaluate the polynomial at a point given its powers. The first power is the point itself, not 1.
-    pub fn eval_with_powers<F>(
+    pub fn eval_with_powers<F, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         powers: &[ExtensionAlgebraTarget<D>],
     ) -> ExtensionAlgebraTarget<D>
     where
-        F: RichField + Extendable<D>,
+        F: RichField + HasExtension<D>,
+        
     {
         debug_assert_eq!(self.0.len(), powers.len() + 1);
         let acc = self.0[0];

@@ -3,26 +3,31 @@ use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
+use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
-use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{flatten_target, ExtensionTarget};
+use crate::iop::ext_target::{ExtensionTarget, flatten_target};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::reducing::ReducingFactorTarget;
 use crate::util::{log2_strict, reverse_index_bits_in_place};
+use crate::util::reducing::ReducingFactorTarget;
 use crate::with_context;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
     fn compute_evaluation(
@@ -36,7 +41,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let arity = 1 << arity_bits;
         debug_assert_eq!(evals.len(), arity);
 
-        let g = F::primitive_root_of_unity(arity_bits);
+        let g = F::two_adic_generator(arity_bits);
         let g_inv = g.exp_u64((arity as u64) - 1);
 
         // The evaluation vector needs to be reordered first.
@@ -68,10 +73,15 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             self.config.max_quotient_degree_factor,
         );
 
-        let interpolation_wires = interpolation_gate.num_wires();
+        let interpolation_wires =
+            <CosetInterpolationGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(
+                &interpolation_gate,
+            );
         let interpolation_routed_wires = interpolation_gate.num_routed_wires();
 
-        let min_wires = random_access.num_wires().max(interpolation_wires);
+        let min_wires =
+            <RandomAccessGate<F, D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_wires(&random_access)
+                .max(interpolation_wires);
         let min_routed_wires = random_access
             .num_routed_wires()
             .max(interpolation_routed_wires);
@@ -98,16 +108,18 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         );
     }
 
-    pub fn verify_fri_proof<C: GenericConfig<D, F = F>>(
+    pub fn verify_fri_proof<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
+    >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         openings: &FriOpeningsTarget<D>,
         challenges: &FriChallengesTarget<D>,
-        initial_merkle_caps: &[MerkleCapTarget],
-        proof: &FriProofTarget<D>,
+        initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        proof: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
         params: &FriParams,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         if let Some(max_arity_bits) = params.max_arity_bits() {
             self.check_recursion_config(max_arity_bits);
@@ -175,11 +187,11 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         }
     }
 
-    fn fri_verify_initial_proof<H: AlgebraicHasher<F>>(
+    fn fri_verify_initial_proof<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         x_index_bits: &[BoolTarget],
-        proof: &FriInitialTreeProofTarget,
-        initial_merkle_caps: &[MerkleCapTarget],
+        proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+        initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
         cap_index: Target,
     ) {
         for (i, ((evals, merkle_proof), cap)) in proof
@@ -205,7 +217,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn fri_combine_initial(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
-        proof: &FriInitialTreeProofTarget,
+        proof: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
         alpha: ExtensionTarget<D>,
         subgroup_x: Target,
         precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D>,
@@ -246,26 +258,31 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         sum
     }
 
-    fn fri_verifier_query_round<C: GenericConfig<D, F = F>>(
+    fn fri_verifier_query_round<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = <F as HasExtension<D>>::Extension>,
+    >(
         &mut self,
         instance: &FriInstanceInfoTarget<D>,
         challenges: &FriChallengesTarget<D>,
         precomputed_reduced_evals: &PrecomputedReducedOpeningsTarget<D>,
-        initial_merkle_caps: &[MerkleCapTarget],
-        proof: &FriProofTarget<D>,
+        initial_merkle_caps: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        proof: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
         x_index: Target,
         n: usize,
-        round_proof: &FriQueryRoundTarget<D>,
+        round_proof: &FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>,
         params: &FriParams,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         let n_log = log2_strict(n);
 
         // Note that this `low_bits` decomposition permits non-canonical binary encodings. Here we
         // verify that this has a negligible impact on soundness error.
-        Self::assert_noncanonical_indices_ok(&params.config);
-        let mut x_index_bits = self.low_bits(x_index, n_log, F::BITS);
+        let mut x_index_bits = self.low_bits(
+            x_index,
+            n_log,
+            Self::are_noncanonical_indices_ok(&params.config),
+        );
 
         let cap_index =
             self.le_sum(x_index_bits[x_index_bits.len() - params.config.cap_height..].iter());
@@ -282,8 +299,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
         // `subgroup_x` is `subgroup[x_index]`, i.e., the actual field element in the domain.
         let mut subgroup_x = with_context!(self, "compute x from its index", {
-            let g = self.constant(F::coset_shift());
-            let phi = F::primitive_root_of_unity(n_log);
+            let g = self.constant(F::generator());
+            let phi = F::two_adic_generator(n_log);
             let phi = self.exp_from_bits_const_base(phi, x_index_bits.iter().rev());
             // subgroup_x = g * phi
             self.mul(g, phi)
@@ -372,19 +389,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// Thus ambiguous elements contribute a negligible amount to soundness error.
     ///
     /// Here we compare the probabilities as a sanity check, to verify the claim above.
-    fn assert_noncanonical_indices_ok(config: &FriConfig) {
-        let num_ambiguous_elems = u64::MAX - F::ORDER + 1;
+    pub fn are_noncanonical_indices_ok(config: &FriConfig) -> bool {
+        let num_ambiguous_elems = (((1 << (F::bits() - 1)) - (F::ORDER_U64 >> 1)) << 1) - 1;
         let query_error = config.rate();
-        let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER as f64);
-        assert!(p_ambiguous < query_error * 1e-5,
-                "A non-negligible portion of field elements are in the range that permits non-canonical encodings. Need to do more analysis or enforce canonical encodings.");
+        let p_ambiguous = (num_ambiguous_elems as f64) / (F::ORDER_U64 as f64);
+        let max_ambiguous = query_error * 1e-5;
+        p_ambiguous < max_ambiguous
     }
 
     pub fn add_virtual_fri_proof(
         &mut self,
         num_leaves_per_oracle: &[usize],
         params: &FriParams,
-    ) -> FriProofTarget<D> {
+    ) -> FriProofTarget<D, NUM_HASH_OUT_ELTS> {
         let cap_height = params.config.cap_height;
         let num_queries = params.config.num_query_rounds;
         let commit_phase_merkle_caps = (0..params.reduction_arity_bits.len())
@@ -407,7 +424,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         &mut self,
         num_leaves_per_oracle: &[usize],
         params: &FriParams,
-    ) -> FriQueryRoundTarget<D> {
+    ) -> FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS> {
         let cap_height = params.config.cap_height;
         assert!(params.lde_bits() >= cap_height);
         let mut merkle_proof_len = params.lde_bits() - cap_height;
@@ -432,7 +449,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         &mut self,
         num_leaves_per_oracle: &[usize],
         initial_merkle_proof_len: usize,
-    ) -> FriInitialTreeProofTarget {
+    ) -> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS> {
         let evals_proofs = num_leaves_per_oracle
             .iter()
             .map(|&num_oracle_leaves| {
@@ -448,7 +465,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         &mut self,
         arity_bits: usize,
         merkle_proof_len: usize,
-    ) -> FriQueryStepTarget<D> {
+    ) -> FriQueryStepTarget<D, NUM_HASH_OUT_ELTS> {
         FriQueryStepTarget {
             evals: self.add_virtual_extension_targets(1 << arity_bits),
             merkle_proof: self.add_virtual_merkle_proof(merkle_proof_len),
@@ -464,11 +481,14 @@ struct PrecomputedReducedOpeningsTarget<const D: usize> {
 }
 
 impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
-    fn from_os_and_alpha<F: RichField + Extendable<D>>(
+    fn from_os_and_alpha<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         openings: &FriOpeningsTarget<D>,
         alpha: ExtensionTarget<D>,
-        builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Self
+    where
+        
+    {
         let reduced_openings_at_point = openings
             .batches
             .iter()

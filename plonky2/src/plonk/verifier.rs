@@ -1,9 +1,10 @@
 //! plonky2 verifier implementation.
 
 use anyhow::{ensure, Result};
+use p3_field::AbstractField;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
+use plonky2_field::types::HasExtension;
+
 use crate::fri::verifier::verify_fri_proof;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
@@ -14,11 +15,19 @@ use crate::plonk::validate_shape::validate_proof_with_pis_shape;
 use crate::plonk::vanishing_poly::eval_vanishing_poly;
 use crate::plonk::vars::EvaluationVars;
 
-pub(crate) fn verify<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
-    proof_with_pis: ProofWithPublicInputs<F, C, D>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
-    common_data: &CommonCircuitData<F, D>,
-) -> Result<()> {
+pub(crate) fn verify<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+) -> Result<()>
+where
+    
+{
     validate_proof_with_pis_shape(&proof_with_pis, common_data)?;
 
     let public_inputs_hash = proof_with_pis.get_public_inputs_hash();
@@ -28,7 +37,7 @@ pub(crate) fn verify<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, c
         common_data,
     )?;
 
-    verify_with_challenges::<F, C, D>(
+    verify_with_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
         proof_with_pis.proof,
         public_inputs_hash,
         challenges,
@@ -38,16 +47,20 @@ pub(crate) fn verify<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, c
 }
 
 pub(crate) fn verify_with_challenges<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    proof: Proof<F, C, D>,
-    public_inputs_hash: <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash,
+    proof: Proof<F, C, D, NUM_HASH_OUT_ELTS>,
+    public_inputs_hash: <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash,
     challenges: ProofChallenges<F, D>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
-    common_data: &CommonCircuitData<F, D>,
-) -> Result<()> {
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+) -> Result<()>
+where
+    
+{
     let local_constants = &proof.openings.constants;
     let local_wires = &proof.openings.wires;
     let vars = EvaluationVars {
@@ -63,7 +76,7 @@ pub(crate) fn verify_with_challenges<
     let partial_products = &proof.openings.partial_products;
 
     // Evaluate the vanishing polynomial at our challenge point, zeta.
-    let vanishing_polys_zeta = eval_vanishing_poly::<F, D>(
+    let vanishing_polys_zeta = eval_vanishing_poly::<F, D, NUM_HASH_OUT_ELTS>(
         common_data,
         challenges.plonk_zeta,
         vars,
@@ -84,7 +97,7 @@ pub(crate) fn verify_with_challenges<
     let zeta_pow_deg = challenges
         .plonk_zeta
         .exp_power_of_2(common_data.degree_bits());
-    let z_h_zeta = zeta_pow_deg - F::Extension::ONE;
+    let z_h_zeta = zeta_pow_deg - <F::Extension as AbstractField>::one();
     // `quotient_polys_zeta` holds `num_challenges * quotient_degree_factor` evaluations.
     // Each chunk of `quotient_degree_factor` holds the evaluations of `t_0(zeta),...,t_{quotient_degree_factor-1}(zeta)`
     // where the "real" quotient polynomial is `t(X) = t_0(X) + t_1(X)*X^n + t_2(X)*X^{2n} + ...`.
@@ -105,7 +118,7 @@ pub(crate) fn verify_with_challenges<
         proof.quotient_polys_cap,
     ];
 
-    verify_fri_proof::<F, C, D>(
+    verify_fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
         &common_data.get_fri_instance(challenges.plonk_zeta),
         &proof.openings.to_fri_openings(),
         &challenges.fri_challenges,

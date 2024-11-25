@@ -1,12 +1,14 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+
+use plonky2_field::extension::{flatten, unflatten};
+use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
-use crate::field::extension::{flatten, unflatten, Extendable};
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
 use crate::fri::{FriConfig, FriParams};
+use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleTree;
@@ -18,7 +20,12 @@ use crate::util::reverse_index_bits_in_place;
 use crate::util::timing::TimingTree;
 
 /// Builds a FRI proof.
-pub fn fri_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn fri_proof<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     // Coefficients of the polynomial on which the LDT is performed. Only the first `1/rate` coefficients are non-zero.
     lde_polynomial_coeffs: PolynomialCoeffs<F::Extension>,
@@ -27,7 +34,10 @@ pub fn fri_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
     timing: &mut TimingTree,
-) -> FriProof<F, C::Hasher, D> {
+) -> FriProof<F, C::Hasher, D>
+where
+    
+{
     let n = lde_polynomial_values.len();
     assert_eq!(lde_polynomial_coeffs.len(), n);
 
@@ -35,7 +45,7 @@ pub fn fri_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const
     let (trees, final_coeffs) = timed!(
         timing,
         "fold codewords in the commitment phase",
-        fri_committed_trees::<F, C, D>(
+        fri_committed_trees::<F, C, D, NUM_HASH_OUT_ELTS>(
             lde_polynomial_coeffs,
             lde_polynomial_values,
             challenger,
@@ -47,12 +57,17 @@ pub fn fri_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const
     let pow_witness = timed!(
         timing,
         "find proof-of-work witness",
-        fri_proof_of_work::<F, C, D>(challenger, &fri_params.config)
+        fri_proof_of_work::<F, C, D, NUM_HASH_OUT_ELTS>(challenger, &fri_params.config)
     );
 
     // Query phase
-    let query_round_proofs =
-        fri_prover_query_rounds::<F, C, D>(initial_merkle_trees, &trees, challenger, n, fri_params);
+    let query_round_proofs = fri_prover_query_rounds::<F, C, D, NUM_HASH_OUT_ELTS>(
+        initial_merkle_trees,
+        &trees,
+        challenger,
+        n,
+        fri_params,
+    );
 
     FriProof {
         commit_phase_merkle_caps: trees.iter().map(|t| t.cap.clone()).collect(),
@@ -62,20 +77,28 @@ pub fn fri_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const
     }
 }
 
-type FriCommitedTrees<F, C, const D: usize> = (
-    Vec<MerkleTree<F, <C as GenericConfig<D>>::Hasher>>,
-    PolynomialCoeffs<<F as Extendable<D>>::Extension>,
+type FriCommitedTrees<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize> = (
+    Vec<MerkleTree<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>>,
+    PolynomialCoeffs<<F as HasExtension<D>>::Extension>,
 );
 
-fn fri_committed_trees<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn fri_committed_trees<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     mut coeffs: PolynomialCoeffs<F::Extension>,
     mut values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
-) -> FriCommitedTrees<F, C, D> {
+) -> FriCommitedTrees<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     let mut trees = Vec::with_capacity(fri_params.reduction_arity_bits.len());
 
-    let mut shift = F::MULTIPLICATIVE_GROUP_GENERATOR;
+    let mut shift = F::generator();
     for arity_bits in &fri_params.reduction_arity_bits {
         let arity = 1 << arity_bits;
 
@@ -113,10 +136,18 @@ fn fri_committed_trees<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>,
 }
 
 /// Performs the proof-of-work (a.k.a. grinding) step of the FRI protocol. Returns the PoW witness.
-fn fri_proof_of_work<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+fn fri_proof_of_work<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     challenger: &mut Challenger<F, C::Hasher>,
     config: &FriConfig,
-) -> F {
+) -> F
+where
+    
+{
     let min_leading_zeros = config.proof_of_work_bits + (64 - F::order().bits()) as u32;
 
     // The easiest implementation would be repeatedly clone our Challenger. With each clone, we'd
@@ -139,14 +170,14 @@ fn fri_proof_of_work<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, c
     let witness_input_pos = challenger.input_buffer.len();
     duplex_intermediate_state.set_from_iter(challenger.input_buffer.clone(), 0);
 
-    let pow_witness = (0..=F::NEG_ONE.to_canonical_u64())
+    let pow_witness = (0..=F::neg_one().as_canonical_u64())
         .into_par_iter()
         .find_any(|&candidate| {
             let mut duplex_state = duplex_intermediate_state;
             duplex_state.set_elt(F::from_canonical_u64(candidate), witness_input_pos);
             duplex_state.permute();
             let pow_response = duplex_state.squeeze().iter().last().unwrap();
-            let leading_zeros = pow_response.to_canonical_u64().leading_zeros();
+            let leading_zeros = pow_response.as_canonical_u64().leading_zeros();
             leading_zeros >= min_leading_zeros
         })
         .map(F::from_canonical_u64)
@@ -155,42 +186,55 @@ fn fri_proof_of_work<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, c
     // Recompute pow_response using our normal Challenger code, and make sure it matches.
     challenger.observe_element(pow_witness);
     let pow_response = challenger.get_challenge();
-    let leading_zeros = pow_response.to_canonical_u64().leading_zeros();
+    let leading_zeros = pow_response.as_canonical_u64().leading_zeros();
     assert!(leading_zeros >= min_leading_zeros);
     pow_witness
 }
 
 fn fri_prover_query_rounds<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     trees: &[MerkleTree<F, C::Hasher>],
     challenger: &mut Challenger<F, C::Hasher>,
     n: usize,
     fri_params: &FriParams,
-) -> Vec<FriQueryRound<F, C::Hasher, D>> {
+) -> Vec<FriQueryRound<F, C::Hasher, D>>
+where
+    
+{
     challenger
         .get_n_challenges(fri_params.config.num_query_rounds)
         .into_par_iter()
         .map(|rand| {
-            let x_index = rand.to_canonical_u64() as usize % n;
-            fri_prover_query_round::<F, C, D>(initial_merkle_trees, trees, x_index, fri_params)
+            let x_index = rand.as_canonical_u64() as usize % n;
+            fri_prover_query_round::<F, C, D, NUM_HASH_OUT_ELTS>(
+                initial_merkle_trees,
+                trees,
+                x_index,
+                fri_params,
+            )
         })
         .collect()
 }
 
 fn fri_prover_query_round<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     initial_merkle_trees: &[&MerkleTree<F, C::Hasher>],
     trees: &[MerkleTree<F, C::Hasher>],
     mut x_index: usize,
     fri_params: &FriParams,
-) -> FriQueryRound<F, C::Hasher, D> {
+) -> FriQueryRound<F, C::Hasher, D>
+where
+    
+{
     let mut query_steps = Vec::new();
     let initial_proof = initial_merkle_trees
         .iter()

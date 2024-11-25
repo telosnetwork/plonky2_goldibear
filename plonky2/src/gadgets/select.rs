@@ -1,10 +1,16 @@
-use crate::field::extension::Extendable;
+
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Selects `x` or `y` based on `b`, i.e., this returns `if b { x } else { y }`.
     pub fn select_ext(
         &mut self,
@@ -41,6 +47,7 @@ mod tests {
     use anyhow::Result;
 
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
@@ -51,11 +58,12 @@ mod tests {
     fn test_select() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
-        let config = CircuitConfig::standard_recursion_config();
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut pw = PartialWitness::<F>::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let (x, y) = (FF::rand(), FF::rand());
         let xt = builder.add_virtual_extension_target();

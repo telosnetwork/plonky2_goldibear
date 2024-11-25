@@ -8,10 +8,12 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::ensure;
-use plonky2_maybe_rayon::*;
 use serde::{Deserialize, Serialize};
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+use plonky2_maybe_rayon::*;
+
+use crate::fri::FriParams;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -19,7 +21,6 @@ use crate::fri::proof::{
 use crate::fri::structure::{
     FriOpeningBatch, FriOpeningBatchTarget, FriOpenings, FriOpeningsTarget,
 };
-use crate::fri::FriParams;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::ext_target::ExtensionTarget;
@@ -31,7 +32,14 @@ use crate::util::serialization::{Buffer, Read, Write};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct Proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> {
+pub struct Proof<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -45,17 +53,29 @@ pub struct Proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProofTarget<const D: usize> {
-    pub wires_cap: MerkleCapTarget,
-    pub plonk_zs_partial_products_cap: MerkleCapTarget,
-    pub quotient_polys_cap: MerkleCapTarget,
+pub struct ProofTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub wires_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    pub plonk_zs_partial_products_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    pub quotient_polys_cap: MerkleCapTarget<NUM_HASH_OUT_ELTS>,
     pub openings: OpeningSetTarget<D>,
-    pub opening_proof: FriProofTarget<D>,
+    pub opening_proof: FriProofTarget<D, NUM_HASH_OUT_ELTS>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> Proof<F, C, D> {
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > Proof<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Compress the proof.
-    pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedProof<F, C, D> {
+    pub fn compress(
+        self,
+        indices: &[usize],
+        params: &FriParams,
+    ) -> CompressedProof<F, C, D, NUM_HASH_OUT_ELTS> {
         let Proof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -77,22 +97,31 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> P
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct ProofWithPublicInputs<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-> {
-    pub proof: Proof<F, C, D>,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub proof: Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    ProofWithPublicInputs<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     pub fn compress(
         self,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> anyhow::Result<CompressedProofWithPublicInputs<F, C, D>> {
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> anyhow::Result<CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         let indices = self.fri_query_indices(circuit_digest, common_data)?;
         let compressed_proof = self.proof.compress(&indices, &common_data.fri_params);
         Ok(CompressedProofWithPublicInputs {
@@ -103,7 +132,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn get_public_inputs_hash(
         &self,
-    ) -> <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash {
+    ) -> <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash {
         C::InnerHasher::hash_no_pad(&self.public_inputs)
     }
 
@@ -117,7 +146,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<Self> {
         let mut buffer = Buffer::new(&bytes);
         let proof = buffer
@@ -129,7 +158,13 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedProof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct CompressedProof<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
 {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
@@ -143,8 +178,14 @@ pub struct CompressedProof<F: RichField + Extendable<D>, C: GenericConfig<D, F =
     pub opening_proof: CompressedFriProof<F, C::Hasher, D>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    CompressedProof<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     /// Decompress the proof.
     pub(crate) fn decompress(
@@ -152,7 +193,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
         challenges: &ProofChallenges<F, D>,
         fri_inferred_elements: FriInferredElements<F, D>,
         params: &FriParams,
-    ) -> Proof<F, C, D> {
+    ) -> Proof<F, C, D, NUM_HASH_OUT_ELTS> {
         let CompressedProof {
             wires_cap,
             plonk_zs_partial_products_cap,
@@ -174,22 +215,31 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
 pub struct CompressedProofWithPublicInputs<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
-> {
-    pub proof: CompressedProof<F, C, D>,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub proof: CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    CompressedProofWithPublicInputs<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     pub fn decompress(
         self,
-        circuit_digest: &<<C as GenericConfig<D>>::Hasher as Hasher<C::F>>::Hash,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> anyhow::Result<ProofWithPublicInputs<F, C, D>> {
+        circuit_digest: &<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher as Hasher<C::F>>::Hash,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> anyhow::Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         let challenges =
             self.get_challenges(self.get_public_inputs_hash(), circuit_digest, common_data)?;
         let fri_inferred_elements = self.get_inferred_elements(&challenges, common_data);
@@ -204,8 +254,8 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub(crate) fn verify(
         self,
-        verifier_data: &VerifierOnlyCircuitData<C, D>,
-        common_data: &CommonCircuitData<F, D>,
+        verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<()> {
         ensure!(
             self.public_inputs.len() == common_data.num_public_inputs,
@@ -221,7 +271,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
         let decompressed_proof =
             self.proof
                 .decompress(&challenges, fri_inferred_elements, &common_data.fri_params);
-        verify_with_challenges::<F, C, D>(
+        verify_with_challenges::<F, C, D, NUM_HASH_OUT_ELTS>(
             decompressed_proof,
             public_inputs_hash,
             challenges,
@@ -232,7 +282,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub(crate) fn get_public_inputs_hash(
         &self,
-    ) -> <<C as GenericConfig<D>>::InnerHasher as Hasher<F>>::Hash {
+    ) -> <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher as Hasher<F>>::Hash {
         C::InnerHasher::hash_no_pad(&self.public_inputs)
     }
 
@@ -246,7 +296,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 
     pub fn from_bytes(
         bytes: Vec<u8>,
-        common_data: &CommonCircuitData<F, D>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<Self> {
         let mut buffer = Buffer::new(&bytes);
         let proof = buffer
@@ -257,7 +307,10 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
 }
 
 #[derive(Debug)]
-pub struct ProofChallenges<F: RichField + Extendable<D>, const D: usize> {
+pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize>
+where
+    
+{
     /// Random values used in Plonk's permutation argument.
     pub plonk_betas: Vec<F>,
 
@@ -286,19 +339,22 @@ pub(crate) struct ProofChallengesTarget<const D: usize> {
 }
 
 /// Coset elements that can be inferred in the FRI reduction steps.
-pub(crate) struct FriInferredElements<F: RichField + Extendable<D>, const D: usize>(
+pub(crate) struct FriInferredElements<F: RichField + HasExtension<D>, const D: usize>(
     pub Vec<F::Extension>,
 );
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProofWithPublicInputsTarget<const D: usize> {
-    pub proof: ProofTarget<D>,
+pub struct ProofWithPublicInputsTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
+    pub proof: ProofTarget<D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<Target>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
-pub struct OpeningSet<F: RichField + Extendable<D>, const D: usize> {
+pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize>
+where
+    
+{
     pub constants: Vec<F::Extension>,
     pub plonk_sigmas: Vec<F::Extension>,
     pub wires: Vec<F::Extension>,
@@ -310,17 +366,23 @@ pub struct OpeningSet<F: RichField + Extendable<D>, const D: usize> {
     pub lookup_zs_next: Vec<F::Extension>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> OpeningSet<F, D> {
-    pub fn new<C: GenericConfig<D, F = F>>(
+impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D>
+where
+    
+{
+    pub fn new<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         zeta: F::Extension,
         g: F::Extension,
-        constants_sigmas_commitment: &PolynomialBatch<F, C, D>,
-        wires_commitment: &PolynomialBatch<F, C, D>,
-        zs_partial_products_lookup_commitment: &PolynomialBatch<F, C, D>,
-        quotient_polys_commitment: &PolynomialBatch<F, C, D>,
-        common_data: &CommonCircuitData<F, D>,
+        constants_sigmas_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
+        wires_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
+        zs_partial_products_lookup_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
+        quotient_polys_commitment: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self {
-        let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D>| {
+        let eval_commitment = |z: F::Extension, c: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>| {
             c.polynomials
                 .par_iter()
                 .map(|p| p.to_extension().eval(z))
@@ -459,30 +521,35 @@ mod tests {
 
     use anyhow::Result;
     use itertools::Itertools;
+    use p3_field::AbstractField;
+
     use plonky2_field::types::Sample;
 
-    use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
     use crate::gates::lookup_table::LookupTable;
     use crate::gates::noop::NoopGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::PoseidonGoldilocksConfig;
     use crate::plonk::verifier::verify;
 
+    use super::*;
+
     #[test]
     fn test_proof_compression() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let mut config = CircuitConfig::standard_recursion_config();
+        let mut config = CircuitConfig::standard_recursion_config_gl();
         config.fri_config.reduction_strategy = FriReductionStrategy::Fixed(vec![1, 1]);
         config.fri_config.num_query_rounds = 50;
 
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         // Build dummy circuit to get a valid proof.
         let x = F::rand();
@@ -513,10 +580,11 @@ mod tests {
     fn test_proof_compression_lookup() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        use plonky2_field::types::Field;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
-        let mut config = CircuitConfig::standard_recursion_config();
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+
+        let mut config = CircuitConfig::standard_recursion_config_gl();
         config.fri_config.reduction_strategy = FriReductionStrategy::Fixed(vec![1, 1]);
         config.fri_config.num_query_rounds = 50;
 
@@ -538,13 +606,13 @@ mod tests {
             210, 27, 41, 1, 170, 40, 131, 192, 229, 248, 255,
         ];
         let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
-        let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let config = CircuitConfig::standard_recursion_config_gl();
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let lut_index = builder.add_lookup_table_from_pairs(table);
 
         // Build dummy circuit with a lookup to get a valid proof.
-        let x = F::TWO;
-        let out = builder.constant(F::from_canonical_usize(26));
+        let x = F::two();
+        let out = builder.constant(<F as AbstractField>::from_canonical_usize(26));
 
         let xt = builder.constant(x);
         let look_out = builder.add_lookup_from_index(xt, lut_index);
@@ -564,5 +632,75 @@ mod tests {
 
         verify(proof, &data.verifier_only, &data.common)?;
         data.verify_compressed(compressed_proof)
+    }
+
+    #[cfg(feature = "disable-randomness")]
+    mod tests_non_rand {
+        use p3_field::AbstractField;
+        use plonky2_field::types::tests_non_rand;
+        use crate::gates::noop::NoopGate;
+        use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
+        use crate::iop::witness::{PartialWitness, WitnessWrite};
+        use crate::plonk::circuit_builder::CircuitBuilder;
+        use crate::plonk::circuit_data::CircuitConfig;
+        use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
+        use crate::plonk::verifier::verify;
+        use crate::util::timing::{StatisticsItem, TimingTree};
+
+        #[test]
+        fn test_proof_permutation_argument_div_zero()  {
+            const D: usize = 4;
+            type C = Poseidon2BabyBearConfig;
+            const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
+            type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+
+
+            let config = CircuitConfig::standard_recursion_config_bb_wide();
+
+            let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
+            let xt = builder.add_virtual_target();
+            let yt = builder.two();
+            let zt = builder.mul(xt.clone(), yt);
+
+            let comp_zt = builder.mul(xt, yt);
+            builder.connect(zt, comp_zt);
+            for _ in 0.. (1 << 11) {
+                builder.add_gate(NoopGate, vec![]);
+            }
+            let data = builder.build::<C>();
+
+            tests_non_rand::NonRandomRng::reset();
+            {
+                //Generate the proof with no randomness providing an input that leads to a division by zero in permutation argument
+                let x_fail = 68;
+                let x = F::from_canonical_u64(x_fail);
+                let mut pw = PartialWitness::new();
+                pw.set_target(xt, x);
+
+                let mut timing = TimingTree::default();
+                let res = data.prove_with_timing(pw, &mut timing).unwrap();
+                assert!(verify(res, &data.verifier_only, &data.common).is_ok());
+
+                //Ensure one retry was automatically performed due to a division by zero in permutation argument
+                let perm_arg_retries = timing.get_statistic_value(StatisticsItem::PermArgRetries).unwrap();
+                assert_eq!(*perm_arg_retries, 1);
+            }
+            tests_non_rand::NonRandomRng::reset();
+            {
+                //Now generate the proof an input that does NOT lead to a division by zero in permutation argument
+                let x_ok = 67;
+                let x = F::from_canonical_u64(x_ok);
+                let mut pw = PartialWitness::new();
+                pw.set_target(xt, x);
+
+                let mut timing = TimingTree::default();
+                let res = data.prove_with_timing(pw, &mut timing).unwrap();
+                assert!(verify(res, &data.verifier_only, &data.common).is_ok());
+
+                //Ensure no division by zero happened in permutation argument
+                let perm_arg_retries = timing.get_statistic_value(StatisticsItem::PermArgRetries).unwrap();
+                assert_eq!(*perm_arg_retries, 0);
+            }
+        }
     }
 }

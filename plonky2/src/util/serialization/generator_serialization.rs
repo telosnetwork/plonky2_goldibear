@@ -3,27 +3,36 @@
 #[cfg(not(feature = "std"))]
 pub use alloc::vec::Vec;
 #[cfg(feature = "std")]
-pub use std::vec::Vec; // For macros below
+pub use std::vec::Vec;
 
-use plonky2_field::extension::Extendable;
+
+use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::WitnessGeneratorRef;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult};
 
-pub trait WitnessGeneratorSerializer<F: RichField + Extendable<D>, const D: usize> {
+// For macros below
+
+pub trait WitnessGeneratorSerializer<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
     fn read_generator(
         &self,
         buf: &mut Buffer,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<WitnessGeneratorRef<F, D>>;
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>;
 
     fn write_generator(
         &self,
         buf: &mut Vec<u8>,
-        generator: &WitnessGeneratorRef<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        generator: &WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>;
 }
 
@@ -36,9 +45,9 @@ macro_rules! read_generator_impl {
 
         $(if tag == i.next().unwrap() {
         let generator =
-            <$generator_types as $crate::iop::generator::SimpleGenerator<F, D>>::deserialize(buf, $common)?;
-        Ok($crate::iop::generator::WitnessGeneratorRef::<F, D>::new(
-            $crate::iop::generator::SimpleGenerator::<F, D>::adapter(generator),
+            <$generator_types as $crate::iop::generator::SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>>::deserialize(buf, $common)?;
+        Ok($crate::iop::generator::WitnessGeneratorRef::<F, D, NUM_HASH_OUT_ELTS>::new(
+            $crate::iop::generator::SimpleGenerator::<F, D, NUM_HASH_OUT_ELTS>::adapter(generator),
         ))
         } else)*
         {
@@ -51,7 +60,7 @@ macro_rules! read_generator_impl {
 macro_rules! get_generator_tag_impl {
     ($generator:expr, $($generator_types:ty),+) => {{
         let mut i = 0..;
-        $(if let (tag, true) = (i.next().unwrap(), $generator.0.id() == $crate::iop::generator::SimpleGenerator::<F, D>::id(&<$generator_types>::default())) {
+        $(if let (tag, true) = (i.next().unwrap(), $generator.0.id() == $crate::iop::generator::SimpleGenerator::<F, D, NUM_HASH_OUT_ELTS>::id(&<$generator_types>::default())) {
             Ok(tag)
         } else)*
         {
@@ -75,8 +84,8 @@ macro_rules! impl_generator_serializer {
         fn read_generator(
             &self,
             buf: &mut $crate::util::serialization::Buffer,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
-        ) -> $crate::util::serialization::IoResult<$crate::iop::generator::WitnessGeneratorRef<F, D>> {
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+        ) -> $crate::util::serialization::IoResult<$crate::iop::generator::WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
             let tag = $crate::util::serialization::Read::read_u32(buf)?;
             read_generator_impl!(buf, tag, common, $($generator_types),+)
         }
@@ -84,8 +93,8 @@ macro_rules! impl_generator_serializer {
         fn write_generator(
             &self,
             buf: &mut $crate::util::serialization::generator_serialization::Vec<u8>,
-            generator: &$crate::iop::generator::WitnessGeneratorRef<F, D>,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
+            generator: &$crate::iop::generator::WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>,
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         ) -> $crate::util::serialization::IoResult<()> {
             let tag = get_generator_tag_impl!(generator, $($generator_types),+)?;
 
@@ -99,7 +108,9 @@ macro_rules! impl_generator_serializer {
 pub mod default {
     use core::marker::PhantomData;
 
-    use plonky2_field::extension::Extendable;
+    
+
+    use plonky2_field::types::HasExtension;
 
     use crate::gadgets::arithmetic::EqualityGenerator;
     use crate::gadgets::arithmetic_extension::QuotientGeneratorExtension;
@@ -114,8 +125,8 @@ pub mod default {
     use crate::gates::lookup::LookupGenerator;
     use crate::gates::lookup_table::LookupTableGenerator;
     use crate::gates::multiplication_extension::MulExtensionGenerator;
-    use crate::gates::poseidon::PoseidonGenerator;
-    use crate::gates::poseidon_mds::PoseidonMdsGenerator;
+    use crate::gates::poseidon_goldilocks::PoseidonGenerator;
+    use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGenerator;
     use crate::gates::random_access::RandomAccessGenerator;
     use crate::gates::reducing::ReducingGenerator;
     use crate::gates::reducing_extension::ReducingGenerator as ReducingExtensionGenerator;
@@ -130,26 +141,35 @@ pub mod default {
     /// A generator serializer that can be used to serialize all default generators supported
     /// by the `plonky2` library. It can simply be called as
     /// ```rust
+    /// use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     /// use plonky2::util::serialization::DefaultGeneratorSerializer;
     /// use plonky2::plonk::config::PoseidonGoldilocksConfig;
     ///
     /// const D: usize = 2;
+    /// const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     /// type C = PoseidonGoldilocksConfig;
-    /// let generator_serializer = DefaultGeneratorSerializer::<C, D>::default();
+    /// let generator_serializer = DefaultGeneratorSerializer::<C, D, NUM_HASH_OUT_ELTS>::default();
     /// ```
     /// Applications using custom generators should define their own serializer implementing
     /// the `WitnessGeneratorSerializer` trait. This can be easily done through the
     /// `impl_generator_serializer` macro.
     #[derive(Debug, Default)]
-    pub struct DefaultGeneratorSerializer<C: GenericConfig<D>, const D: usize> {
+    pub struct DefaultGeneratorSerializer<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > {
         pub _phantom: PhantomData<C>,
     }
 
-    impl<F, C, const D: usize> WitnessGeneratorSerializer<F, D> for DefaultGeneratorSerializer<C, D>
+    impl<F, C, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+        WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>
+        for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
     where
-        F: RichField + Extendable<D>,
-        C: GenericConfig<D, F = F> + 'static,
-        C::Hasher: AlgebraicHasher<F>,
+        F: RichField + HasExtension<D>,
+        
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         impl_generator_serializer! {
             DefaultGeneratorSerializer,
@@ -159,7 +179,7 @@ pub mod default {
             BaseSumGenerator<2>,
             ConstantGenerator<F>,
             CopyGenerator,
-            DummyProofGenerator<F, C, D>,
+            DummyProofGenerator<F, C, D, NUM_HASH_OUT_ELTS>,
             EqualityGenerator,
             ExponentiationGenerator<F, D>,
             InterpolationGenerator<F, D>,

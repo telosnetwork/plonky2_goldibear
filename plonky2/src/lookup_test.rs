@@ -1,12 +1,12 @@
-#[cfg(not(feature = "std"))]
-use alloc::{sync::Arc, vec, vec::Vec};
 #[cfg(feature = "std")]
 use std::sync::{Arc, Once};
 
+#[cfg(not(feature = "std"))]
+use alloc::{sync::Arc, vec, vec::Vec};
 use itertools::Itertools;
 use log::Level;
+use p3_field::Field;
 
-use crate::field::types::Field;
 use crate::gadgets::lookup::{OTHER_TABLE, SMALLER_TABLE, TIP5_TABLE};
 use crate::gates::lookup_table::LookupTable;
 use crate::gates::noop::NoopGate;
@@ -19,7 +19,7 @@ use crate::util::timing::TimingTree;
 
 const D: usize = 2;
 type C = PoseidonGoldilocksConfig;
-type F = <C as GenericConfig<D>>::F;
+type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
 const LUT_SIZE: usize = u16::MAX as usize + 1;
 
@@ -31,7 +31,7 @@ fn test_no_lookup() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
     builder.add_gate(NoopGate, vec![]);
     let pw = PartialWitness::new();
 
@@ -50,7 +50,7 @@ fn test_lookup_table_not_used() {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let tip5_table = TIP5_TABLE.to_vec();
     let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
@@ -65,7 +65,7 @@ fn test_lookup_without_table() {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let dummy = builder.add_virtual_target();
     builder.add_lookup_from_index(dummy, 0);
@@ -81,7 +81,7 @@ fn test_one_lookup() -> anyhow::Result<()> {
     let tip5_table = TIP5_TABLE.to_vec();
     let table: LookupTable = Arc::new((0..256).zip_eq(tip5_table).collect());
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -132,7 +132,7 @@ fn test_two_luts() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -207,7 +207,7 @@ fn test_different_inputs() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -284,7 +284,7 @@ fn test_many_lookups() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -366,7 +366,7 @@ fn test_same_luts() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let initial_a = builder.add_virtual_target();
     let initial_b = builder.add_virtual_target();
@@ -421,7 +421,7 @@ fn test_big_lut() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let inputs: [u16; LUT_SIZE] = core::array::from_fn(|i| i as u16);
     let lut_fn = |inp: u16| inp / 10;
@@ -464,7 +464,7 @@ fn test_many_lookups_on_big_lut() -> anyhow::Result<()> {
     init_logger();
 
     let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let inputs: [u16; LUT_SIZE] = core::array::from_fn(|i| i as u16);
     let lut_fn = |inp: u16| inp / 10;

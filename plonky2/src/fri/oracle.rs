@@ -2,32 +2,38 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-use plonky2_field::types::Field;
+use p3_field::{AbstractField, PackedField, TwoAdicField};
+
+use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
-use crate::field::extension::Extendable;
 use crate::field::fft::FftRootTable;
-use crate::field::packed::PackedField;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
+use crate::fri::FriParams;
 use crate::fri::proof::FriProof;
 use crate::fri::prover::fri_proof;
 use crate::fri::structure::{FriBatchInfo, FriInstanceInfo};
-use crate::fri::FriParams;
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_tree::MerkleTree;
 use crate::iop::challenger::Challenger;
 use crate::plonk::config::GenericConfig;
 use crate::timed;
+use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
 use crate::util::reducing::ReducingFactor;
 use crate::util::timing::TimingTree;
-use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
 
 /// Four (~64 bit) field elements gives ~128 bit security.
 pub const SALT_SIZE: usize = 4;
 
 /// Represents a FRI oracle, i.e. a batch of polynomials which have been Merklized.
 #[derive(Eq, PartialEq, Debug)]
-pub struct PolynomialBatch<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
+pub struct PolynomialBatch<
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
 {
     pub polynomials: Vec<PolynomialCoeffs<F>>,
     pub merkle_tree: MerkleTree<F, C::Hasher>,
@@ -36,8 +42,14 @@ pub struct PolynomialBatch<F: RichField + Extendable<D>, C: GenericConfig<D, F =
     pub blinding: bool,
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> Default
-    for PolynomialBatch<F, C, D>
+impl<
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > Default for PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     fn default() -> Self {
         PolynomialBatch {
@@ -50,8 +62,14 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize> D
     }
 }
 
-impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
-    PolynomialBatch<F, C, D>
+impl<
+        F: RichField + TwoAdicField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
+where
+    
 {
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.
     pub fn from_values(
@@ -127,7 +145,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
             .map(|p| {
                 assert_eq!(p.len(), degree, "Polynomial degrees inconsistent");
                 p.lde(rate_bits)
-                    .coset_fft_with_options(F::coset_shift(), Some(rate_bits), fft_root_table)
+                    .coset_fft_with_options(F::generator(), Some(rate_bits), fft_root_table)
                     .values
             })
             .chain(
@@ -161,7 +179,7 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
         let leaf_size = row_wise[0].len();
         (0..leaf_size)
             .map(|j| {
-                let mut packed = P::ZEROS;
+                let mut packed = P::zero();
                 packed
                     .as_slice_mut()
                     .iter_mut()
@@ -205,7 +223,9 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
                 alpha.reduce_polys_base(polys_coeff)
             );
             let mut quotient = composition_poly.divide_by_linear(*point);
-            quotient.coeffs.push(F::Extension::ZERO); // pad back to power of two
+            quotient
+                .coeffs
+                .push(<F::Extension as AbstractField>::zero()); // pad back to power of two
             alpha.shift_poly(&mut final_poly);
             final_poly += quotient;
         }
@@ -214,10 +234,10 @@ impl<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>
         let lde_final_values = timed!(
             timing,
             &format!("perform final FFT {}", lde_final_poly.len()),
-            lde_final_poly.coset_fft(F::coset_shift().into())
+            lde_final_poly.coset_fft(F::generator().into())
         );
 
-        let fri_proof = fri_proof::<F, C, D>(
+        let fri_proof = fri_proof::<F, C, D, NUM_HASH_OUT_ELTS>(
             &oracles
                 .par_iter()
                 .map(|c| &c.merkle_tree)

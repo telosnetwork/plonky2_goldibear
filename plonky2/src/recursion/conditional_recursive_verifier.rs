@@ -3,7 +3,8 @@ use alloc::vec::Vec;
 
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
 use crate::fri::proof::{
     FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget, FriQueryStepTarget,
 };
@@ -18,19 +19,26 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{OpeningSetTarget, ProofTarget, ProofWithPublicInputsTarget};
 use crate::with_context;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
-    pub fn conditionally_verify_proof<C: GenericConfig<D, F = F>>(
+    pub fn conditionally_verify_proof<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
         condition: BoolTarget,
-        proof_with_pis0: &ProofWithPublicInputsTarget<D>,
-        inner_verifier_data0: &VerifierCircuitTarget,
-        proof_with_pis1: &ProofWithPublicInputsTarget<D>,
-        inner_verifier_data1: &VerifierCircuitTarget,
-        inner_common_data: &CommonCircuitData<F, D>,
+        proof_with_pis0: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        inner_verifier_data0: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        proof_with_pis1: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        inner_verifier_data1: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         let selected_proof =
             self.select_proof_with_pis(condition, proof_with_pis0, proof_with_pis1);
@@ -51,15 +59,18 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Conditionally verify a proof with a new generated dummy proof.
-    pub fn conditionally_verify_proof_or_dummy<C: GenericConfig<D, F = F> + 'static>(
+    pub fn conditionally_verify_proof_or_dummy<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
+    >(
         &mut self,
         condition: BoolTarget,
-        proof_with_pis: &ProofWithPublicInputsTarget<D>,
-        inner_verifier_data: &VerifierCircuitTarget,
-        inner_common_data: &CommonCircuitData<F, D>,
+        proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        inner_verifier_data: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> anyhow::Result<()>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(inner_common_data)?;
@@ -78,9 +89,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_proof_with_pis(
         &mut self,
         b: BoolTarget,
-        proof_with_pis0: &ProofWithPublicInputsTarget<D>,
-        proof_with_pis1: &ProofWithPublicInputsTarget<D>,
-    ) -> ProofWithPublicInputsTarget<D> {
+        proof_with_pis0: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        proof_with_pis1: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS> {
         let ProofWithPublicInputsTarget {
             proof:
                 ProofTarget {
@@ -141,9 +152,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub(crate) fn select_hash(
         &mut self,
         b: BoolTarget,
-        h0: HashOutTarget,
-        h1: HashOutTarget,
-    ) -> HashOutTarget {
+        h0: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        h1: HashOutTarget<NUM_HASH_OUT_ELTS>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
             elements: core::array::from_fn(|i| self.select(b, h0.elements[i], h1.elements[i])),
         }
@@ -153,9 +164,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_cap(
         &mut self,
         b: BoolTarget,
-        cap0: &MerkleCapTarget,
-        cap1: &MerkleCapTarget,
-    ) -> MerkleCapTarget {
+        cap0: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        cap1: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         assert_eq!(cap0.0.len(), cap1.0.len());
         MerkleCapTarget(
             cap0.0
@@ -170,9 +181,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_vec_cap(
         &mut self,
         b: BoolTarget,
-        v0: &[MerkleCapTarget],
-        v1: &[MerkleCapTarget],
-    ) -> Vec<MerkleCapTarget> {
+        v0: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+        v1: &[MerkleCapTarget<NUM_HASH_OUT_ELTS>],
+    ) -> Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)
             .map(|(c0, c1)| self.select_cap(b, c0, c1))
@@ -216,9 +227,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_opening_proof(
         &mut self,
         b: BoolTarget,
-        proof0: &FriProofTarget<D>,
-        proof1: &FriProofTarget<D>,
-    ) -> FriProofTarget<D> {
+        proof0: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
+        proof1: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> FriProofTarget<D, NUM_HASH_OUT_ELTS> {
         FriProofTarget {
             commit_phase_merkle_caps: self.select_vec_cap(
                 b,
@@ -243,9 +254,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_query_round(
         &mut self,
         b: BoolTarget,
-        qr0: &FriQueryRoundTarget<D>,
-        qr1: &FriQueryRoundTarget<D>,
-    ) -> FriQueryRoundTarget<D> {
+        qr0: &FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>,
+        qr1: &FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS> {
         FriQueryRoundTarget {
             initial_trees_proof: self.select_initial_tree_proof(
                 b,
@@ -260,9 +271,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_vec_query_round(
         &mut self,
         b: BoolTarget,
-        v0: &[FriQueryRoundTarget<D>],
-        v1: &[FriQueryRoundTarget<D>],
-    ) -> Vec<FriQueryRoundTarget<D>> {
+        v0: &[FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>],
+        v1: &[FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>],
+    ) -> Vec<FriQueryRoundTarget<D, NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)
             .map(|(qr0, qr1)| self.select_query_round(b, qr0, qr1))
@@ -273,9 +284,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_initial_tree_proof(
         &mut self,
         b: BoolTarget,
-        proof0: &FriInitialTreeProofTarget,
-        proof1: &FriInitialTreeProofTarget,
-    ) -> FriInitialTreeProofTarget {
+        proof0: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+        proof1: &FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS>,
+    ) -> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS> {
         FriInitialTreeProofTarget {
             evals_proofs: proof0
                 .evals_proofs
@@ -295,9 +306,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_merkle_proof(
         &mut self,
         b: BoolTarget,
-        proof0: &MerkleProofTarget,
-        proof1: &MerkleProofTarget,
-    ) -> MerkleProofTarget {
+        proof0: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
+        proof1: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
+    ) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
         MerkleProofTarget {
             siblings: proof0
                 .siblings
@@ -312,9 +323,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_query_step(
         &mut self,
         b: BoolTarget,
-        qs0: &FriQueryStepTarget<D>,
-        qs1: &FriQueryStepTarget<D>,
-    ) -> FriQueryStepTarget<D> {
+        qs0: &FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>,
+        qs1: &FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>,
+    ) -> FriQueryStepTarget<D, NUM_HASH_OUT_ELTS> {
         FriQueryStepTarget {
             evals: self.select_vec_ext(b, &qs0.evals, &qs1.evals),
             merkle_proof: self.select_merkle_proof(b, &qs0.merkle_proof, &qs1.merkle_proof),
@@ -325,9 +336,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     fn select_vec_query_step(
         &mut self,
         b: BoolTarget,
-        v0: &[FriQueryStepTarget<D>],
-        v1: &[FriQueryStepTarget<D>],
-    ) -> Vec<FriQueryStepTarget<D>> {
+        v0: &[FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>],
+        v1: &[FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>],
+    ) -> Vec<FriQueryStepTarget<D, NUM_HASH_OUT_ELTS>> {
         v0.iter()
             .zip_eq(v1)
             .map(|(qs0, qs1)| self.select_query_step(b, qs0, qs1))
@@ -342,25 +353,29 @@ mod tests {
 
     use anyhow::Result;
     use hashbrown::HashMap;
+    use p3_field::PrimeField64;
 
-    use super::*;
     use crate::field::types::Sample;
     use crate::gates::noop::NoopGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::PoseidonGoldilocksConfig;
     use crate::recursion::dummy_circuit::{dummy_circuit, dummy_proof};
+
+    use super::*;
 
     #[test]
     fn test_conditional_recursive_verifier() -> Result<()> {
         init_logger();
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let config = CircuitConfig::standard_recursion_config();
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         // Generate proof.
-        let mut builder = CircuitBuilder::<F, D>::new(config.clone());
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let mut pw = PartialWitness::new();
         let t = builder.add_virtual_target();
         pw.set_target(t, F::rand());
@@ -378,19 +393,19 @@ mod tests {
         let dummy_proof = dummy_proof(&dummy_data, HashMap::new())?;
 
         // Conditionally verify the two proofs.
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::new();
         let pt = builder.add_virtual_proof_with_pis(&data.common);
         pw.set_proof_with_pis_target(&pt, &proof);
         let dummy_pt = builder.add_virtual_proof_with_pis(&data.common);
-        pw.set_proof_with_pis_target::<C, D>(&dummy_pt, &dummy_proof);
+        pw.set_proof_with_pis_target::<C, D, NUM_HASH_OUT_ELTS>(&dummy_pt, &dummy_proof);
         let inner_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         pw.set_verifier_data_target(&inner_data, &data.verifier_only);
         let dummy_inner_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         pw.set_verifier_data_target(&dummy_inner_data, &dummy_data.verifier_only);
-        let b = builder.constant_bool(F::rand().0 % 2 == 0);
+        let b = builder.constant_bool(<F as PrimeField64>::as_canonical_u64(&F::rand()) % 2 == 0);
         builder.conditionally_verify_proof::<C>(
             b,
             &pt,

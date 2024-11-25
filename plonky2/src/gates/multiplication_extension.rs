@@ -6,7 +6,10 @@ use alloc::{
 };
 use core::ops::Range;
 
-use crate::field::extension::{Extendable, FieldExtension};
+use p3_field::AbstractExtensionField;
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -51,21 +54,32 @@ impl<const D: usize> MulExtensionGate<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for MulExtensionGate<D>
+where
+    
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_ops)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_ops = src.read_usize()?;
         Ok(Self { num_ops })
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let const_0 = vars.local_constants[0];
 
         let mut constraints = Vec::with_capacity(self.num_ops * D);
@@ -83,7 +97,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGa
 
     fn eval_unfiltered_base_one(
         &self,
-        vars: EvaluationVarsBase<F>,
+        vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         let const_0 = vars.local_constants[0];
@@ -92,16 +106,22 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGa
             let multiplicand_0 = vars.get_local_ext(Self::wires_ith_multiplicand_0(i));
             let multiplicand_1 = vars.get_local_ext(Self::wires_ith_multiplicand_1(i));
             let output = vars.get_local_ext(Self::wires_ith_output(i));
-            let computed_output = (multiplicand_0 * multiplicand_1).scalar_mul(const_0);
-
-            yield_constr.many((output - computed_output).to_basefield_array());
+            let computed_output =
+                multiplicand_0 * multiplicand_1 * F::Extension::from_base(const_0);
+            let base_field_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(output - computed_output),
+                )
+                .try_into()
+                .unwrap();
+            yield_constr.many(base_field_array);
         }
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let const_0 = vars.local_constants[0];
 
@@ -122,7 +142,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGa
         constraints
     }
 
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_ops)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -155,14 +179,16 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for MulExtensionGa
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct MulExtensionGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct MulExtensionGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     const_0: F,
     i: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-    for MulExtensionGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for MulExtensionGenerator<F, D>
+where
+    
 {
     fn id(&self) -> String {
         "MulExtensionGenerator".to_string()
@@ -189,18 +215,26 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
         let output_target =
             ExtensionTarget::from_range(self.row, MulExtensionGate::<D>::wires_ith_output(self.i));
 
-        let computed_output = (multiplicand_0 * multiplicand_1).scalar_mul(self.const_0);
+        let computed_output =
+            multiplicand_0 * multiplicand_1 * F::Extension::from_base(self.const_0);
 
         out_buffer.set_extension_target(output_target, computed_output)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_field(self.const_0)?;
         dst.write_usize(self.i)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let const_0 = src.read_field()?;
         let i = src.read_usize()?;
@@ -211,24 +245,29 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_goldilocks::Goldilocks;
+
+    use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
+    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
-    use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        let gate = MulExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_low_degree::<GoldilocksField, _, 4>(gate);
+        let gate =
+            MulExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
+        test_low_degree::<Goldilocks, _, 2, 4>(gate);
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let gate = MulExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config());
-        test_eval_fns::<F, C, _, D>(gate)
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let gate =
+            MulExtensionGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

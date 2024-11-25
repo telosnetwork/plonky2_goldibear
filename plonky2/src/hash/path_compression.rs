@@ -114,23 +114,29 @@ pub(crate) fn decompress_merkle_proofs<F: RichField, H: Hasher<F>>(
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::OsRng;
     use rand::Rng;
+    use rand::rngs::OsRng;
 
-    use super::*;
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+
+    use super::*;
 
     #[test]
     fn test_path_compression() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let h = 10;
         let cap_height = 3;
         let vs = (0..1 << h).map(|_| vec![F::rand()]).collect::<Vec<_>>();
-        let mt = MerkleTree::<F, <C as GenericConfig<D>>::Hasher>::new(vs.clone(), cap_height);
+        let mt = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(
+            vs.clone(),
+            cap_height,
+        );
 
         let mut rng = OsRng;
         let k = rng.gen_range(1..=1 << h);

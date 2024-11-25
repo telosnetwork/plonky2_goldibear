@@ -1,4 +1,5 @@
-use log::{log, Level};
+use hashbrown::HashMap;
+use log::{Level, log};
 #[cfg(feature = "timing")]
 use web_time::{Duration, Instant};
 
@@ -16,8 +17,12 @@ pub struct TimingTree {
     exit_time: Option<Instant>,
     /// Any child scopes.
     children: Vec<TimingTree>,
+    statistics_values: HashMap<StatisticsItem, usize>,
 }
-
+#[derive(Debug, Clone, Eq, PartialEq, Copy, Hash)]
+pub enum StatisticsItem {
+    PermArgRetries
+}
 #[cfg(not(feature = "timing"))]
 #[derive(Debug)]
 pub struct TimingTree(Level);
@@ -45,6 +50,7 @@ impl TimingTree {
             enter_time: Instant::now(),
             exit_time: None,
             children: vec![],
+            statistics_values: HashMap::new(),
         }
     }
 
@@ -97,6 +103,7 @@ impl TimingTree {
             enter_time: Instant::now(),
             exit_time: None,
             children: vec![],
+            statistics_values: HashMap::new(),
         })
     }
 
@@ -142,6 +149,7 @@ impl TimingTree {
                 .filter(|c| c.duration() >= min_delta)
                 .map(|c| c.filter(min_delta))
                 .collect(),
+            statistics_values: self.statistics_values.clone(),
         }
     }
 
@@ -171,6 +179,13 @@ impl TimingTree {
         for child in &self.children {
             child.print_helper(depth + 1);
         }
+    }
+    pub fn push_statistic_value(&mut self, key: StatisticsItem, value: usize) {
+        self.statistics_values.insert(key, value);
+    }
+
+    pub fn get_statistic_value(&self, key: StatisticsItem) -> Option<&usize> {
+        self.statistics_values.get(&key)
     }
 }
 

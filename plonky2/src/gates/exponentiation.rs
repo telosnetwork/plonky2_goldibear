@@ -7,10 +7,10 @@ use alloc::{
 };
 use core::marker::PhantomData;
 
-use crate::field::extension::Extendable;
-use crate::field::ops::Square;
-use crate::field::packed::PackedField;
-use crate::field::types::Field;
+use p3_field::{AbstractField, PackedField};
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -30,12 +30,18 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for raising a value to a power.
 #[derive(Clone, Debug, Default)]
-pub struct ExponentiationGate<F: RichField + Extendable<D>, const D: usize> {
+pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize>
+where
+    
+{
     pub num_power_bits: usize,
     pub _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> ExponentiationGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D>
+where
+    
+{
     pub const fn new(num_power_bits: usize) -> Self {
         Self {
             num_power_bits,
@@ -75,21 +81,32 @@ impl<F: RichField + Extendable<D>, const D: usize> ExponentiationGate<F, D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ExponentiationGate<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ExponentiationGate<F, D>
+where
+    
+{
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_power_bits)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_power_bits = src.read_usize()?;
         Ok(Self::new(num_power_bits))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let base = vars.local_wires[self.wire_base()];
 
         let power_bits: Vec<_> = (0..self.num_power_bits)
@@ -101,19 +118,21 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for Exponentiation
 
         let output = vars.local_wires[self.wire_output()];
 
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         for i in 0..self.num_power_bits {
             let prev_intermediate_value = if i == 0 {
-                F::Extension::ONE
+                <F::Extension as AbstractField>::one()
             } else {
-                intermediate_values[i - 1].square()
+                <F::Extension as AbstractField>::square(&intermediate_values[i - 1])
             };
 
             // power_bits is in LE order, but we accumulate in BE order.
             let cur_bit = power_bits[self.num_power_bits - i - 1];
 
-            let not_cur_bit = F::Extension::ONE - cur_bit;
+            let not_cur_bit = <F::Extension as AbstractField>::one() - cur_bit;
             let computed_intermediate_value =
                 prev_intermediate_value * (cur_bit * base + not_cur_bit);
             constraints.push(computed_intermediate_value - intermediate_values[i]);
@@ -126,20 +145,23 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for Exponentiation
 
     fn eval_unfiltered_base_one(
         &self,
-        _vars: EvaluationVarsBase<F>,
+        _vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         _yield_constr: StridedConstraintConsumer<F>,
     ) {
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let base = vars.local_wires[self.wire_base()];
 
@@ -152,7 +174,9 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for Exponentiation
 
         let output = vars.local_wires[self.wire_output()];
 
-        let mut constraints = Vec::with_capacity(self.num_constraints());
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+        );
 
         let one = builder.one_extension();
         for i in 0..self.num_power_bits {
@@ -177,7 +201,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for Exponentiation
         constraints
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         let gen = ExponentiationGenerator::<F, D> {
             row,
             gate: self.clone(),
@@ -202,12 +230,14 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for Exponentiation
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
-    for ExponentiationGate<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ExponentiationGate<F, D>
+where
+    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
-        vars: EvaluationVarsBasePacked<P>,
+        vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<P>,
     ) {
         let base = vars.local_wires[self.wire_base()];
@@ -223,7 +253,7 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
 
         for i in 0..self.num_power_bits {
             let prev_intermediate_value = if i == 0 {
-                P::ONES
+                P::one()
             } else {
                 intermediate_values[i - 1].square()
             };
@@ -231,7 +261,7 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
             // power_bits is in LE order, but we accumulate in BE order.
             let cur_bit = power_bits[self.num_power_bits - i - 1];
 
-            let not_cur_bit = P::ONES - cur_bit;
+            let not_cur_bit = P::one() - cur_bit;
             let computed_intermediate_value =
                 prev_intermediate_value * (cur_bit * base + not_cur_bit);
             yield_constr.one(computed_intermediate_value - intermediate_values[i]);
@@ -242,13 +272,18 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
 }
 
 #[derive(Debug, Default)]
-pub struct ExponentiationGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize>
+where
+    
+{
     row: usize,
     gate: ExponentiationGate<F, D>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-    for ExponentiationGenerator<F, D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ExponentiationGenerator<F, D>
+where
+    
 {
     fn id(&self) -> String {
         "ExponentiationGenerator".to_string()
@@ -281,9 +316,9 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
             .collect::<Vec<_>>();
         let mut intermediate_values = Vec::with_capacity(num_power_bits);
 
-        let mut current_intermediate_value = F::ONE;
+        let mut current_intermediate_value = F::one();
         for i in 0..num_power_bits {
-            if power_bits[num_power_bits - i - 1] == F::ONE {
+            if power_bits[num_power_bits - i - 1] == F::one() {
                 current_intermediate_value *= base;
             }
             intermediate_values.push(current_intermediate_value);
@@ -299,12 +334,19 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
         out_buffer.set_wire(output_wire, intermediate_values[num_power_bits - 1]);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         self.gate.serialize(dst, _common_data)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let gate = ExponentiationGate::deserialize(src, _common_data)?;
         Ok(Self { row, gate })
@@ -314,22 +356,24 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use rand::rngs::OsRng;
+    use p3_field::Field;
+    use p3_goldilocks::Goldilocks;
     use rand::Rng;
+    use rand::rngs::OsRng;
 
-    use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::HashOut;
+    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::util::log2_ceil;
+
+    use super::*;
 
     const MAX_POWER_BITS: usize = 17;
 
     #[test]
     fn wire_indices() {
-        let gate = ExponentiationGate::<GoldilocksField, 4> {
+        let gate = ExponentiationGate::<Goldilocks, 2> {
             num_power_bits: 5,
             _phantom: PhantomData,
         };
@@ -347,19 +391,20 @@ mod tests {
         let config = CircuitConfig {
             num_wires: 120,
             num_routed_wires: 30,
-            ..CircuitConfig::standard_recursion_config()
+            ..CircuitConfig::standard_recursion_config_gl()
         };
 
-        test_low_degree::<GoldilocksField, _, 4>(ExponentiationGate::new_from_config(&config));
+        test_low_degree::<Goldilocks, _, 2, 4>(ExponentiationGate::new_from_config(&config));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        test_eval_fns::<F, C, _, D>(ExponentiationGate::new_from_config(
-            &CircuitConfig::standard_recursion_config(),
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(ExponentiationGate::new_from_config(
+            &CircuitConfig::standard_recursion_config_gl(),
         ))
     }
 
@@ -367,8 +412,9 @@ mod tests {
     fn test_gate_constraint() {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
         /// Returns the local wires for an exponentiation gate given the base, power, and power bit
         /// values.
@@ -391,7 +437,7 @@ mod tests {
             v.extend(power_bits_f);
 
             let mut intermediate_values = Vec::new();
-            let mut current_intermediate_value = F::ONE;
+            let mut current_intermediate_value = F::one();
             for i in 0..num_power_bits {
                 if power_bits[num_power_bits - i - 1] == 1 {
                     current_intermediate_value *= base;
@@ -408,7 +454,7 @@ mod tests {
 
         let mut rng = OsRng;
 
-        let base = F::TWO;
+        let base = F::two();
         let power = rng.gen::<usize>() % (1 << MAX_POWER_BITS);
         let num_power_bits = log2_ceil(power + 1);
         let gate = ExponentiationGate::<F, D> {
@@ -416,7 +462,7 @@ mod tests {
             _phantom: PhantomData,
         };
 
-        let vars = EvaluationVars {
+        let vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
             local_constants: &[],
             local_wires: &get_wires(base, power as u64),
             public_inputs_hash: &HashOut::rand(),

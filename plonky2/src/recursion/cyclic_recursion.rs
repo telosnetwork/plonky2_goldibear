@@ -4,8 +4,10 @@
 use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
+use p3_field::TwoAdicField;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -17,10 +19,18 @@ use crate::plonk::config::{AlgebraicHasher, GenericConfig};
 use crate::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
-    fn from_slice(slice: &[C::F], common_data: &CommonCircuitData<C::F, D>) -> Result<Self>
+impl<C: GenericConfig<D, NUM_HASH_OUT_ELTS>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>
+where
+    C::F: RichField + HasExtension<D>,
+    <<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F as HasExtension<D>>::Extension: TwoAdicField,
+{
+    fn from_slice(
+        slice: &[C::F],
+        common_data: &CommonCircuitData<C::F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<Self>
     where
-        C::Hasher: AlgebraicHasher<C::F>,
+        C::Hasher: AlgebraicHasher<C::F, NUM_HASH_OUT_ELTS>,
     {
         // The structure of the public inputs is `[..., circuit_digest, constants_sigmas_cap]`.
         let cap_len = common_data.config.fri_config.num_cap_elements();
@@ -43,7 +53,7 @@ impl<C: GenericConfig<D>, const D: usize> VerifierOnlyCircuitData<C, D> {
     }
 }
 
-impl VerifierCircuitTarget {
+impl<const NUM_HASH_OUT_ELTS: usize> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
     pub fn to_bytes(&self) -> IoResult<Vec<u8>> {
         let mut buffer = Vec::new();
         buffer.write_target_merkle_cap(&self.constants_sigmas_cap)?;
@@ -61,10 +71,13 @@ impl VerifierCircuitTarget {
         })
     }
 
-    fn from_slice<F: RichField + Extendable<D>, const D: usize>(
+    fn from_slice<F: RichField + HasExtension<D>, const D: usize>(
         slice: &[Target],
-        common_data: &CommonCircuitData<F, D>,
-    ) -> Result<Self> {
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Result<Self>
+    where
+        
+    {
         let cap_len = common_data.config.fri_config.num_cap_elements();
         let len = slice.len();
         ensure!(len >= 4 + 4 * cap_len, "Not enough public inputs");
@@ -86,7 +99,11 @@ impl VerifierCircuitTarget {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
     ///
@@ -100,16 +117,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// that the verification key matches.
     ///
     /// WARNING: Do not register any public input after calling this! TODO: relax this
-    pub fn conditionally_verify_cyclic_proof<C: GenericConfig<D, F = F>>(
+    pub fn conditionally_verify_cyclic_proof<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
         condition: BoolTarget,
-        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
-        other_proof_with_pis: &ProofWithPublicInputsTarget<D>,
-        other_verifier_data: &VerifierCircuitTarget,
-        common_data: &CommonCircuitData<F, D>,
+        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        other_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        other_verifier_data: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         let verifier_data = self
             .verifier_data_public_input
@@ -154,14 +174,17 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         Ok(())
     }
 
-    pub fn conditionally_verify_cyclic_proof_or_dummy<C: GenericConfig<D, F = F> + 'static>(
+    pub fn conditionally_verify_cyclic_proof_or_dummy<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
+    >(
         &mut self,
         condition: BoolTarget,
-        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D>,
-        common_data: &CommonCircuitData<F, D>,
+        cyclic_proof_with_pis: &ProofWithPublicInputsTarget<D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(common_data)?;
@@ -179,18 +202,23 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 /// Additional checks to be performed on a cyclic recursive proof in addition to verifying the proof.
 /// Checks that the purported verifier data in the public inputs match the real verifier data.
 pub fn check_cyclic_proof_verifier_data<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
-    proof: &ProofWithPublicInputs<F, C, D>,
-    verifier_data: &VerifierOnlyCircuitData<C, D>,
-    common_data: &CommonCircuitData<F, D>,
+    proof: &ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
+    verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<()>
 where
-    C::Hasher: AlgebraicHasher<F>,
+    C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    
 {
-    let pis = VerifierOnlyCircuitData::<C, D>::from_slice(&proof.public_inputs, common_data)?;
+    let pis = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS>::from_slice(
+        &proof.public_inputs,
+        common_data,
+    )?;
     ensure!(verifier_data.constants_sigmas_cap == pis.constants_sigmas_cap);
     ensure!(verifier_data.circuit_digest == pis.circuit_digest);
 
@@ -203,13 +231,14 @@ mod tests {
     use alloc::vec;
 
     use anyhow::Result;
+    use p3_field::{AbstractField, PrimeField64};
 
-    use crate::field::extension::Extendable;
-    use crate::field::types::{Field, PrimeField64};
+    use plonky2_field::types::HasExtension;
+
     use crate::gates::noop::NoopGate;
-    use crate::hash::hash_types::{HashOutTarget, RichField};
+    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOutTarget, RichField};
     use crate::hash::hashing::hash_n_to_hash_no_pad;
-    use crate::hash::poseidon::{PoseidonHash, PoseidonPermutation};
+    use crate::hash::poseidon_goldilocks::{Poseidon64Hash, Poseidon64Permutation};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::{CircuitConfig, CommonCircuitData};
@@ -219,26 +248,28 @@ mod tests {
 
     // Generates `CommonCircuitData` usable for recursion.
     fn common_data_for_recursion<
-        F: RichField + Extendable<D>,
-        C: GenericConfig<D, F = F>,
+        F: RichField + HasExtension<D>,
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const D: usize,
-    >() -> CommonCircuitData<F, D>
+        const NUM_HASH_OUT_ELTS: usize,
+    >() -> CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+        
     {
-        let config = CircuitConfig::standard_recursion_config();
-        let builder = CircuitBuilder::<F, D>::new(config);
+        let config = CircuitConfig::standard_recursion_config_gl();
+        let builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let data = builder.build::<C>();
-        let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let config = CircuitConfig::standard_recursion_config_gl();
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let proof = builder.add_virtual_proof_with_pis(&data.common);
         let verifier_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         builder.verify_proof::<C>(&proof, &verifier_data, &data.common);
         let data = builder.build::<C>();
 
-        let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let config = CircuitConfig::standard_recursion_config_gl();
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let proof = builder.add_virtual_proof_with_pis(&data.common);
         let verifier_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
@@ -259,10 +290,11 @@ mod tests {
     fn test_cyclic_recursion() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig::standard_recursion_config();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let config = CircuitConfig::standard_recursion_config_gl();
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let one = builder.one();
 
         // Circuit that computes a repeated hash.
@@ -270,11 +302,11 @@ mod tests {
         builder.register_public_inputs(&initial_hash_target.elements);
         let current_hash_in = builder.add_virtual_hash();
         let current_hash_out =
-            builder.hash_n_to_hash_no_pad::<PoseidonHash>(current_hash_in.elements.to_vec());
+            builder.hash_n_to_hash_no_pad::<Poseidon64Hash>(current_hash_in.elements.to_vec());
         builder.register_public_inputs(&current_hash_out.elements);
         let counter = builder.add_virtual_public_input();
 
-        let mut common_data = common_data_for_recursion::<F, C, D>();
+        let mut common_data = common_data_for_recursion::<F, C, D, NUM_HASH_OUT_ELTS>();
         let verifier_data_target = builder.add_verifier_data_public_inputs();
         common_data.num_public_inputs = builder.num_public_inputs();
 
@@ -310,10 +342,15 @@ mod tests {
         let cyclic_circuit_data = builder.build::<C>();
 
         let mut pw = PartialWitness::new();
-        let initial_hash = [F::ZERO, F::ONE, F::TWO, F::from_canonical_usize(3)];
+        let initial_hash = [
+            <F as AbstractField>::zero(),
+            F::one(),
+            F::two(),
+            F::from_canonical_usize(3),
+        ];
         let initial_hash_pis = initial_hash.into_iter().enumerate().collect();
         pw.set_bool_target(condition, false);
-        pw.set_proof_with_pis_target::<C, D>(
+        pw.set_proof_with_pis_target::<C, D, NUM_HASH_OUT_ELTS>(
             &inner_cyclic_proof_with_pis,
             &cyclic_base_proof(
                 &common_data,
@@ -359,19 +396,24 @@ mod tests {
         let initial_hash = &proof.public_inputs[..4];
         let hash = &proof.public_inputs[4..8];
         let counter = proof.public_inputs[8];
-        let expected_hash: [F; 4] = iterate_poseidon(
+        let expected_hash: [F; NUM_HASH_OUT_ELTS] = iterate_poseidon(
             initial_hash.try_into().unwrap(),
-            counter.to_canonical_u64() as usize,
+            counter.as_canonical_u64() as usize,
         );
         assert_eq!(hash, expected_hash);
 
         cyclic_circuit_data.verify(proof)
     }
 
-    fn iterate_poseidon<F: RichField>(initial_state: [F; 4], n: usize) -> [F; 4] {
+    fn iterate_poseidon<F: RichField, const NUM_HASH_OUT_ELTS: usize>(
+        initial_state: [F; NUM_HASH_OUT_ELTS],
+        n: usize,
+    ) -> [F; NUM_HASH_OUT_ELTS] {
         let mut current = initial_state;
         for _ in 0..n {
-            current = hash_n_to_hash_no_pad::<F, PoseidonPermutation<F>>(&current).elements;
+            current =
+                hash_n_to_hash_no_pad::<F, Poseidon64Permutation<F>, NUM_HASH_OUT_ELTS>(&current)
+                    .elements;
         }
         current
     }

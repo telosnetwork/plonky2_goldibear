@@ -1,5 +1,6 @@
 use anyhow::Result;
-use plonky2::field::types::Field;
+use p3_field::AbstractField;
+use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
@@ -10,11 +11,12 @@ use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 /// When n == 1, this is proving knowledge of 100!.
 fn main() -> Result<()> {
     const D: usize = 2;
+    const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
+    type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-    let config = CircuitConfig::standard_recursion_config();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let config = CircuitConfig::standard_recursion_config_gl();
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     // The arithmetic circuit.
     let initial = builder.add_virtual_target();
@@ -29,7 +31,7 @@ fn main() -> Result<()> {
     builder.register_public_input(cur_target);
 
     let mut pw = PartialWitness::new();
-    pw.set_target(initial, F::ONE);
+    pw.set_target(initial, F::one());
 
     let data = builder.build::<C>();
     let proof = data.prove(pw)?;

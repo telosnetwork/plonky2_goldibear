@@ -4,7 +4,8 @@ use core::borrow::Borrow;
 
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
 use crate::gates::base_sum::BaseSumGate;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
@@ -15,7 +16,11 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::log_floor;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Split the given element into a list of targets, where each one represents a
     /// base-B limb of the element, with little-endian ordering.
     pub fn split_le_base<const B: usize>(&mut self, x: Target, num_limbs: usize) -> Vec<Target> {
@@ -38,7 +43,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let bits = bits.map(|b| *b.borrow()).collect_vec();
         let num_bits = bits.len();
         assert!(
-            num_bits <= log_floor(F::ORDER, 2),
+            num_bits <= log_floor(F::ORDER_U64, 2),
             "{} bits may overflow the field",
             num_bits
         );
@@ -86,8 +91,14 @@ pub struct BaseSumGenerator<const B: usize> {
     limbs: Vec<BoolTarget>,
 }
 
-impl<F: RichField + Extendable<D>, const B: usize, const D: usize> SimpleGenerator<F, D>
-    for BaseSumGenerator<B>
+impl<
+        F: RichField + HasExtension<D>,
+        const B: usize,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for BaseSumGenerator<B>
+where
+    
 {
     fn id(&self) -> String {
         format!("BaseSumGenerator + Base: {B}")
@@ -103,19 +114,26 @@ impl<F: RichField + Extendable<D>, const B: usize, const D: usize> SimpleGenerat
             .iter()
             .map(|&t| witness.get_bool_target(t))
             .rev()
-            .fold(F::ZERO, |acc, limb| {
+            .fold(F::zero(), |acc, limb| {
                 acc * F::from_canonical_usize(B) + F::from_bool(limb)
             });
 
         out_buffer.set_target(Target::wire(self.row, BaseSumGate::<B>::WIRE_SUM), sum);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_target_bool_vec(&self.limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let limbs = src.read_target_bool_vec()?;
         Ok(Self { row, limbs })
@@ -125,25 +143,28 @@ impl<F: RichField + Extendable<D>, const B: usize, const D: usize> SimpleGenerat
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2_field::types::Field;
-    use rand::rngs::OsRng;
+    use p3_field::AbstractField;
     use rand::Rng;
+    use rand::rngs::OsRng;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
-    use super::*;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
 
+    use super::*;
+
     #[test]
     fn test_split_base() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let config = CircuitConfig::standard_recursion_config();
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let config = CircuitConfig::standard_recursion_config_gl();
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
-        let x = F::from_canonical_usize(0b110100000); // 416 = 1532 in base 6.
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
+        let x = <F as AbstractField>::from_canonical_usize(0b110100000); // 416 = 1532 in base 6.
         let xt = builder.constant(x);
         let limbs = builder.split_le_base::<6>(xt, 24);
         let one = builder.one();
@@ -167,10 +188,11 @@ mod tests {
     fn test_base_sum() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let config = CircuitConfig::standard_recursion_config();
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let config = CircuitConfig::standard_recursion_config_gl();
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let n = OsRng.gen_range(0..(1 << 30));
         let x = builder.constant(F::from_canonical_usize(n));

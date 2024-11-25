@@ -2,10 +2,12 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
+use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
 
-use crate::field::extension::{Extendable, FieldExtension};
+use plonky2_field::types::HasExtension;
+
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::field::types::{Field, Sample};
+use crate::field::types::Sample;
 use crate::gates::gate::Gate;
 use crate::hash::hash_types::{HashOut, RichField};
 use crate::iop::witness::{PartialWitness, WitnessWrite};
@@ -21,7 +23,17 @@ const WITNESS_DEGREE: usize = WITNESS_SIZE - 1;
 
 /// Tests that the constraints imposed by the given gate are low-degree by applying them to random
 /// low-degree witness polynomials.
-pub fn test_low_degree<F: RichField + Extendable<D>, G: Gate<F, D>, const D: usize>(gate: G) {
+pub fn test_low_degree<
+    F: RichField + HasExtension<D>,
+    G: Gate<F, D, NUM_HASH_OUT_ELTS>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    gate: G,
+) where
+    F::Extension: TwoAdicField + Sample,
+    
+{
     let rate_bits = log2_ceil(gate.degree() + 1);
 
     let wire_ldes = random_low_degree_matrix::<F::Extension>(gate.num_wires(), rate_bits);
@@ -66,7 +78,10 @@ pub fn test_low_degree<F: RichField + Extendable<D>, G: Gate<F, D>, const D: usi
     );
 }
 
-fn random_low_degree_matrix<F: Field>(num_polys: usize, rate_bits: usize) -> Vec<Vec<F>> {
+fn random_low_degree_matrix<F: TwoAdicField + Sample>(
+    num_polys: usize,
+    rate_bits: usize,
+) -> Vec<Vec<F>> {
     let polys = (0..num_polys)
         .map(|_| random_low_degree_values(rate_bits))
         .collect::<Vec<_>>();
@@ -79,7 +94,7 @@ fn random_low_degree_matrix<F: Field>(num_polys: usize, rate_bits: usize) -> Vec
     }
 }
 
-fn random_low_degree_values<F: Field>(rate_bits: usize) -> Vec<F> {
+fn random_low_degree_values<F: TwoAdicField + Sample>(rate_bits: usize) -> Vec<F> {
     PolynomialCoeffs::new(F::rand_vec(WITNESS_SIZE))
         .lde(rate_bits)
         .fft()
@@ -87,23 +102,28 @@ fn random_low_degree_values<F: Field>(rate_bits: usize) -> Vec<F> {
 }
 
 pub fn test_eval_fns<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F = F>,
-    G: Gate<F, D>,
+    F: RichField + HasExtension<D>,
+    C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    G: Gate<F, D, NUM_HASH_OUT_ELTS>,
     const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
 >(
     gate: G,
-) -> Result<()> {
+) -> Result<()>
+where
+    F::Extension: Sample + TwoAdicField,
+    
+{
     // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
     let wires_base = F::rand_vec(gate.num_wires());
     let constants_base = F::rand_vec(gate.num_constants());
     let wires = wires_base
         .iter()
-        .map(|&x| F::Extension::from_basefield(x))
+        .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
         .collect::<Vec<_>>();
     let constants = constants_base
         .iter()
-        .map(|&x| F::Extension::from_basefield(x))
+        .map(|&x| <F::Extension as AbstractExtensionField<F>>::from_base(x))
         .collect::<Vec<_>>();
     let public_inputs_hash = HashOut::rand();
 
@@ -123,17 +143,20 @@ pub fn test_eval_fns<
         evals
             == evals_base
                 .into_iter()
-                .map(F::Extension::from_basefield)
+                .map(<F::Extension as AbstractExtensionField<F>>::from_base)
                 .collect::<Vec<_>>()
     );
 
-    // Test that `eval_unfiltered` and `eval_unfiltered_recursively` are coherent.
+    // Test that `eval_unfiltered` and `eval_unfiltered_circuit` are coherent.
     let wires = F::Extension::rand_vec(gate.num_wires());
     let constants = F::Extension::rand_vec(gate.num_constants());
 
-    let config = CircuitConfig::standard_recursion_config();
+    let config = match F::ORDER_U64 {
+        p3_baby_bear::BabyBear::ORDER_U64 => CircuitConfig::standard_recursion_config_bb_wide(),
+        _ => CircuitConfig::standard_recursion_config_gl(),
+    };
     let mut pw = PartialWitness::new();
-    let mut builder = CircuitBuilder::<F, D>::new(config);
+    let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
     let wires_t = builder.add_virtual_extension_targets(wires.len());
     let constants_t = builder.add_virtual_extension_targets(constants.len());
@@ -159,5 +182,5 @@ pub fn test_eval_fns<
 
     let data = builder.build::<C>();
     let proof = data.prove(pw)?;
-    verify::<F, C, D>(proof, &data.verifier_only, &data.common)
+    verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof, &data.verifier_only, &data.common)
 }

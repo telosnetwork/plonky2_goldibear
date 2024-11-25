@@ -2,9 +2,11 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 
-use crate::field::extension::algebra::ExtensionAlgebra;
-use crate::field::extension::{Extendable, FieldExtension, OEF};
-use crate::field::types::Field;
+use p3_field::{AbstractExtensionField, AbstractField};
+
+use plonky2_field::extension_algebra::ExtensionAlgebra;
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::target::Target;
 use crate::plonk::circuit_builder::CircuitBuilder;
@@ -28,26 +30,32 @@ impl<const D: usize> ExtensionTarget<D> {
         self.0
     }
 
-    pub fn frobenius<F: RichField + Extendable<D>>(
+    pub fn frobenius<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Self
+    where
+        
+    {
         self.repeated_frobenius(1, builder)
     }
 
-    pub fn repeated_frobenius<F: RichField + Extendable<D>>(
+    pub fn repeated_frobenius<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &self,
         count: usize,
-        builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Self
+    where
+        
+    {
         if count == 0 {
             return *self;
         } else if count >= D {
             return self.repeated_frobenius(count % D, builder);
         }
         let arr = self.to_target_array();
-        let k = (F::order() - 1u32) / (D as u64);
-        let z0 = F::Extension::W.exp_biguint(&(k * count as u64));
+        let k = (F::ORDER_U64 - 1) / (D as u64);
+        let z0 = F::w().exp_u64(k * count as u64);
         #[allow(clippy::needless_collect)]
         let zs = z0
             .powers()
@@ -87,9 +95,13 @@ impl<const D: usize> ExtensionAlgebraTarget<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     pub fn constant_extension(&mut self, c: F::Extension) -> ExtensionTarget<D> {
-        let c_parts = c.to_basefield_array();
+        let c_parts = c.as_base_slice();
         let mut parts = [self.zero(); D];
         for i in 0..D {
             parts[i] = self.constant(c_parts[i]);
@@ -97,10 +109,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         ExtensionTarget(parts)
     }
 
-    pub fn constant_ext_algebra(
-        &mut self,
-        c: ExtensionAlgebra<F::Extension, D>,
-    ) -> ExtensionAlgebraTarget<D> {
+    pub fn constant_ext_algebra(&mut self, c: ExtensionAlgebra<F, D>) -> ExtensionAlgebraTarget<D> {
         let c_parts = c.to_basefield_array();
         let mut parts = [self.zero_extension(); D];
         for i in 0..D {
@@ -110,23 +119,23 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     pub fn zero_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::ZERO)
+        self.constant_extension(<F::Extension as AbstractField>::zero())
     }
 
     pub fn one_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::ONE)
+        self.constant_extension(<F::Extension as AbstractField>::one())
     }
 
     pub fn two_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::TWO)
+        self.constant_extension(<F::Extension as AbstractField>::two())
     }
 
     pub fn neg_one_extension(&mut self) -> ExtensionTarget<D> {
-        self.constant_extension(F::Extension::NEG_ONE)
+        self.constant_extension(<F::Extension as AbstractField>::neg_one())
     }
 
     pub fn zero_ext_algebra(&mut self) -> ExtensionAlgebraTarget<D> {
-        self.constant_ext_algebra(ExtensionAlgebra::ZERO)
+        self.constant_ext_algebra(ExtensionAlgebra::zero())
     }
 
     pub fn convert_to_ext(&mut self, t: Target) -> ExtensionTarget<D> {

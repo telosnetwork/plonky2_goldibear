@@ -9,10 +9,10 @@ use core::usize;
 
 use itertools::Itertools;
 use keccak_hash::keccak;
+use p3_field::PackedField;
 
-use super::lookup_table::LookupTable;
-use crate::field::extension::Extendable;
-use crate::field::packed::PackedField;
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -28,6 +28,8 @@ use crate::plonk::vars::{
     EvaluationVarsBasePacked,
 };
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
+
+use super::lookup_table::LookupTable;
 
 pub type Lookup = Vec<(Target, Target)>;
 
@@ -69,7 +71,11 @@ impl LookupGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupGate {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for LookupGate
+where
+    
+{
     fn id(&self) -> String {
         // Custom implementation to not have the entire lookup table
         format!(
@@ -78,7 +84,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupGate {
         )
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_slots)?;
         for (i, lut) in common_data.luts.iter().enumerate() {
             if lut == &self.lut {
@@ -90,7 +100,10 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupGate {
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_slots = src.read_usize()?;
         let lut_index = src.read_usize()?;
         let mut lut_hash = [0u8; 32];
@@ -103,33 +116,40 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupGate {
         })
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         // No main trace constraints for lookups.
         vec![]
     }
 
     fn eval_unfiltered_base_one(
         &self,
-        _vars: EvaluationVarsBase<F>,
+        _vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         _yield_constr: StridedConstraintConsumer<F>,
     ) {
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
-        _vars: EvaluationTargets<D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        _vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         // No main trace constraints for lookups.
         vec![]
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_slots)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -161,10 +181,14 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for LookupGate {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for LookupGate
+where
+    
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
-        _vars: EvaluationVarsBasePacked<P>,
+        _vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut _yield_constr: StridedConstraintConsumer<P>,
     ) {
     }
@@ -177,7 +201,11 @@ pub struct LookupGenerator {
     slot_nb: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for LookupGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupGenerator
+where
+    
+{
     fn id(&self) -> String {
         "LookupGenerator".to_string()
     }
@@ -193,7 +221,7 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Loo
         let get_wire = |wire: usize| -> F { witness.get_target(Target::wire(self.row, wire)) };
 
         let input_val = get_wire(LookupGate::wire_ith_looking_inp(self.slot_nb));
-        let (input, output) = self.lut[input_val.to_canonical_u64() as usize];
+        let (input, output) = self.lut[input_val.as_canonical_u64() as usize];
         if input_val == F::from_canonical_u16(input) {
             let output_val = F::from_canonical_u16(output);
 
@@ -214,7 +242,11 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Loo
         };
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.slot_nb)?;
         for (i, lut) in common_data.luts.iter().enumerate() {
@@ -226,7 +258,10 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Loo
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let slot_nb = src.read_usize()?;
         let lut_index = src.read_usize()?;

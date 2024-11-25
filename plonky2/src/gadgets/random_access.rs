@@ -1,7 +1,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use crate::field::extension::Extendable;
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::iop::ext_target::ExtensionTarget;
@@ -10,7 +12,11 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::VerifierCircuitTarget;
 use crate::util::log2_strict;
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Checks that a `Target` matches a vector at a particular index.
     pub fn random_access(&mut self, access_index: Target, v: Vec<Target>) -> Target {
         let vec_size = v.len();
@@ -56,8 +62,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn random_access_hash(
         &mut self,
         access_index: Target,
-        v: Vec<HashOutTarget>,
-    ) -> HashOutTarget {
+        v: Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         let selected = core::array::from_fn(|i| {
             self.random_access(
                 access_index,
@@ -71,8 +77,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn random_access_merkle_cap(
         &mut self,
         access_index: Target,
-        v: Vec<MerkleCapTarget>,
-    ) -> MerkleCapTarget {
+        v: Vec<MerkleCapTarget<NUM_HASH_OUT_ELTS>>,
+    ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         let cap_size = v[0].0.len();
         assert!(v.iter().all(|cap| cap.0.len() == cap_size));
 
@@ -86,8 +92,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     pub fn random_access_verifier_data(
         &mut self,
         access_index: Target,
-        v: Vec<VerifierCircuitTarget>,
-    ) -> VerifierCircuitTarget {
+        v: Vec<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
+    ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         let constants_sigmas_caps = v.iter().map(|vk| vk.constants_sigmas_cap.clone()).collect();
         let circuit_digests = v.iter().map(|vk| vk.circuit_digest).collect();
         let constants_sigmas_cap =
@@ -103,28 +109,32 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_field::AbstractField;
 
-    use super::*;
-    use crate::field::types::{Field, Sample};
+    use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
 
+    use super::*;
+
     fn test_random_access_given_len(len_log: usize) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
         let len = 1 << len_log;
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let vec = FF::rand_vec(len);
         let v: Vec<_> = vec.iter().map(|x| builder.constant_extension(*x)).collect();
 
         for i in 0..len {
-            let it = builder.constant(F::from_canonical_usize(i));
+            let it = builder.constant(<F as AbstractField>::from_canonical_usize(i));
             let elem = builder.constant_extension(vec[i]);
             let res = builder.random_access_extension(it, v.clone());
             builder.connect_extension(elem, res);

@@ -17,8 +17,10 @@ gate_testing = []
 parallel = ["hashbrown/rayon", "plonky2_maybe_rayon/parallel"]
 std = ["anyhow/std", "rand/std", "itertools/use_std"]
 timing = ["std", "dep:web-time"]
+disable-randomness = ["plonky2_field/disable-randomness"]
 
 [dependencies]
+lazy_static = "1.5.0"
 ahash = { workspace = true }
 anyhow = { workspace = true }
 hashbrown = { workspace = true }
@@ -34,9 +36,15 @@ unroll = { workspace = true }
 web-time = { version = "1.0.0", optional = true }
 
 # Local dependencies
-plonky2_field = { version = "0.2.1", path = "../field", default-features = false }
-plonky2_maybe_rayon = { version = "0.2.0", path = "../maybe_rayon", default-features = false }
-plonky2_util = { version = "0.2.0", path = "../util", default-features = false }
+plonky2_field = { path = "../field"}
+plonky2_maybe_rayon = { path = "../maybe_rayon", default-features = false }
+plonky2_util = { path = "../util", default-features = false }
+p3-field = { workspace = true }
+p3-poseidon2 =  { workspace = true }
+p3-goldilocks =  { workspace = true }
+p3-baby-bear =  { workspace = true }
+p3-symmetric =  { workspace = true }
+p3-monty-31 =  { workspace = true }
 
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
@@ -82,6 +90,10 @@ harness = false
 
 [[bench]]
 name = "reverse_index_bits"
+harness = false
+
+[[bench]]
+name = "recursion"
 harness = false
 
 # Display math equations properly in documentation

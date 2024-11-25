@@ -4,15 +4,17 @@ use core::any::Any;
 use core::fmt::{Debug, Error, Formatter};
 use core::hash::{Hash, Hasher};
 use core::ops::Range;
+use core::usize;
 #[cfg(feature = "std")]
 use std::sync::Arc;
 
 use hashbrown::HashMap;
+use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field};
 use serde::{Serialize, Serializer};
 
+use plonky2_field::types::HasExtension;
+
 use crate::field::batch_util::batch_multiply_inplace;
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::Field;
 use crate::gates::selectors::UNUSED_SELECTOR;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -50,23 +52,45 @@ use crate::util::serialization::{Buffer, IoResult};
 ///
 /// Note however that extending the number of wires necessary for a custom gate comes at a price, and may
 /// impact the overall performances when generating proofs for a circuit containing them.
-pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + Sync {
+pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
+    'static + Send + Sync
+where
+    
+{
     /// Defines a unique identifier for this custom gate.
     ///
     /// This is used as differentiating tag in gate serializers.
     fn id(&self) -> String;
 
     /// Serializes this custom gate to the targeted byte buffer, with the provided [`CommonCircuitData`].
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()>;
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()>;
 
     /// Deserializes the bytes in the provided buffer into this custom gate, given some [`CommonCircuitData`].
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized;
 
+    /// Some gates might need to be filled up in order to avoid error in constraints verification
+    /// The method returns true if it filled up the remaining wires, otherwise return false
+    fn complete_wires(
+        &self,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        _gate_idx: usize,
+        _slot_idx: usize,
+    ) -> bool {
+        false
+    }
     /// Defines and evaluates the constraints that enforce the statement represented by this gate.
+
     /// Constraints must be defined in the extension of this custom gate base field.
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension>;
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension>;
 
     /// Like `eval_unfiltered`, but specialized for points in the base field.
     ///
@@ -78,7 +102,7 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
     /// element. This isn't very efficient.
     fn eval_unfiltered_base_one(
         &self,
-        vars_base: EvaluationVarsBase<F>,
+        vars_base: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         // Note that this method uses `yield_constr` instead of returning its constraints.
@@ -86,12 +110,12 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
         let local_constants = &vars_base
             .local_constants
             .iter()
-            .map(|c| F::Extension::from_basefield(*c))
+            .map(|c| <F::Extension as AbstractExtensionField<F>>::from_base(*c))
             .collect::<Vec<_>>();
         let local_wires = &vars_base
             .local_wires
             .iter()
-            .map(|w| F::Extension::from_basefield(*w))
+            .map(|w| <F::Extension as AbstractExtensionField<F>>::from_base(*w))
             .collect::<Vec<_>>();
         let public_inputs_hash = &vars_base.public_inputs_hash;
         let vars = EvaluationVars {
@@ -103,13 +127,22 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
 
         // Each value should be in the base field, i.e. only the degree-zero part should be nonzero.
         values.into_iter().for_each(|value| {
-            debug_assert!(F::Extension::is_in_basefield(&value));
-            yield_constr.one(value.to_basefield_array()[0])
+            debug_assert!(<F::Extension as ExtensionField<F>>::is_in_basefield(&value));
+            let base_field_array =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(&value);
+            yield_constr.one(base_field_array[0])
         })
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
-        let mut res = vec![F::ZERO; vars_base.len() * self.num_constraints()];
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
+        let mut res = vec![
+            F::zero();
+            vars_base.len()
+                * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)
+        ];
         for (i, vars_base_one) in vars_base.iter().enumerate() {
             self.eval_unfiltered_base_one(
                 vars_base_one,
@@ -127,13 +160,13 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
     /// prover won't be able to generate proofs.
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>>;
 
     fn eval_filtered(
         &self,
-        mut vars: EvaluationVars<F, D>,
+        mut vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
         row: usize,
         selector_index: usize,
         group_range: Range<usize>,
@@ -145,6 +178,7 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
             group_range,
             vars.local_constants[selector_index],
             num_selectors > 1,
+            F::ORDER_U64
         );
         vars.remove_prefix(num_selectors);
         vars.remove_prefix(num_lookup_selectors);
@@ -154,11 +188,11 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
             .collect()
     }
 
-    /// The result is an array of length `vars_batch.len() * self.num_constraints()`. Constraint `j`
+    /// The result is an array of length `vars_batch.len() * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)`. Constraint `j`
     /// for point `i` is at index `j * batch_size + i`.
     fn eval_filtered_base_batch(
         &self,
-        mut vars_batch: EvaluationVarsBaseBatch<F>,
+        mut vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
         row: usize,
         selector_index: usize,
         group_range: Range<usize>,
@@ -173,6 +207,7 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
                     group_range.clone(),
                     vars.local_constants[selector_index],
                     num_selectors > 1,
+                    F::ORDER_U64
                 )
             })
             .collect();
@@ -187,8 +222,8 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
     /// Adds this gate's filtered constraints into the `combined_gate_constraints` buffer.
     fn eval_filtered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        mut vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        mut vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
         row: usize,
         selector_index: usize,
         group_range: Range<usize>,
@@ -214,7 +249,11 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
     /// The generators used to populate the witness.
     ///
     /// **Note**: This should return exactly 1 generator per operation in the gate.
-    fn generators(&self, row: usize, local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>>;
+    fn generators(
+        &self,
+        row: usize,
+        local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>;
 
     /// The number of wires used by this gate.
     ///
@@ -239,7 +278,7 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
 
     /// Number of operations performed by the gate.
     fn num_ops(&self) -> usize {
-        self.generators(0, &vec![F::ZERO; self.num_constants()])
+        self.generators(0, &vec![F::zero(); self.num_constants()])
             .len()
     }
 
@@ -254,11 +293,23 @@ pub trait Gate<F: RichField + Extendable<D>, const D: usize>: 'static + Send + S
 }
 
 /// A wrapper trait over a `Gate`, to allow for gate serialization.
-pub trait AnyGate<F: RichField + Extendable<D>, const D: usize>: Gate<F, D> {
+pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
+    Gate<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn as_any(&self) -> &dyn Any;
 }
 
-impl<T: Gate<F, D>, F: RichField + Extendable<D>, const D: usize> AnyGate<F, D> for T {
+impl<
+        T: Gate<F, D, NUM_HASH_OUT_ELTS>,
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    > AnyGate<F, D, NUM_HASH_OUT_ELTS> for T
+where
+    
+{
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -266,35 +317,62 @@ impl<T: Gate<F, D>, F: RichField + Extendable<D>, const D: usize> AnyGate<F, D> 
 
 /// A wrapper around an `Arc<AnyGate>` which implements `PartialEq`, `Eq` and `Hash` based on gate IDs.
 #[derive(Clone)]
-pub struct GateRef<F: RichField + Extendable<D>, const D: usize>(pub Arc<dyn AnyGate<F, D>>);
+pub struct GateRef<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    pub Arc<dyn AnyGate<F, D, NUM_HASH_OUT_ELTS>>,
+);
 
-impl<F: RichField + Extendable<D>, const D: usize> GateRef<F, D> {
-    pub fn new<G: Gate<F, D>>(gate: G) -> GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
+    pub fn new<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(gate: G) -> GateRef<F, D, NUM_HASH_OUT_ELTS> {
         GateRef(Arc::new(gate))
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PartialEq for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Hash for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Hash
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.id().hash(state)
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Eq for GateRef<F, D> {}
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
+}
 
-impl<F: RichField + Extendable<D>, const D: usize> Debug for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", self.0.id())
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Serialize for GateRef<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Serialize
+    for GateRef<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0.id())
     }
@@ -304,47 +382,67 @@ impl<F: RichField + Extendable<D>, const D: usize> Serialize for GateRef<F, D> {
 /// An available slot is of the form `(row, op)`, meaning the current available slot
 /// is at gate index `row` in the `op`-th operation.
 #[derive(Clone, Debug, Default)]
-pub struct CurrentSlot<F: RichField + Extendable<D>, const D: usize> {
+pub struct CurrentSlot<F: RichField + HasExtension<D>, const D: usize> {
     pub current_slot: HashMap<Vec<F>, (usize, usize)>,
 }
 
 /// A gate along with any constants used to configure it.
 #[derive(Clone, Debug)]
-pub struct GateInstance<F: RichField + Extendable<D>, const D: usize> {
-    pub gate_ref: GateRef<F, D>,
+pub struct GateInstance<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub gate_ref: GateRef<F, D, NUM_HASH_OUT_ELTS>,
     pub constants: Vec<F>,
 }
 
 /// Map each gate to a boolean prefix used to construct the gate's selector polynomial.
 #[derive(Debug, Clone)]
-pub struct PrefixedGate<F: RichField + Extendable<D>, const D: usize> {
-    pub gate: GateRef<F, D>,
+pub struct PrefixedGate<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
+    pub gate: GateRef<F, D, NUM_HASH_OUT_ELTS>,
     pub prefix: Vec<bool>,
 }
 
 /// A gate's filter designed so that it is non-zero if `s = row`.
-fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_selector: bool) -> K {
+fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_selector: bool, characteristic: u64) -> K {
     debug_assert!(group_range.contains(&row));
     group_range
         .filter(|&i| i != row)
-        .chain(many_selector.then_some(UNUSED_SELECTOR))
+        .chain(many_selector.then_some(UNUSED_SELECTOR % characteristic as usize))
         .map(|i| K::from_canonical_usize(i) - s)
         .product()
 }
 
-fn compute_filter_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+fn compute_filter_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     row: usize,
     group_range: Range<usize>,
     s: ExtensionTarget<D>,
     many_selectors: bool,
-) -> ExtensionTarget<D> {
+) -> ExtensionTarget<D>
+where
+    
+{
     debug_assert!(group_range.contains(&row));
     let v = group_range
         .filter(|&i| i != row)
-        .chain(many_selectors.then_some(UNUSED_SELECTOR))
+        .chain(many_selectors.then_some(UNUSED_SELECTOR % F::ORDER_U64 as usize))
         .map(|i| {
-            let c = builder.constant_extension(F::Extension::from_canonical_usize(i));
+            let c = builder
+                .constant_extension(<F::Extension as AbstractField>::from_canonical_usize(i));
             builder.sub_extension(c, s)
         })
         .collect::<Vec<_>>();

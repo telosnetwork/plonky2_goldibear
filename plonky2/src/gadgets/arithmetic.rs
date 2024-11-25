@@ -6,8 +6,11 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field64;
+use p3_field::PrimeField64;
+
+use plonky2_field::types::HasExtension;
+
+use crate::gates::add_many::AddManyGate;
 use crate::gates::arithmetic_base::ArithmeticGate;
 use crate::gates::exponentiation::ExponentiationGate;
 use crate::hash::hash_types::RichField;
@@ -18,7 +21,13 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+const ADD_MANY_THRESHOLD: usize = 23;
+
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Computes `-x`.
     pub fn neg(&mut self, x: Target) -> Target {
         let neg_one = self.neg_one();
@@ -119,19 +128,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let addend_const = self.target_as_constant(addend);
 
         let first_term_zero =
-            const_0 == F::ZERO || multiplicand_0 == zero || multiplicand_1 == zero;
-        let second_term_zero = const_1 == F::ZERO || addend == zero;
+            const_0 == F::zero() || multiplicand_0 == zero || multiplicand_1 == zero;
+        let second_term_zero = const_1 == F::zero() || addend == zero;
 
         // If both terms are constant, return their (constant) sum.
         let first_term_const = if first_term_zero {
-            Some(F::ZERO)
+            Some(F::zero())
         } else if let (Some(x), Some(y)) = (mul_0_const, mul_1_const) {
             Some(x * y * const_0)
         } else {
             None
         };
         let second_term_const = if second_term_zero {
-            Some(F::ZERO)
+            Some(F::zero())
         } else {
             addend_const.map(|x| x * const_1)
         };
@@ -161,7 +170,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes `x * y + z`.
     pub fn mul_add(&mut self, x: Target, y: Target, z: Target) -> Target {
-        self.arithmetic(F::ONE, F::ONE, x, y, z)
+        self.arithmetic(F::one(), F::one(), x, y, z)
     }
 
     /// Computes `x + C`.
@@ -184,14 +193,14 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes `x * y - z`.
     pub fn mul_sub(&mut self, x: Target, y: Target, z: Target) -> Target {
-        self.arithmetic(F::ONE, F::NEG_ONE, x, y, z)
+        self.arithmetic(F::one(), F::neg_one(), x, y, z)
     }
 
     /// Computes `x + y`.
     pub fn add(&mut self, x: Target, y: Target) -> Target {
         let one = self.one();
         // x + y = 1 * x * 1 + 1 * y
-        self.arithmetic(F::ONE, F::ONE, x, one, y)
+        self.arithmetic(F::one(), F::one(), x, one, y)
     }
 
     /// Adds `n` `Target`s.
@@ -199,22 +208,45 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     where
         T: Borrow<Target>,
     {
-        terms
-            .into_iter()
-            .fold(self.zero(), |acc, t| self.add(acc, *t.borrow()))
+        let addends: Vec<Target> = terms.into_iter().map(|t| *t.borrow()).collect();
+        let num_addends = addends.len();
+        match num_addends {
+            ADD_MANY_THRESHOLD => {
+                let gate_type = AddManyGate::new_from_config::<F>(&self.config, ADD_MANY_THRESHOLD);
+                let (row, i) = self.find_slot(gate_type, &[], &[]);
+                let addends_indices = AddManyGate::wires_ith_op_addends(gate_type.num_addends, i);
+                addends
+                    .iter()
+                    .zip(addends_indices)
+                    .for_each(|(&target, idx)| self.connect(target, Target::wire(row, idx)));
+                Target::wire(row, AddManyGate::wire_ith_sum(gate_type.num_addends, i))
+            }
+
+            0..ADD_MANY_THRESHOLD => addends
+                .into_iter()
+                .fold(self.zero(), |acc, t| self.add(acc, *t.borrow())),
+
+            _ => {
+                let new_addends = addends
+                    .chunks(ADD_MANY_THRESHOLD)
+                    .map(|chunk| self.add_many(chunk))
+                    .collect::<Vec<_>>();
+                self.add_many(new_addends)
+            }
+        }
     }
 
     /// Computes `x - y`.
     pub fn sub(&mut self, x: Target, y: Target) -> Target {
         let one = self.one();
         // x - y = 1 * x * 1 + (-1) * y
-        self.arithmetic(F::ONE, F::NEG_ONE, x, one, y)
+        self.arithmetic(F::one(), F::neg_one(), x, one, y)
     }
 
     /// Computes `x * y`.
     pub fn mul(&mut self, x: Target, y: Target) -> Target {
         // x * y = 1 * x * y + 0 * x
-        self.arithmetic(F::ONE, F::ZERO, x, y, x)
+        self.arithmetic(F::one(), F::zero(), x, y, x)
     }
 
     /// Multiply `n` `Target`s.
@@ -296,8 +328,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             //     product *= 1 + bit (base^pow - 1)
             //     product = (base^pow - 1) product bit + product
             product = self.arithmetic(
-                base.exp_u64(pow as u64) - F::ONE,
-                F::ONE,
+                base.exp_u64(pow as u64) - F::one(),
+                F::one(),
                 product,
                 bit.target,
                 product,
@@ -333,6 +365,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         self.inverse_extension(x_ext).0[0]
     }
 
+    /// Compute 1 / x if x != 0, otherwise it returns 0
+    pub fn inverse_or_zero(&mut self, x: Target) -> Target {
+        let inv = self.add_virtual_target();
+        let one = self.one();
+        self.add_simple_generator(QuotientOrZeroGenerator {
+            numerator: one,
+            denominator: x,
+            quotient: inv,
+        });
+
+        self.mul(one, inv)
+    }
+
     /// Computes the logical NOT of the provided [`BoolTarget`].
     pub fn not(&mut self, b: BoolTarget) -> BoolTarget {
         let one = self.one();
@@ -347,7 +392,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Computes the logical OR through the arithmetic expression: `b1 + b2 - b1 * b2`.
     pub fn or(&mut self, b1: BoolTarget, b2: BoolTarget) -> BoolTarget {
-        let res_minus_b2 = self.arithmetic(-F::ONE, F::ONE, b1.target, b2.target, b1.target);
+        let res_minus_b2 = self.arithmetic(-F::one(), F::one(), b1.target, b2.target, b1.target);
         BoolTarget::new_unsafe(self.add(res_minus_b2, b2.target))
     }
 
@@ -388,7 +433,11 @@ pub struct EqualityGenerator {
     inv: Target,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for EqualityGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for EqualityGenerator
+where
+    
+{
     fn id(&self) -> String {
         "EqualityGenerator".to_string()
     }
@@ -401,20 +450,27 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Equ
         let x = witness.get_target(self.x);
         let y = witness.get_target(self.y);
 
-        let inv = if x != y { (x - y).inverse() } else { F::ZERO };
+        let inv = if x != y { (x - y).inverse() } else { F::zero() };
 
         out_buffer.set_bool_target(self.equal, x == y);
         out_buffer.set_target(self.inv, inv);
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.x)?;
         dst.write_target(self.y)?;
         dst.write_target_bool(self.equal)?;
         dst.write_target(self.inv)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let x = src.read_target()?;
         let y = src.read_target()?;
         let equal = src.read_target_bool()?;
@@ -425,10 +481,63 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Equ
 
 /// Represents a base arithmetic operation in the circuit. Used to memoize results.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct BaseArithmeticOperation<F: Field64> {
+pub(crate) struct BaseArithmeticOperation<F: PrimeField64> {
     const_0: F,
     const_1: F,
     multiplicand_0: Target,
     multiplicand_1: Target,
     addend: Target,
+}
+
+#[derive(Debug, Default)]
+pub struct QuotientOrZeroGenerator {
+    numerator: Target,
+    denominator: Target,
+    quotient: Target,
+}
+
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientOrZeroGenerator
+where
+    
+{
+    fn id(&self) -> String {
+        "QuotientGeneratorExtension".to_string()
+    }
+
+    fn dependencies(&self) -> Vec<Target> {
+        vec![self.numerator, self.denominator]
+    }
+
+    fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
+        let num = witness.get_target(self.numerator);
+        let den = witness.get_target(self.denominator);
+        let zero = F::zero();
+        let quotient = if den == zero { zero } else { num / den };
+        out_buffer.set_target(self.quotient, quotient)
+    }
+
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
+        dst.write_target(self.numerator)?;
+        dst.write_target(self.denominator)?;
+        dst.write_target(self.quotient)
+    }
+
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
+        let numerator = src.read_target()?;
+        let denominator = src.read_target()?;
+        let quotient = src.read_target()?;
+        Ok(Self {
+            numerator,
+            denominator,
+            quotient,
+        })
+    }
 }

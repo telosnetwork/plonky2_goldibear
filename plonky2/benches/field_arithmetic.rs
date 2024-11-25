@@ -1,14 +1,15 @@
-mod allocator;
-
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use plonky2::field::extension::quadratic::QuadraticExtension;
-use plonky2::field::extension::quartic::QuarticExtension;
-use plonky2::field::extension::quintic::QuinticExtension;
-use plonky2::field::goldilocks_field::GoldilocksField;
-use plonky2::field::types::Field;
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use p3_baby_bear::BabyBear;
+use p3_field::{batch_multiplicative_inverse, TwoAdicField};
+use p3_field::extension::BinomialExtensionField;
+use p3_goldilocks::Goldilocks;
 use tynm::type_name;
 
-pub(crate) fn bench_field<F: Field>(c: &mut Criterion) {
+use plonky2_field::types::Sample;
+
+mod allocator;
+
+pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
     c.bench_function(&format!("mul-throughput<{}>", type_name::<F>()), |b| {
         b.iter_batched(
             || (F::rand(), F::rand(), F::rand(), F::rand()),
@@ -116,55 +117,70 @@ pub(crate) fn bench_field<F: Field>(c: &mut Criterion) {
     });
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-tiny<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-tiny<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..2).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| batch_multiplicative_inverse::<F>(&x),
                 BatchSize::SmallInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-small<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-small<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..4).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| batch_multiplicative_inverse::<F>(&x),
                 BatchSize::SmallInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-medium<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-medium<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..16).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| batch_multiplicative_inverse::<F>(&x),
                 BatchSize::SmallInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-large<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-large<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..256).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| batch_multiplicative_inverse::<F>(&x),
                 BatchSize::LargeInput,
             )
         },
     );
 
     c.bench_function(
-        &format!("batch_multiplicative_inverse-huge<{}>", type_name::<F>()),
+        &format!(
+            "batch_multiplicative_inverse::<F>-huge<{}>",
+            type_name::<F>()
+        ),
         |b| {
             b.iter_batched(
                 || (0..65536).map(|_| F::rand()).collect::<Vec<_>>(),
-                |x| F::batch_multiplicative_inverse(&x),
+                |x| batch_multiplicative_inverse::<F>(&x),
                 BatchSize::LargeInput,
             )
         },
@@ -172,10 +188,10 @@ pub(crate) fn bench_field<F: Field>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_field::<GoldilocksField>(c);
-    bench_field::<QuadraticExtension<GoldilocksField>>(c);
-    bench_field::<QuarticExtension<GoldilocksField>>(c);
-    bench_field::<QuinticExtension<GoldilocksField>>(c);
+    bench_field::<Goldilocks>(c);
+    bench_field::<BinomialExtensionField<Goldilocks, 2>>(c);
+    bench_field::<BabyBear>(c);
+    bench_field::<BinomialExtensionField<BabyBear, 4>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

@@ -1,18 +1,19 @@
-mod allocator;
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use p3_goldilocks::Goldilocks;
+use tynm::type_name;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use plonky2::field::goldilocks_field::GoldilocksField;
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::keccak::KeccakHash;
 use plonky2::hash::merkle_tree::MerkleTree;
-use plonky2::hash::poseidon::PoseidonHash;
+use plonky2::hash::poseidon_goldilocks::Poseidon64Hash;
 use plonky2::plonk::config::Hasher;
-use tynm::type_name;
+
+mod allocator;
 
 const ELEMS_PER_LEAF: usize = 135;
 
 pub(crate) fn bench_merkle_tree<F: RichField, H: Hasher<F>>(c: &mut Criterion) {
-    let mut group = c.benchmark_group(&format!(
+    let mut group = c.benchmark_group(format!(
         "merkle-tree<{}, {}>",
         type_name::<F>(),
         type_name::<H>()
@@ -29,8 +30,8 @@ pub(crate) fn bench_merkle_tree<F: RichField, H: Hasher<F>>(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_merkle_tree::<GoldilocksField, PoseidonHash>(c);
-    bench_merkle_tree::<GoldilocksField, KeccakHash<25>>(c);
+    bench_merkle_tree::<Goldilocks, Poseidon64Hash>(c);
+    bench_merkle_tree::<Goldilocks, KeccakHash<25>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

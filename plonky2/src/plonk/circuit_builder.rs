@@ -8,16 +8,17 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
-use log::{debug, info, warn, Level};
+use log::{debug, info, Level, warn};
+use p3_field::{AbstractExtensionField, Field};
+
+use plonky2_field::types::{HasExtension, two_adic_subgroup};
 use plonky2_util::ceil_div_usize;
 
 use crate::field::cosets::get_unique_coset_shifts;
-use crate::field::extension::{Extendable, FieldExtension};
 use crate::field::fft::fft_root_table;
 use crate::field::polynomial::PolynomialValues;
-use crate::field::types::Field;
-use crate::fri::oracle::PolynomialBatch;
 use crate::fri::{FriConfig, FriParams};
+use crate::fri::oracle::PolynomialBatch;
 use crate::gadgets::arithmetic::BaseArithmeticOperation;
 use crate::gadgets::arithmetic_extension::ExtensionArithmeticOperation;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
@@ -38,6 +39,7 @@ use crate::iop::generator::{
     ConstantGenerator, CopyGenerator, RandomValueGenerator, SimpleGenerator, WitnessGeneratorRef,
 };
 use crate::iop::target::{BoolTarget, Target};
+use crate::iop::wire;
 use crate::iop::wire::Wire;
 use crate::plonk::circuit_data::{
     CircuitConfig, CircuitData, CommonCircuitData, MockCircuitData, ProverCircuitData,
@@ -48,10 +50,10 @@ use crate::plonk::copy_constraint::CopyConstraint;
 use crate::plonk::permutation_argument::Forest;
 use crate::plonk::plonk_common::PlonkOracle;
 use crate::timed;
+use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 use crate::util::context_tree::ContextTree;
 use crate::util::partial_products::num_partial_products;
 use crate::util::timing::TimingTree;
-use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 
 /// Number of random coins needed for lookups (for each challenge).
 /// A coin is a randomly sampled extension field element from the verifier,
@@ -92,24 +94,27 @@ pub struct LookupWire {
 /// # Usage
 ///
 /// ```rust
+/// use p3_field::AbstractField;
+/// use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 /// use plonky2::plonk::circuit_data::CircuitConfig;
 /// use plonky2::iop::witness::PartialWitness;
 /// use plonky2::plonk::circuit_builder::CircuitBuilder;
 /// use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-/// use plonky2::field::types::Field;
+///
 ///
 /// // Define parameters for this circuit
 /// const D: usize = 2;
+/// const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 /// type C = PoseidonGoldilocksConfig;
-/// type F = <C as GenericConfig<D>>::F;
+/// type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 ///
-/// let config = CircuitConfig::standard_recursion_config();
-/// let mut builder = CircuitBuilder::<F, D>::new(config);
+/// let config = CircuitConfig::standard_recursion_config_gl();
+/// let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 ///
 /// // Build a circuit for the statement: "I know the 100th term
 /// // of the Fibonacci sequence, starting from 0 and 1".
-/// let initial_a = builder.constant(F::ZERO);
-/// let initial_b = builder.constant(F::ONE);
+/// let initial_a = builder.constant(F::zero());
+/// let initial_b = builder.constant(F::one());
 /// let mut prev_target = initial_a;
 /// let mut cur_target = initial_b;
 /// for _ in 0..99 {
@@ -137,7 +142,13 @@ pub struct LookupWire {
 /// assert!(circuit_data.verify(proof).is_ok());
 /// ```
 #[derive(Debug)]
-pub struct CircuitBuilder<F: RichField + Extendable<D>, const D: usize> {
+pub struct CircuitBuilder<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
     /// Circuit configuration to be used by this [`CircuitBuilder`].
     pub config: CircuitConfig,
 
@@ -147,10 +158,10 @@ pub struct CircuitBuilder<F: RichField + Extendable<D>, const D: usize> {
     domain_separator: Option<Vec<F>>,
 
     /// The types of gates used in this circuit.
-    gates: HashSet<GateRef<F, D>>,
+    gates: HashSet<GateRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// The concrete placement of each gate.
-    pub(crate) gate_instances: Vec<GateInstance<F, D>>,
+    pub(crate) gate_instances: Vec<GateInstance<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// Targets to be made public.
     public_inputs: Vec<Target>,
@@ -164,7 +175,7 @@ pub struct CircuitBuilder<F: RichField + Extendable<D>, const D: usize> {
     context_log: ContextTree,
 
     /// Generators used to generate the witness.
-    generators: Vec<WitnessGeneratorRef<F, D>>,
+    generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
 
     constants_to_targets: HashMap<F, Target>,
     targets_to_constants: HashMap<Target, F>,
@@ -176,7 +187,7 @@ pub struct CircuitBuilder<F: RichField + Extendable<D>, const D: usize> {
     pub(crate) arithmetic_results: HashMap<ExtensionArithmeticOperation<F, D>, ExtensionTarget<D>>,
 
     /// Map between gate type and the current gate of this type with available slots.
-    current_slots: HashMap<GateRef<F, D>, CurrentSlot<F, D>>,
+    pub(crate) current_slots: HashMap<GateRef<F, D, NUM_HASH_OUT_ELTS>, CurrentSlot<F, D>>,
 
     /// List of constant generators used to fill the constant wires.
     constant_generators: Vec<ConstantGenerator<F>>,
@@ -194,14 +205,22 @@ pub struct CircuitBuilder<F: RichField + Extendable<D>, const D: usize> {
     /// Optional common data. When it is `Some(goal_data)`, the `build` function panics if the resulting
     /// common data doesn't equal `goal_data`.
     /// This is used in cyclic recursion.
-    pub(crate) goal_common_data: Option<CommonCircuitData<F, D>>,
+    pub(crate) goal_common_data: Option<CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>>,
 
     /// Optional verifier data that is registered as public inputs.
     /// This is used in cyclic recursion to hold the circuit's own verifier key.
-    pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget>,
+    pub(crate) verifier_data_public_input: Option<VerifierCircuitTarget<NUM_HASH_OUT_ELTS>>,
+
+    /// The random wire taken from the public input gate used to randomize the witnesses in case of
+    /// division by zero in permutation argument (see issue https://github.com/0xPolygonZero/plonky2/issues/456)
+    random_wire: Option<Wire>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Given a [`CircuitConfig`], generate a new [`CircuitBuilder`] instance.
     /// It will also check that the configuration provided is consistent, i.e.
     /// that the different parameters provided can achieve the targeted security
@@ -228,6 +247,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             luts: Vec::new(),
             goal_common_data: None,
             verifier_data_public_input: None,
+            random_wire: None,
         };
         builder.check_config();
         builder
@@ -249,7 +269,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         } = &self.config;
 
         // Conjectured FRI security; see the ethSTARK paper.
-        let fri_field_bits = F::Extension::order().bits() as usize;
+        let fri_field_bits = <F::Extension as Field>::order().bits() as usize;
         let fri_query_security_bits = num_query_rounds * rate_bits + proof_of_work_bits as usize;
         let fri_security_bits = fri_field_bits.min(fri_query_security_bits);
         assert!(
@@ -340,34 +360,40 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Adds a new `HashOutTarget`.
-    pub fn add_virtual_hash(&mut self) -> HashOutTarget {
-        HashOutTarget::from(self.add_virtual_target_arr::<4>())
+    pub fn add_virtual_hash(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+        HashOutTarget::from(self.add_virtual_target_arr::<NUM_HASH_OUT_ELTS>())
     }
 
     /// Registers a new `HashOutTarget` as a public input, adding
     /// internally `NUM_HASH_OUT_ELTS` virtual targets.
-    pub fn add_virtual_hash_public_input(&mut self) -> HashOutTarget {
-        HashOutTarget::from(self.add_virtual_public_input_arr::<4>())
+    pub fn add_virtual_hash_public_input(&mut self) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
+        HashOutTarget::from(self.add_virtual_public_input_arr::<NUM_HASH_OUT_ELTS>())
     }
 
     /// Adds a new `MerkleCapTarget`, consisting in `1 << cap_height` `HashOutTarget`.
-    pub fn add_virtual_cap(&mut self, cap_height: usize) -> MerkleCapTarget {
+    pub fn add_virtual_cap(&mut self, cap_height: usize) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         MerkleCapTarget(self.add_virtual_hashes(1 << cap_height))
     }
 
     /// Adds `n` new `HashOutTarget` in a vector fashion.
-    pub fn add_virtual_hashes(&mut self, n: usize) -> Vec<HashOutTarget> {
+    pub fn add_virtual_hashes(&mut self, n: usize) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n).map(|_i| self.add_virtual_hash()).collect()
     }
 
     /// Registers `n` new `HashOutTarget` as public inputs, in a vector fashion.
-    pub fn add_virtual_hashes_public_input(&mut self, n: usize) -> Vec<HashOutTarget> {
+    pub fn add_virtual_hashes_public_input(
+        &mut self,
+        n: usize,
+    ) -> Vec<HashOutTarget<NUM_HASH_OUT_ELTS>> {
         (0..n)
             .map(|_i| self.add_virtual_hash_public_input())
             .collect()
     }
 
-    pub(crate) fn add_virtual_merkle_proof(&mut self, len: usize) -> MerkleProofTarget {
+    pub(crate) fn add_virtual_merkle_proof(
+        &mut self,
+        len: usize,
+    ) -> MerkleProofTarget<NUM_HASH_OUT_ELTS> {
         MerkleProofTarget {
             siblings: self.add_virtual_hashes(len),
         }
@@ -414,7 +440,10 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         ts
     }
 
-    pub fn add_virtual_verifier_data(&mut self, cap_height: usize) -> VerifierCircuitTarget {
+    pub fn add_virtual_verifier_data(
+        &mut self,
+        cap_height: usize,
+    ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         VerifierCircuitTarget {
             constants_sigmas_cap: self.add_virtual_cap(cap_height),
             circuit_digest: self.add_virtual_hash(),
@@ -425,7 +454,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     ///
     /// **WARNING**: Do not register any public input after calling this!
     // TODO: relax this
-    pub fn add_verifier_data_public_inputs(&mut self) -> VerifierCircuitTarget {
+    pub fn add_verifier_data_public_inputs(&mut self) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         assert!(
             self.verifier_data_public_input.is_none(),
             "add_verifier_data_public_inputs only needs to be called once"
@@ -443,14 +472,18 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Adds a gate to the circuit, and returns its index.
-    pub fn add_gate<G: Gate<F, D>>(&mut self, gate_type: G, mut constants: Vec<F>) -> usize {
+    pub fn add_gate<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(
+        &mut self,
+        gate_type: G,
+        mut constants: Vec<F>,
+    ) -> usize {
         self.check_gate_compatibility(&gate_type);
 
         assert!(
             constants.len() <= gate_type.num_constants(),
             "Too many constants."
         );
-        constants.resize(gate_type.num_constants(), F::ZERO);
+        constants.resize(gate_type.num_constants(), F::zero());
 
         let row = self.gate_instances.len();
 
@@ -460,7 +493,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
                     row,
                     constant_index,
                     wire_index,
-                    constant: F::ZERO, // Placeholder; will be replaced later.
+                    constant: F::zero(), // Placeholder; will be replaced later.
                 },
             ));
 
@@ -480,7 +513,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         row
     }
 
-    fn check_gate_compatibility<G: Gate<F, D>>(&self, gate: &G) {
+    fn check_gate_compatibility<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(&self, gate: &G) {
         assert!(
             gate.num_wires() <= self.config.num_wires,
             "{:?} requires {} wires, but our CircuitConfig has only {}",
@@ -499,7 +532,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Adds a gate type to the set of gates to be used in this circuit. This can be useful
     /// in conditional recursion to uniformize the set of gates of the different circuits.
-    pub fn add_gate_to_gate_set(&mut self, gate: GateRef<F, D>) {
+    pub fn add_gate_to_gate_set(&mut self, gate: GateRef<F, D, NUM_HASH_OUT_ELTS>) {
         self.gates.insert(gate);
     }
 
@@ -558,33 +591,39 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         self.connect(x, one);
     }
 
-    pub fn add_generators(&mut self, generators: Vec<WitnessGeneratorRef<F, D>>) {
+    pub fn add_generators(
+        &mut self,
+        generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
+    ) {
         self.generators.extend(generators);
     }
 
-    pub fn add_simple_generator<G: SimpleGenerator<F, D>>(&mut self, generator: G) {
+    pub fn add_simple_generator<G: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS>>(
+        &mut self,
+        generator: G,
+    ) {
         self.generators
             .push(WitnessGeneratorRef::new(generator.adapter()));
     }
 
     /// Returns a routable target with a value of 0.
     pub fn zero(&mut self) -> Target {
-        self.constant(F::ZERO)
+        self.constant(F::zero())
     }
 
     /// Returns a routable target with a value of 1.
     pub fn one(&mut self) -> Target {
-        self.constant(F::ONE)
+        self.constant(F::one())
     }
 
     /// Returns a routable target with a value of 2.
     pub fn two(&mut self) -> Target {
-        self.constant(F::TWO)
+        self.constant(F::two())
     }
 
     /// Returns a routable target with a value of `order() - 1`.
     pub fn neg_one(&mut self) -> Target {
-        self.constant(F::NEG_ONE)
+        self.constant(F::neg_one())
     }
 
     /// Returns a routable boolean target set to false.
@@ -626,26 +665,31 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Returns a routable [`HashOutTarget`].
-    pub fn constant_hash(&mut self, h: HashOut<F>) -> HashOutTarget {
+    pub fn constant_hash(
+        &mut self,
+        h: HashOut<F, NUM_HASH_OUT_ELTS>,
+    ) -> HashOutTarget<NUM_HASH_OUT_ELTS> {
         HashOutTarget {
             elements: h.elements.map(|x| self.constant(x)),
         }
     }
 
     /// Returns a routable [`MerkleCapTarget`].
-    pub fn constant_merkle_cap<H: Hasher<F, Hash = HashOut<F>>>(
+    pub fn constant_merkle_cap<H: Hasher<F, Hash = HashOut<F, NUM_HASH_OUT_ELTS>>>(
         &mut self,
         cap: &MerkleCap<F, H>,
-    ) -> MerkleCapTarget {
+    ) -> MerkleCapTarget<NUM_HASH_OUT_ELTS> {
         MerkleCapTarget(cap.0.iter().map(|h| self.constant_hash(*h)).collect())
     }
 
-    pub fn constant_verifier_data<C: GenericConfig<D, F = F>>(
+    pub fn constant_verifier_data<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         &mut self,
-        verifier_data: &VerifierOnlyCircuitData<C, D>,
-    ) -> VerifierCircuitTarget
+        verifier_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
+    ) -> VerifierCircuitTarget<NUM_HASH_OUT_ELTS>
     where
-        C::Hasher: AlgebraicHasher<F>,
+        C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {
         VerifierCircuitTarget {
             constants_sigmas_cap: self.constant_merkle_cap(&verifier_data.constants_sigmas_cap),
@@ -670,8 +714,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             .filter_map(|&t| self.target_as_constant(t))
             .collect();
 
-        if let Ok(d_const_coeffs) = const_coeffs.try_into() {
-            Some(F::Extension::from_basefield_array(d_const_coeffs))
+        if const_coeffs.len() == D {
+            Some(<F::Extension as AbstractExtensionField<F>>::from_base_slice(&const_coeffs))
         } else {
             None
         }
@@ -782,7 +826,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// Find an available slot, of the form `(row, op)` for gate `G` using parameters `params`
     /// and constants `constants`. Parameters are any data used to differentiate which gate should be
     /// used for the given operation.
-    pub fn find_slot<G: Gate<F, D> + Clone>(
+    pub fn find_slot<G: Gate<F, D, NUM_HASH_OUT_ELTS> + Clone>(
         &mut self,
         gate: G,
         params: &[F],
@@ -791,8 +835,10 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let num_gates = self.num_gates();
         let num_ops = gate.num_ops();
         let gate_ref = GateRef::new(gate.clone());
+        let gate_ref_bis = GateRef::new(gate.clone());
+        assert_eq!(gate_ref.clone(), gate_ref_bis.clone());
         let gate_slot = self.current_slots.entry(gate_ref.clone()).or_default();
-        let slot = gate_slot.current_slot.get(params);
+        let slot = gate_slot.current_slot.get::<[F]>(params);
         let (gate_idx, slot_idx) = if let Some(&s) = slot {
             s
         } else {
@@ -952,7 +998,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
                 .iter()
                 .map(|g| {
                     let mut consts = g.constants.clone();
-                    consts.resize(max_constants, F::ZERO);
+                    consts.resize(max_constants, F::zero());
                     consts
                 })
                 .collect::<Vec<_>>(),
@@ -1023,17 +1069,40 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     /// See <https://github.com/0xPolygonZero/plonky2/issues/456>.
     fn randomize_unused_pi_wires(&mut self, pi_gate: usize) {
         for wire in PublicInputGate::wires_public_inputs_hash().end..self.config.num_wires {
+            let wire_obj = wire::Wire{row: pi_gate, column:wire};
+            if wire == self.config.num_wires - 1 {
+                self.random_wire = Some(wire_obj);
+            }
+
             self.add_simple_generator(RandomValueGenerator {
-                target: Target::wire(pi_gate, wire),
+                target: Target::Wire(wire_obj),
             });
         }
     }
 
+    fn complete_gates_wires(&mut self) {
+        for (gate_ref, gate_slot) in self.current_slots.clone().iter() {
+            for (params, (gate_idx, slot_idx)) in &gate_slot.current_slot {
+                if gate_ref.0.complete_wires(self, *gate_idx, *slot_idx) {
+                    let current_slot = &mut self
+                        .current_slots
+                        .get_mut(&gate_ref.clone())
+                        .unwrap()
+                        .current_slot;
+                    current_slot.remove(params);
+                }
+            }
+        }
+    }
+
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build_with_options<C: GenericConfig<D, F = F>>(
+    pub fn build_with_options<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
         commit_to_sigma: bool,
-    ) -> CircuitData<F, C, D> {
+    ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    where
+        
+    {
         let (circuit_data, success) = self.try_build_with_options(commit_to_sigma);
         if !success {
             panic!("Failed to build circuit");
@@ -1041,10 +1110,16 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         circuit_data
     }
 
-    pub fn try_build_with_options<C: GenericConfig<D, F = F>>(
+    pub fn try_build_with_options<
+        C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
+    >(
         mut self,
         commit_to_sigma: bool,
-    ) -> (CircuitData<F, C, D>, bool) {
+    ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
+    where
+        
+    {
+        self.complete_gates_wires();
         let mut timing = TimingTree::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]
@@ -1089,7 +1164,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             .into_iter()
             // We need to enumerate constants_to_targets in some deterministic order to ensure that
             // building a circuit is deterministic.
-            .sorted_by_key(|(c, _t)| c.to_canonical_u64())
+            .sorted_by_key(|(c, _t)| c.as_canonical_u64())
             .zip(self.constant_generators.clone())
         {
             // Set the constant in the constant polynomial.
@@ -1138,7 +1213,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         constant_vecs.extend(self.constant_polys());
         let num_constants = constant_vecs.len();
 
-        let subgroup = F::two_adic_subgroup(degree_bits);
+        let subgroup = two_adic_subgroup::<F>(degree_bits);
 
         let k_is = get_unique_coset_shifts(degree, self.config.num_routed_wires);
         let (sigma_vecs, forest) = timed!(
@@ -1153,7 +1228,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
         let constants_sigmas_commitment = if commit_to_sigma {
             let constants_sigmas_vecs = [constant_vecs, sigma_vecs.clone()].concat();
-            PolynomialBatch::<F, C, D>::from_values(
+            PolynomialBatch::<F, C, D, NUM_HASH_OUT_ELTS>::from_values(
                 constants_sigmas_vecs,
                 rate_bits,
                 PlonkOracle::CONSTANTS_SIGMAS.blinding,
@@ -1162,7 +1237,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
                 Some(&fft_root_table),
             )
         } else {
-            PolynomialBatch::<F, C, D>::default()
+            PolynomialBatch::<F, C, D, NUM_HASH_OUT_ELTS>::default()
         };
 
         // Map between gates where not all generators are used and the gate's number of used generators.
@@ -1260,7 +1335,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             }
         }
 
-        let prover_only = ProverOnlyCircuitData::<F, C, D> {
+
+        let prover_only = ProverOnlyCircuitData::<F, C, D, NUM_HASH_OUT_ELTS> {
             generators: self.generators,
             generator_indices_by_watches,
             constants_sigmas_commitment,
@@ -1272,9 +1348,10 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             circuit_digest,
             lookup_rows: self.lookup_rows.clone(),
             lut_to_lookups: self.lut_to_lookups.clone(),
+            random_wire: self.random_wire.clone(),
         };
 
-        let verifier_only = VerifierOnlyCircuitData::<C, D> {
+        let verifier_only = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS> {
             constants_sigmas_cap,
             circuit_digest,
         };
@@ -1293,11 +1370,21 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     }
 
     /// Builds a "full circuit", with both prover and verifier data.
-    pub fn build<C: GenericConfig<D, F = F>>(self) -> CircuitData<F, C, D> {
+    pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+        self,
+    ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    where
+        
+    {
         self.build_with_options(true)
     }
 
-    pub fn mock_build<C: GenericConfig<D, F = F>>(self) -> MockCircuitData<F, C, D> {
+    pub fn mock_build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+        self,
+    ) -> MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    where
+        
+    {
         let circuit_data = self.build_with_options(false);
         MockCircuitData {
             prover_only: circuit_data.prover_only,
@@ -1305,14 +1392,24 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         }
     }
     /// Builds a "prover circuit", with data needed to generate proofs but not verify them.
-    pub fn build_prover<C: GenericConfig<D, F = F>>(self) -> ProverCircuitData<F, C, D> {
+    pub fn build_prover<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+        self,
+    ) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    where
+        
+    {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.prover_data()
     }
 
     /// Builds a "verifier circuit", with data needed to verify proofs but not generate them.
-    pub fn build_verifier<C: GenericConfig<D, F = F>>(self) -> VerifierCircuitData<F, C, D> {
+    pub fn build_verifier<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
+        self,
+    ) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
+    where
+        
+    {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.verifier_data()

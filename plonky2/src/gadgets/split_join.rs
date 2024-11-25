@@ -5,7 +5,9 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::field::extension::Extendable;
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::base_sum::BaseSumGate;
 use crate::hash::hash_types::RichField;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator};
@@ -16,7 +18,11 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::ceil_div_usize;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Split the given integer into a list of wires, where each one represents a
     /// bit of the integer, with little-endian ordering.
     /// Verifies that the decomposition is correct by using `k` `BaseSum<2>` gates
@@ -43,7 +49,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         }
 
         let zero = self.zero();
-        let base = F::TWO.exp_u64(gate_type.num_limbs as u64);
+        let base = F::two().exp_u64(gate_type.num_limbs as u64);
         let mut acc = zero;
         for &gate in gates.iter().rev() {
             let sum = Target::wire(gate, BaseSumGate::<2>::WIRE_SUM);
@@ -67,7 +73,11 @@ pub struct SplitGenerator {
     bits: Vec<Target>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for SplitGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SplitGenerator
+where
+    
+{
     fn id(&self) -> String {
         "SplitGenerator".to_string()
     }
@@ -77,7 +87,7 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Spl
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
-        let mut integer_value = witness.get_target(self.integer).to_canonical_u64();
+        let mut integer_value = witness.get_target(self.integer).as_canonical_u64();
 
         for &b in &self.bits {
             let b_value = integer_value & 1;
@@ -91,12 +101,19 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Spl
         );
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.integer)?;
         dst.write_target_vec(&self.bits)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let integer = src.read_target()?;
         let bits = src.read_target_vec()?;
         Ok(Self { integer, bits })
@@ -110,7 +127,11 @@ pub struct WireSplitGenerator {
     num_limbs: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for WireSplitGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for WireSplitGenerator
+where
+    
+{
     fn id(&self) -> String {
         "WireSplitGenerator".to_string()
     }
@@ -120,7 +141,7 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Wir
     }
 
     fn run_once(&self, witness: &PartitionWitness<F>, out_buffer: &mut GeneratedValues<F>) {
-        let mut integer_value = witness.get_target(self.integer).to_canonical_u64();
+        let mut integer_value = witness.get_target(self.integer).as_canonical_u64();
 
         for &gate in &self.gates {
             let sum = Target::wire(gate, BaseSumGate::<2>::WIRE_SUM);
@@ -146,13 +167,20 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Wir
         );
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target(self.integer)?;
         dst.write_usize_vec(&self.gates)?;
         dst.write_usize(self.num_limbs)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let integer = src.read_target()?;
         let gates = src.read_usize_vec()?;
         let num_limbs = src.read_usize()?;

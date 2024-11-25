@@ -2,14 +2,13 @@
 use alloc::{format, vec, vec::Vec};
 use core::cmp::min;
 
+use p3_field::AbstractExtensionField;
+
 use plonky2_field::polynomial::PolynomialCoeffs;
+use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
 
-use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
-use super::vars::EvaluationVarsBase;
 use crate::field::batch_util::batch_add_inplace;
-use crate::field::extension::{Extendable, FieldExtension};
-use crate::field::types::Field;
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::gates::lookup::LookupGate;
 use crate::gates::lookup_table::LookupTableGate;
@@ -27,20 +26,30 @@ use crate::util::reducing::ReducingFactorTarget;
 use crate::util::strided_view::PackedStridedView;
 use crate::with_context;
 
+use super::circuit_builder::{LookupChallenges, NUM_COINS_LOOKUP};
+use super::vars::EvaluationVarsBase;
+
 /// Get the polynomial associated to a lookup table with current challenges.
-pub(crate) fn get_lut_poly<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn get_lut_poly<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     lut_index: usize,
     deltas: &[F],
     degree: usize,
-) -> PolynomialCoeffs<F> {
+) -> PolynomialCoeffs<F>
+where
+    
+{
     let b = deltas[LookupChallenges::ChallengeB as usize];
     let mut coeffs = Vec::with_capacity(common_data.luts[lut_index].len());
     let n = common_data.luts[lut_index].len();
     for (input, output) in common_data.luts[lut_index].iter() {
         coeffs.push(F::from_canonical_u16(*input) + b * F::from_canonical_u16(*output));
     }
-    coeffs.append(&mut vec![F::ZERO; degree - n]);
+    coeffs.append(&mut vec![F::zero(); degree - n]);
     coeffs.reverse();
     PolynomialCoeffs::new(coeffs)
 }
@@ -48,10 +57,14 @@ pub(crate) fn get_lut_poly<F: RichField + Extendable<D>, const D: usize>(
 /// Evaluate the vanishing polynomial at `x`. In this context, the vanishing polynomial is a random
 /// linear combination of gate constraints, plus some other terms relating to the permutation
 /// argument. All such terms should vanish on `H`.
-pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn eval_vanishing_poly<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     x: F::Extension,
-    vars: EvaluationVars<F, D>,
+    vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     local_zs: &[F::Extension],
     next_zs: &[F::Extension],
     local_lookup_zs: &[F::Extension],
@@ -62,12 +75,15 @@ pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
     gammas: &[F],
     alphas: &[F],
     deltas: &[F],
-) -> Vec<F::Extension> {
+) -> Vec<F::Extension>
+where
+    
+{
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
 
-    let constraint_terms = evaluate_gate_constraints::<F, D>(common_data, vars);
+    let constraint_terms = evaluate_gate_constraints::<F, D, NUM_HASH_OUT_ELTS>(common_data, vars);
 
     let lookup_selectors = &vars.local_constants[common_data.selectors_info.num_selectors()
         ..common_data.selectors_info.num_selectors() + common_data.num_lookup_selectors];
@@ -93,7 +109,7 @@ pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
     for i in 0..common_data.config.num_challenges {
         let z_x = local_zs[i];
         let z_gx = next_zs[i];
-        vanishing_z_1_terms.push(l_0_x * (z_x - F::Extension::ONE));
+        vanishing_z_1_terms.push(l_0_x * (z_x - F::Extension::from_base(F::one())));
 
         if has_lookup {
             let cur_local_lookup_zs = &local_lookup_zs
@@ -119,15 +135,19 @@ pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
             .map(|j| {
                 let wire_value = vars.local_wires[j];
                 let k_i = common_data.k_is[j];
-                let s_id = x.scalar_mul(k_i);
-                wire_value + s_id.scalar_mul(betas[i]) + gammas[i].into()
+                let s_id = x * F::Extension::from_base(k_i);
+                wire_value
+                    + s_id * F::Extension::from_base(betas[i])
+                    + F::Extension::from_base(gammas[i])
             })
             .collect::<Vec<_>>();
         let denominator_values = (0..common_data.config.num_routed_wires)
             .map(|j| {
                 let wire_value = vars.local_wires[j];
                 let s_sigma = s_sigmas[j];
-                wire_value + s_sigma.scalar_mul(betas[i]) + gammas[i].into()
+                wire_value
+                    + s_sigma * F::Extension::from_base(betas[i])
+                    + F::Extension::from_base(gammas[i])
             })
             .collect::<Vec<_>>();
 
@@ -158,11 +178,15 @@ pub(crate) fn eval_vanishing_poly<F: RichField + Extendable<D>, const D: usize>(
 }
 
 /// Like `eval_vanishing_poly`, but specialized for base field points. Batched.
-pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn eval_vanishing_poly_base_batch<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     indices_batch: &[usize],
     xs_batch: &[F],
-    vars_batch: EvaluationVarsBaseBatch<F>,
+    vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
     local_zs_batch: &[&[F]],
     next_zs_batch: &[&[F]],
     local_lookup_zs_batch: &[&[F]],
@@ -175,7 +199,10 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const
     alphas: &[F],
     z_h_on_coset: &ZeroPolyOnCoset<F>,
     lut_re_poly_evals: &[&[F]],
-) -> Vec<Vec<F>> {
+) -> Vec<Vec<F>>
+where
+    
+{
     let has_lookup = common_data.num_lookup_polys != 0;
 
     let n = indices_batch.len();
@@ -199,7 +226,7 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const
     let num_gate_constraints = common_data.num_gate_constraints;
 
     let constraint_terms_batch =
-        evaluate_gate_constraints_base_batch::<F, D>(common_data, vars_batch);
+        evaluate_gate_constraints_base_batch::<F, D, NUM_HASH_OUT_ELTS>(common_data, vars_batch);
     debug_assert!(constraint_terms_batch.len() == n * num_gate_constraints);
 
     let num_challenges = common_data.config.num_challenges;
@@ -256,7 +283,7 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const
         for i in 0..num_challenges {
             let z_x = local_zs[i];
             let z_gx = next_zs[i];
-            vanishing_z_1_terms.push(l_0_x * z_x.sub_one());
+            vanishing_z_1_terms.push(l_0_x * (z_x - F::one()));
 
             // If there are lookups in the circuit, then we add the lookup constraints.
             if has_lookup {
@@ -333,14 +360,21 @@ pub(crate) fn eval_vanishing_poly_base_batch<F: RichField + Extendable<D>, const
 /// Sum and LDC are broken down in partial polynomials to lower the constraint degree, similarly to the permutation argument.
 /// They also share the same partial SLDC polynomials, so that the last SLDC value is Sum(end) - LDC(end). The final constraint
 /// Sum(end) = LDC(end) becomes simply SLDC(end) = 0, and we can remove the LDC initial constraint.
-pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationVars<F, D>,
+pub fn check_lookup_constraints<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[F::Extension],
     next_lookup_zs: &[F::Extension],
     lookup_selectors: &[F::Extension],
     deltas: &[F; 4],
-) -> Vec<F::Extension> {
+) -> Vec<F::Extension>
+where
+    
+{
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;
@@ -357,8 +391,8 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
     let z_x_lookup_sldcs = &local_lookup_zs[1..num_sldc_polys + 1];
     let z_gx_lookup_sldcs = &next_lookup_zs[1..num_sldc_polys + 1];
 
-    let delta_challenge_a = F::Extension::from(deltas[LookupChallenges::ChallengeA as usize]);
-    let delta_challenge_b = F::Extension::from(deltas[LookupChallenges::ChallengeB as usize]);
+    let delta_challenge_a = F::Extension::from_base(deltas[LookupChallenges::ChallengeA as usize]);
+    let delta_challenge_b = F::Extension::from_base(deltas[LookupChallenges::ChallengeB as usize]);
 
     // Compute all current looked and looking combos, i.e. the combos we need for the SLDC polynomials.
     let current_looked_combos: Vec<F::Extension> = (0..num_lut_slots)
@@ -414,14 +448,15 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
         )
         .eval(current_delta);
 
-        constraints.push(cur_ends_selector * (z_re - cur_function_eval.into()))
+        constraints.push(cur_ends_selector * (z_re - F::Extension::from_base(cur_function_eval)))
     }
 
     // Check RE row transition constraint.
     let mut cur_sum = next_z_re;
     for elt in &current_lookup_combos {
-        cur_sum =
-            cur_sum * F::Extension::from(deltas[LookupChallenges::ChallengeDelta as usize]) + *elt;
+        cur_sum = cur_sum
+            * F::Extension::from_base(deltas[LookupChallenges::ChallengeDelta as usize])
+            + *elt;
     }
     let unfiltered_re_line = z_re - cur_sum;
 
@@ -432,7 +467,7 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
         let lut_prod: F::Extension = (poly * lut_degree
             ..min((poly + 1) * lut_degree, num_lut_slots))
             .map(|i| {
-                F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                F::Extension::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                     - current_looked_combos[i]
             })
             .product();
@@ -440,7 +475,7 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
         // Compute prod(alpha - combo) for the current slot for LDC.
         let lu_prod: F::Extension = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
             .map(|i| {
-                F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                F::Extension::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                     - current_looking_combos[i]
             })
             .product();
@@ -450,13 +485,13 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
             (poly * lut_degree..min((poly + 1) * lut_degree, num_lut_slots))
                 .map(|j| {
                     if j != i {
-                        F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                        F::Extension::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                             - current_looked_combos[j]
                     } else {
-                        F::Extension::ONE
+                        F::Extension::from_base(F::one())
                     }
                 })
-                .product()
+                .product::<F::Extension>()
         };
 
         // Function which computes, given index i: prod_{j!=i}(alpha - combo_j) for LDC.
@@ -464,22 +499,24 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
             (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
                 .map(|j| {
                     if j != i {
-                        F::Extension::from(deltas[LookupChallenges::ChallengeAlpha as usize])
+                        F::Extension::from_base(deltas[LookupChallenges::ChallengeAlpha as usize])
                             - current_looking_combos[j]
                     } else {
-                        F::Extension::ONE
+                        F::Extension::from_base(F::one())
                     }
                 })
-                .product()
+                .product::<F::Extension>()
         };
         // Compute sum_i(prod_{j!=i}(alpha - combo_j)) for LDC.
         let lu_sum_prods = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
-            .fold(F::Extension::ZERO, |acc, i| acc + lu_prod_i(i));
+            .fold(F::Extension::from_base(F::zero()), |acc, i| {
+                acc + lu_prod_i(i)
+            });
 
         // Compute sum_i(mul_i.prod_{j!=i}(alpha - combo_j)) for Sum.
         let lut_sum_prods_with_mul = (poly * lut_degree
             ..min((poly + 1) * lut_degree, num_lut_slots))
-            .fold(F::Extension::ZERO, |acc, i| {
+            .fold(F::Extension::from_base(F::zero()), |acc, i| {
                 acc + vars.local_wires[LookupTableGate::wire_ith_multiplicity(i)] * lut_prod_i(i)
             });
 
@@ -506,15 +543,22 @@ pub fn check_lookup_constraints<F: RichField + Extendable<D>, const D: usize>(
 }
 
 /// Same as `check_lookup_constraints`, but for the base field case.
-pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationVarsBase<F>,
+pub fn check_lookup_constraints_batch<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[F],
     next_lookup_zs: &[F],
     lookup_selectors: &[F],
     deltas: &[F; 4],
     lut_re_poly_evals: &[F],
-) -> Vec<F> {
+) -> Vec<F>
+where
+    
+{
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;
@@ -605,7 +649,7 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
                     if j != i {
                         deltas[LookupChallenges::ChallengeAlpha as usize] - current_looked_combos[j]
                     } else {
-                        F::ONE
+                        F::one()
                     }
                 })
                 .product()
@@ -619,7 +663,7 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
                         deltas[LookupChallenges::ChallengeAlpha as usize]
                             - current_looking_combos[j]
                     } else {
-                        F::ONE
+                        F::one()
                     }
                 })
                 .product()
@@ -627,12 +671,12 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
 
         // Compute sum_i(prod_{j!=i}(alpha - combo_j)) for LDC.
         let lu_sum_prods = (poly * lu_degree..min((poly + 1) * lu_degree, num_lu_slots))
-            .fold(F::ZERO, |acc, i| acc + lu_prod_i(i));
+            .fold(F::zero(), |acc, i| acc + lu_prod_i(i));
 
         // Compute sum_i(mul_i.prod_{j!=i}(alpha - combo_j)) for Sum.
         let lut_sum_prods_with_mul = (poly * lut_degree
             ..min((poly + 1) * lut_degree, num_lut_slots))
-            .fold(F::ZERO, |acc, i| {
+            .fold(F::zero(), |acc, i| {
                 acc + vars.local_wires[LookupTableGate::wire_ith_multiplicity(i)] * lut_prod_i(i)
             });
 
@@ -662,11 +706,19 @@ pub fn check_lookup_constraints_batch<F: RichField + Extendable<D>, const D: usi
 /// `num_gate_constraints` is the largest number of constraints imposed by any gate. It is not
 /// strictly necessary, but it helps performance by ensuring that we allocate a vector with exactly
 /// the capacity that we need.
-pub fn evaluate_gate_constraints<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationVars<F, D>,
-) -> Vec<F::Extension> {
-    let mut constraints = vec![F::Extension::ZERO; common_data.num_gate_constraints];
+pub fn evaluate_gate_constraints<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
+) -> Vec<F::Extension>
+where
+    
+{
+    let mut constraints =
+        vec![F::Extension::from_base(F::zero()); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
         let gate_constraints = gate.0.eval_filtered(
@@ -693,11 +745,19 @@ pub fn evaluate_gate_constraints<F: RichField + Extendable<D>, const D: usize>(
 /// Returns a vector of `num_gate_constraints * vars_batch.len()` field elements. The constraints
 /// corresponding to `vars_batch[i]` are found in `result[i], result[vars_batch.len() + i],
 /// result[2 * vars_batch.len() + i], ...`.
-pub fn evaluate_gate_constraints_base_batch<F: RichField + Extendable<D>, const D: usize>(
-    common_data: &CommonCircuitData<F, D>,
-    vars_batch: EvaluationVarsBaseBatch<F>,
-) -> Vec<F> {
-    let mut constraints_batch = vec![F::ZERO; common_data.num_gate_constraints * vars_batch.len()];
+pub fn evaluate_gate_constraints_base_batch<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    vars_batch: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+) -> Vec<F>
+where
+    
+{
+    let mut constraints_batch =
+        vec![F::zero(); common_data.num_gate_constraints * vars_batch.len()];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
         let gate_constraints_batch = gate.0.eval_filtered_base_batch(
@@ -721,11 +781,18 @@ pub fn evaluate_gate_constraints_base_batch<F: RichField + Extendable<D>, const 
     constraints_batch
 }
 
-pub fn evaluate_gate_constraints_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationTargets<D>,
-) -> Vec<ExtensionTarget<D>> {
+pub fn evaluate_gate_constraints_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
+) -> Vec<ExtensionTarget<D>>
+where
+    
+{
     let mut all_gate_constraints = vec![builder.zero_extension(); common_data.num_gate_constraints];
     for (i, gate) in common_data.gates.iter().enumerate() {
         let selector_index = common_data.selectors_info.selector_indices[i];
@@ -747,13 +814,20 @@ pub fn evaluate_gate_constraints_circuit<F: RichField + Extendable<D>, const D: 
     all_gate_constraints
 }
 
-pub(crate) fn get_lut_poly_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn get_lut_poly_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     lut_index: usize,
     deltas: &[Target],
     degree: usize,
-) -> Target {
+) -> Target
+where
+    
+{
     let b = deltas[LookupChallenges::ChallengeB as usize];
     let delta = deltas[LookupChallenges::ChallengeDelta as usize];
     let n = common_data.luts[lut_index].len();
@@ -771,7 +845,7 @@ pub(crate) fn get_lut_poly_circuit<F: RichField + Extendable<D>, const D: usize>
     coeffs
         .iter()
         .rev()
-        .fold(builder.constant(F::ZERO), |acc, &c| {
+        .fold(builder.constant(F::zero()), |acc, &c| {
             let temp = builder.mul(acc, delta);
             builder.add(temp, c)
         })
@@ -783,12 +857,16 @@ pub(crate) fn get_lut_poly_circuit<F: RichField + Extendable<D>, const D: usize>
 ///
 /// Assumes `x != 1`; if `x` could be 1 then this is unsound. This is fine if `x` is a random
 /// variable drawn from a sufficiently large domain.
-pub(crate) fn eval_vanishing_poly_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
+pub(crate) fn eval_vanishing_poly_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     x: ExtensionTarget<D>,
     x_pow_deg: ExtensionTarget<D>,
-    vars: EvaluationTargets<D>,
+    vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     local_zs: &[ExtensionTarget<D>],
     next_zs: &[ExtensionTarget<D>],
     local_lookup_zs: &[ExtensionTarget<D>],
@@ -799,7 +877,10 @@ pub(crate) fn eval_vanishing_poly_circuit<F: RichField + Extendable<D>, const D:
     gammas: &[Target],
     alphas: &[Target],
     deltas: &[Target],
-) -> Vec<ExtensionTarget<D>> {
+) -> Vec<ExtensionTarget<D>>
+where
+    
+{
     let has_lookup = common_data.num_lookup_polys != 0;
     let max_degree = common_data.quotient_degree_factor;
     let num_prods = common_data.num_partial_products;
@@ -807,7 +888,7 @@ pub(crate) fn eval_vanishing_poly_circuit<F: RichField + Extendable<D>, const D:
     let constraint_terms = with_context!(
         builder,
         "evaluate gate constraints",
-        evaluate_gate_constraints_circuit::<F, D>(builder, common_data, vars,)
+        evaluate_gate_constraints_circuit::<F, D, NUM_HASH_OUT_ELTS>(builder, common_data, vars,)
     );
 
     let lookup_selectors = &vars.local_constants[common_data.selectors_info.num_selectors()
@@ -918,15 +999,22 @@ pub(crate) fn eval_vanishing_poly_circuit<F: RichField + Extendable<D>, const D:
 }
 
 /// Same as `check_lookup_constraints`, but for the recursive case.
-pub fn check_lookup_constraints_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
-    common_data: &CommonCircuitData<F, D>,
-    vars: EvaluationTargets<D>,
+pub fn check_lookup_constraints_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     local_lookup_zs: &[ExtensionTarget<D>],
     next_lookup_zs: &[ExtensionTarget<D>],
     lookup_selectors: &[ExtensionTarget<D>],
     deltas: &[Target],
-) -> Vec<ExtensionTarget<D>> {
+) -> Vec<ExtensionTarget<D>>
+where
+    
+{
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
     let num_lut_slots = LookupTableGate::num_slots(&common_data.config);
     let lu_degree = common_data.quotient_degree_factor - 1;

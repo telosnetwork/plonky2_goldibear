@@ -3,12 +3,13 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+use p3_field::Field;
+
 use plonky2_maybe_rayon::*;
 #[doc(inline)]
 pub use plonky2_util::*;
 
 use crate::field::polynomial::PolynomialValues;
-use crate::field::types::Field;
 
 pub(crate) mod context_tree;
 pub(crate) mod partial_products;
@@ -42,7 +43,6 @@ pub(crate) const fn reverse_bits(n: usize, num_bits: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-
     #[cfg(not(feature = "std"))]
     use alloc::vec;
 

@@ -23,6 +23,8 @@
 
 // Gates have `new` methods that return `GateRef`s.
 
+pub mod add_many;
+pub mod apply_mat4;
 pub mod arithmetic_base;
 pub mod arithmetic_extension;
 pub mod base_sum;
@@ -35,8 +37,11 @@ pub mod lookup_table;
 pub mod multiplication_extension;
 pub mod noop;
 pub mod packed_util;
-pub mod poseidon;
-pub mod poseidon_mds;
+pub mod poseidon2_babybear;
+pub mod poseidon2_internal_permutation;
+pub mod poseidon2_risc0_babybear;
+pub mod poseidon_goldilocks;
+pub mod poseidon_goldilocks_mds;
 pub mod public_input;
 pub mod random_access;
 pub mod reducing;

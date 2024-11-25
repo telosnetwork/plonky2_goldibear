@@ -3,26 +3,35 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 #[cfg(feature = "std")]
-use std::vec::Vec; // For macros below
+use std::vec::Vec;
 
-use plonky2_field::extension::Extendable;
+
+use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::GateRef;
 use crate::hash::hash_types::RichField;
 use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::serialization::{Buffer, IoResult};
 
-pub trait GateSerializer<F: RichField + Extendable<D>, const D: usize> {
+// For macros below
+
+pub trait GateSerializer<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+> where
+    
+{
     fn read_gate(
         &self,
         buf: &mut Buffer,
-        common_data: &CommonCircuitData<F, D>,
-    ) -> IoResult<GateRef<F, D>>;
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>;
     fn write_gate(
         &self,
         buf: &mut Vec<u8>,
-        gate: &GateRef<F, D>,
-        common_data: &CommonCircuitData<F, D>,
+        gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>;
 }
 
@@ -33,8 +42,8 @@ macro_rules! read_gate_impl {
         let buf = $buf;
         let mut i = 0..;
         $(if tag == i.next().unwrap() {
-            let gate = <$gate_types as $crate::gates::gate::Gate<F, D>>::deserialize(buf, $common)?;
-            Ok($crate::gates::gate::GateRef::<F, D>::new(gate))
+            let gate = <$gate_types as $crate::gates::gate::Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(buf, $common)?;
+            Ok($crate::gates::gate::GateRef::<F, D, NUM_HASH_OUT_ELTS>::new(gate))
         } else)*
         {
             Err($crate::util::serialization::IoError)
@@ -71,8 +80,8 @@ macro_rules! impl_gate_serializer {
         fn read_gate(
             &self,
             buf: &mut $crate::util::serialization::Buffer,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
-        ) -> $crate::util::serialization::IoResult<$crate::gates::gate::GateRef<F, D>> {
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+        ) -> $crate::util::serialization::IoResult<$crate::gates::gate::GateRef<F, D, NUM_HASH_OUT_ELTS>> {
             let tag = $crate::util::serialization::Read::read_u32(buf)?;
             read_gate_impl!(buf, tag, common, $($gate_types),+)
         }
@@ -80,8 +89,8 @@ macro_rules! impl_gate_serializer {
         fn write_gate(
             &self,
             buf: &mut $crate::util::serialization::gate_serialization::Vec<u8>,
-            gate: &$crate::gates::gate::GateRef<F, D>,
-            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D>,
+            gate: &$crate::gates::gate::GateRef<F, D, NUM_HASH_OUT_ELTS>,
+            common: &$crate::plonk::circuit_data::CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         ) -> $crate::util::serialization::IoResult<()> {
             let tag = get_gate_tag_impl!(gate, $($gate_types),+)?;
 
@@ -93,8 +102,11 @@ macro_rules! impl_gate_serializer {
 }
 
 pub mod default {
-    use plonky2_field::extension::Extendable;
+    
 
+    use plonky2_field::types::HasExtension;
+
+    use crate::gates::add_many::AddManyGate;
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
     use crate::gates::base_sum::BaseSumGate;
@@ -105,14 +117,16 @@ pub mod default {
     use crate::gates::lookup_table::LookupTableGate;
     use crate::gates::multiplication_extension::MulExtensionGate;
     use crate::gates::noop::NoopGate;
-    use crate::gates::poseidon::PoseidonGate;
-    use crate::gates::poseidon_mds::PoseidonMdsGate;
+    use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
+    use crate::gates::poseidon_goldilocks::PoseidonGate;
+    use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
     use crate::gates::public_input::PublicInputGate;
     use crate::gates::random_access::RandomAccessGate;
     use crate::gates::reducing::ReducingGate;
     use crate::gates::reducing_extension::ReducingExtensionGate;
     use crate::hash::hash_types::RichField;
     use crate::util::serialization::GateSerializer;
+
     /// A gate serializer that can be used to serialize all default gates supported
     /// by the `plonky2` library.
     /// Being a unit struct, it can be simply called as
@@ -124,7 +138,11 @@ pub mod default {
     /// the `GateSerializer` trait. This can be easily done through the `impl_gate_serializer` macro.
     #[derive(Debug)]
     pub struct DefaultGateSerializer;
-    impl<F: RichField + Extendable<D>, const D: usize> GateSerializer<F, D> for DefaultGateSerializer {
+    impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+        GateSerializer<F, D, NUM_HASH_OUT_ELTS> for DefaultGateSerializer
+    where
+        
+    {
         impl_gate_serializer! {
             DefaultGateSerializer,
             ArithmeticGate,
@@ -142,7 +160,9 @@ pub mod default {
             PublicInputGate,
             RandomAccessGate<F, D>,
             ReducingExtensionGate<D>,
-            ReducingGate<D>
+            ReducingGate<D>,
+            Poseidon2BabyBearGate<F,D>,
+            AddManyGate
         }
     }
 }

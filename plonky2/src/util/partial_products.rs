@@ -3,9 +3,10 @@ use alloc::vec::Vec;
 use core::iter;
 
 use itertools::Itertools;
+use p3_field::Field;
 
-use crate::field::extension::Extendable;
-use crate::field::types::Field;
+use plonky2_field::types::HasExtension;
+
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::ExtensionTarget;
 use crate::plonk::circuit_builder::CircuitBuilder;
@@ -79,15 +80,22 @@ pub(crate) fn check_partial_products<F: Field>(
 /// Checks the relationship between each pair of partial product accumulators. In particular, this
 /// sequence of accumulators starts with `Z(x)`, then contains each partial product polynomials
 /// `p_i(x)`, and finally `Z(g x)`. See the partial products section of the Plonky2 paper.
-pub(crate) fn check_partial_products_circuit<F: RichField + Extendable<D>, const D: usize>(
-    builder: &mut CircuitBuilder<F, D>,
+pub(crate) fn check_partial_products_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
+    builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     numerators: &[ExtensionTarget<D>],
     denominators: &[ExtensionTarget<D>],
     partials: &[ExtensionTarget<D>],
     z_x: ExtensionTarget<D>,
     z_gx: ExtensionTarget<D>,
     max_degree: usize,
-) -> Vec<ExtensionTarget<D>> {
+) -> Vec<ExtensionTarget<D>>
+where
+    
+{
     debug_assert!(max_degree > 1);
     let product_accs = iter::once(&z_x)
         .chain(partials.iter())
@@ -112,14 +120,16 @@ mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::vec;
 
+    use p3_field::AbstractField;
+    use p3_goldilocks::Goldilocks;
+
     use super::*;
-    use crate::field::goldilocks_field::GoldilocksField;
 
     #[test]
     fn test_partial_products() {
-        type F = GoldilocksField;
-        let denominators = vec![F::ONE; 6];
-        let z_x = F::ONE;
+        type F = Goldilocks;
+        let denominators = vec![<F as AbstractField>::one(); 6];
+        let z_x = <F as AbstractField>::one();
         let v = field_vec(&[1, 2, 3, 4, 5, 6]);
         let z_gx = F::from_canonical_u64(720);
         let quotient_chunks_prods = quotient_chunk_products(&v, 2);

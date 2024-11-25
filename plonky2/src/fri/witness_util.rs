@@ -1,20 +1,22 @@
 use itertools::Itertools;
 
-use crate::field::extension::Extendable;
+use plonky2_field::types::HasExtension;
+
 use crate::fri::proof::{FriProof, FriProofTarget};
 use crate::hash::hash_types::RichField;
 use crate::iop::witness::WitnessWrite;
 use crate::plonk::config::AlgebraicHasher;
 
 /// Set the targets in a `FriProofTarget` to their corresponding values in a `FriProof`.
-pub fn set_fri_proof_target<F, W, H, const D: usize>(
+pub fn set_fri_proof_target<F, W, H, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
     witness: &mut W,
-    fri_proof_target: &FriProofTarget<D>,
+    fri_proof_target: &FriProofTarget<D, NUM_HASH_OUT_ELTS>,
     fri_proof: &FriProof<F, H, D>,
 ) where
-    F: RichField + Extendable<D>,
+    F: RichField + HasExtension<D>,
     W: WitnessWrite<F> + ?Sized,
-    H: AlgebraicHasher<F>,
+    H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    
 {
     witness.set_target(fri_proof_target.pow_witness, fri_proof.pow_witness);
 

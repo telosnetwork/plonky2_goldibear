@@ -12,10 +12,11 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use keccak_hash::keccak;
+use p3_field::PackedField;
+
+use plonky2_field::types::HasExtension;
 use plonky2_util::ceil_div_usize;
 
-use crate::field::extension::Extendable;
-use crate::field::packed::PackedField;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -83,7 +84,11 @@ impl LookupTableGate {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGate {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
+where
+    
+{
     fn id(&self) -> String {
         // Custom implementation to not have the entire lookup table
         format!(
@@ -92,7 +97,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGat
         )
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_slots)?;
         dst.write_usize(self.last_lut_row)?;
         for (i, lut) in common_data.luts.iter().enumerate() {
@@ -105,7 +114,10 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGat
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let num_slots = src.read_usize()?;
         let last_lut_row = src.read_usize()?;
         let lut_index = src.read_usize()?;
@@ -120,33 +132,40 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGat
         })
     }
 
-    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, _vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         // No main trace constraints for the lookup table.
         vec![]
     }
 
     fn eval_unfiltered_base_one(
         &self,
-        _vars: EvaluationVarsBase<F>,
+        _vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         _yield_constr: StridedConstraintConsumer<F>,
     ) {
         panic!("use eval_unfiltered_base_packed instead");
     }
 
-    fn eval_unfiltered_base_batch(&self, vars_base: EvaluationVarsBaseBatch<F>) -> Vec<F> {
+    fn eval_unfiltered_base_batch(
+        &self,
+        vars_base: EvaluationVarsBaseBatch<F, NUM_HASH_OUT_ELTS>,
+    ) -> Vec<F> {
         self.eval_unfiltered_base_batch_packed(vars_base)
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        _builder: &mut CircuitBuilder<F, D>,
-        _vars: EvaluationTargets<D>,
+        _builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        _vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         // No main trace constraints for the lookup table.
         vec![]
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         (0..self.num_slots)
             .map(|i| {
                 WitnessGeneratorRef::new(
@@ -180,10 +199,14 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for LookupTableGat
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D> for LookupTableGate {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for LookupTableGate
+where
+    
+{
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
-        _vars: EvaluationVarsBasePacked<P>,
+        _vars: EvaluationVarsBasePacked<P, NUM_HASH_OUT_ELTS>,
         mut _yield_constr: StridedConstraintConsumer<P>,
     ) {
     }
@@ -198,7 +221,11 @@ pub struct LookupTableGenerator {
     last_lut_row: usize,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for LookupTableGenerator {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupTableGenerator
+where
+    
+{
     fn id(&self) -> String {
         "LookupTableGenerator".to_string()
     }
@@ -222,12 +249,16 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Loo
             out_buffer.set_target(slot_output_target, F::from_canonical_usize(output as usize));
         } else {
             // Pad with zeros.
-            out_buffer.set_target(slot_input_target, F::ZERO);
-            out_buffer.set_target(slot_output_target, F::ZERO);
+            out_buffer.set_target(slot_input_target, F::zero());
+            out_buffer.set_target(slot_output_target, F::zero());
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
         dst.write_usize(self.slot_nb)?;
         dst.write_usize(self.num_slots)?;
@@ -241,7 +272,10 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Loo
         panic!("The associated lookup table couldn't be found.")
     }
 
-    fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
         let slot_nb = src.read_usize()?;
         let num_slots = src.read_usize()?;

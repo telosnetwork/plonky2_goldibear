@@ -5,8 +5,9 @@ use anyhow::{ensure, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::field::extension::Extendable;
-use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField, NUM_HASH_OUT_ELTS};
+use plonky2_field::types::HasExtension;
+
+use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::target::{BoolTarget, Target};
@@ -32,9 +33,9 @@ impl<F: RichField, H: Hasher<F>> MerkleProof<F, H> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MerkleProofTarget {
+pub struct MerkleProofTarget<const NUM_HASH_OUT_ELTS: usize> {
     /// The Merkle digest of each sibling subtree, staying from the bottommost layer.
-    pub siblings: Vec<HashOutTarget>,
+    pub siblings: Vec<HashOutTarget<NUM_HASH_OUT_ELTS>>,
 }
 
 /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
@@ -76,15 +77,19 @@ pub fn verify_merkle_proof_to_cap<F: RichField, H: Hasher<F>>(
     Ok(())
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given root. The index is given by its little-endian bits.
-    pub fn verify_merkle_proof<H: AlgebraicHasher<F>>(
+    pub fn verify_merkle_proof<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
-        merkle_root: HashOutTarget,
-        proof: &MerkleProofTarget,
+        merkle_root: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        proof: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
     ) {
         let merkle_cap = MerkleCapTarget(vec![merkle_root]);
         self.verify_merkle_proof_to_cap::<H>(leaf_data, leaf_index_bits, &merkle_cap, proof);
@@ -92,12 +97,12 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given cap. The index is given by its little-endian bits.
-    pub fn verify_merkle_proof_to_cap<H: AlgebraicHasher<F>>(
+    pub fn verify_merkle_proof_to_cap<H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>>(
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
-        merkle_cap: &MerkleCapTarget,
-        proof: &MerkleProofTarget,
+        merkle_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        proof: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
     ) {
         let cap_index = self.le_sum(leaf_index_bits[proof.siblings.len()..].iter().copied());
         self.verify_merkle_proof_to_cap_with_cap_index::<H>(
@@ -111,18 +116,20 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
     /// Same as `verify_merkle_proof_to_cap`, except with the final "cap index" as separate parameter,
     /// rather than being contained in `leaf_index_bits`.
-    pub(crate) fn verify_merkle_proof_to_cap_with_cap_index<H: AlgebraicHasher<F>>(
+    pub(crate) fn verify_merkle_proof_to_cap_with_cap_index<
+        H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
+    >(
         &mut self,
         leaf_data: Vec<Target>,
         leaf_index_bits: &[BoolTarget],
         cap_index: Target,
-        merkle_cap: &MerkleCapTarget,
-        proof: &MerkleProofTarget,
+        merkle_cap: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        proof: &MerkleProofTarget<NUM_HASH_OUT_ELTS>,
     ) {
         debug_assert!(H::AlgebraicPermutation::RATE >= NUM_HASH_OUT_ELTS);
 
         let zero = self.zero();
-        let mut state: HashOutTarget = self.hash_or_noop::<H>(leaf_data);
+        let mut state: HashOutTarget<NUM_HASH_OUT_ELTS> = self.hash_or_noop::<H>(leaf_data);
         debug_assert_eq!(state.elements.len(), NUM_HASH_OUT_ELTS);
 
         for (&bit, &sibling) in leaf_index_bits.iter().zip(&proof.siblings) {
@@ -151,19 +158,31 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         }
     }
 
-    pub fn connect_hashes(&mut self, x: HashOutTarget, y: HashOutTarget) {
+    pub fn connect_hashes(
+        &mut self,
+        x: HashOutTarget<NUM_HASH_OUT_ELTS>,
+        y: HashOutTarget<NUM_HASH_OUT_ELTS>,
+    ) {
         for i in 0..NUM_HASH_OUT_ELTS {
             self.connect(x.elements[i], y.elements[i]);
         }
     }
 
-    pub fn connect_merkle_caps(&mut self, x: &MerkleCapTarget, y: &MerkleCapTarget) {
+    pub fn connect_merkle_caps(
+        &mut self,
+        x: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+        y: &MerkleCapTarget<NUM_HASH_OUT_ELTS>,
+    ) {
         for (h0, h1) in x.0.iter().zip_eq(&y.0) {
             self.connect_hashes(*h0, *h1);
         }
     }
 
-    pub fn connect_verifier_data(&mut self, x: &VerifierCircuitTarget, y: &VerifierCircuitTarget) {
+    pub fn connect_verifier_data(
+        &mut self,
+        x: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+        y: &VerifierCircuitTarget<NUM_HASH_OUT_ELTS>,
+    ) {
         self.connect_merkle_caps(&x.constants_sigmas_cap, &y.constants_sigmas_cap);
         self.connect_hashes(x.circuit_digest, y.circuit_digest);
     }
@@ -171,35 +190,42 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::OsRng;
+    use p3_field::{AbstractField, Field};
     use rand::Rng;
+    use rand::rngs::OsRng;
 
-    use super::*;
-    use crate::field::types::Field;
+    use plonky2_field::types::Sample;
+
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
 
-    fn random_data<F: Field>(n: usize, k: usize) -> Vec<Vec<F>> {
+    use super::*;
+
+    fn random_data<F: Field + Sample>(n: usize, k: usize) -> Vec<Vec<F>> {
         (0..n).map(|_| F::rand_vec(k)).collect()
     }
 
     #[test]
     fn test_recursive_merkle_proof() -> Result<()> {
         const D: usize = 2;
+        const NUM_HASH_OUT_ELTS:usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        let config = CircuitConfig::standard_recursion_config();
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        let config = CircuitConfig::standard_recursion_config_gl();
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let log_n = 8;
         let n = 1 << log_n;
         let cap_height = 1;
         let leaves = random_data::<F>(n, 7);
-        let tree = MerkleTree::<F, <C as GenericConfig<D>>::Hasher>::new(leaves, cap_height);
+        let tree = MerkleTree::<F, <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::Hasher>::new(
+            leaves, cap_height,
+        );
         let i: usize = OsRng.gen_range(0..n);
         let proof = tree.prove(i);
 
@@ -213,7 +239,7 @@ mod tests {
         let cap_t = builder.add_virtual_cap(cap_height);
         pw.set_cap_target(&cap_t, &tree.cap);
 
-        let i_c = builder.constant(F::from_canonical_usize(i));
+        let i_c = builder.constant(<F as AbstractField>::from_canonical_usize(i));
         let i_bits = builder.split_le(i_c, log_n);
 
         let data = builder.add_virtual_targets(tree.leaves[i].len());
@@ -221,9 +247,10 @@ mod tests {
             pw.set_target(data[j], tree.leaves[i][j]);
         }
 
-        builder.verify_merkle_proof_to_cap::<<C as GenericConfig<D>>::InnerHasher>(
-            data, &i_bits, &cap_t, &proof_t,
-        );
+        builder
+            .verify_merkle_proof_to_cap::<<C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::InnerHasher>(
+                data, &i_bits, &cap_t, &proof_t,
+            );
 
         let data = builder.build::<C>();
         let proof = data.prove(pw)?;

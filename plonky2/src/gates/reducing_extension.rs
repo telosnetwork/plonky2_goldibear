@@ -7,7 +7,10 @@ use alloc::{
 };
 use core::ops::Range;
 
-use crate::field::extension::{Extendable, FieldExtension};
+use p3_field::AbstractExtensionField;
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::gate::Gate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
@@ -63,17 +66,28 @@ impl<const D: usize> ReducingExtensionGate<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtensionGate<D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    Gate<F, D, NUM_HASH_OUT_ELTS> for ReducingExtensionGate<D>
+where
+    
+{
     fn id(&self) -> String {
         format!("{self:?}")
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.num_coeffs)?;
         Ok(())
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self>
     where
         Self: Sized,
     {
@@ -81,7 +95,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtens
         Ok(Self::new(num_coeffs))
     }
 
-    fn eval_unfiltered(&self, vars: EvaluationVars<F, D>) -> Vec<F::Extension> {
+    fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let alpha = vars.get_local_ext_algebra(Self::wires_alpha());
         let old_acc = vars.get_local_ext_algebra(Self::wires_old_acc());
         let coeffs = (0..self.num_coeffs)
@@ -91,7 +105,9 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtens
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
+        );
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             constraints.push(acc * alpha + coeffs[i] - accs[i]);
@@ -106,7 +122,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtens
 
     fn eval_unfiltered_base_one(
         &self,
-        vars: EvaluationVarsBase<F>,
+        vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
         mut yield_constr: StridedConstraintConsumer<F>,
     ) {
         let alpha = vars.get_local_ext(Self::wires_alpha());
@@ -120,15 +136,21 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtens
 
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
-            yield_constr.many((acc * alpha + coeffs[i] - accs[i]).to_basefield_array());
+            let basefield_array: [F; D] =
+                <F::Extension as AbstractExtensionField<F>>::as_base_slice(
+                    &(acc * alpha + coeffs[i] - accs[i]),
+                )
+                .try_into()
+                .unwrap();
+            yield_constr.many(basefield_array);
             acc = accs[i];
         }
     }
 
     fn eval_unfiltered_circuit(
         &self,
-        builder: &mut CircuitBuilder<F, D>,
-        vars: EvaluationTargets<D>,
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+        vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let alpha = vars.get_local_ext_algebra(Self::wires_alpha());
         let old_acc = vars.get_local_ext_algebra(Self::wires_old_acc());
@@ -139,7 +161,9 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtens
             .map(|i| vars.get_local_ext_algebra(self.wires_accs(i)))
             .collect::<Vec<_>>();
 
-        let mut constraints = Vec::with_capacity(<Self as Gate<F, D>>::num_constraints(self));
+        let mut constraints = Vec::with_capacity(
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
+        );
         let mut acc = old_acc;
         for i in 0..self.num_coeffs {
             let coeff = coeffs[i];
@@ -155,7 +179,11 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ReducingExtens
             .collect()
     }
 
-    fn generators(&self, row: usize, _local_constants: &[F]) -> Vec<WitnessGeneratorRef<F, D>> {
+    fn generators(
+        &self,
+        row: usize,
+        _local_constants: &[F],
+    ) -> Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>> {
         vec![WitnessGeneratorRef::new(
             ReducingGenerator {
                 row,
@@ -188,7 +216,11 @@ pub struct ReducingGenerator<const D: usize> {
     gate: ReducingExtensionGate<D>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for ReducingGenerator<D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ReducingGenerator<D>
+where
+    
+{
     fn id(&self) -> String {
         "ReducingExtensionGenerator".to_string()
     }
@@ -224,14 +256,28 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Red
         }
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_usize(self.row)?;
-        <ReducingExtensionGate<D> as Gate<F, D>>::serialize(&self.gate, dst, _common_data)
+        <ReducingExtensionGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::serialize(
+            &self.gate,
+            dst,
+            _common_data,
+        )
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let row = src.read_usize()?;
-        let gate = <ReducingExtensionGate<D> as Gate<F, D>>::deserialize(src, _common_data)?;
+        let gate = <ReducingExtensionGate<D> as Gate<F, D, NUM_HASH_OUT_ELTS>>::deserialize(
+            src,
+            _common_data,
+        )?;
         Ok(Self { row, gate })
     }
 }
@@ -239,22 +285,24 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Red
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use p3_goldilocks::Goldilocks;
 
-    use crate::field::goldilocks_field::GoldilocksField;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::reducing_extension::ReducingExtensionGate;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<GoldilocksField, _, 4>(ReducingExtensionGate::new(22));
+        test_low_degree::<Goldilocks, _, 2, 4>(ReducingExtensionGate::new(22));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        test_eval_fns::<F, C, _, D>(ReducingExtensionGate::new(22))
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(ReducingExtensionGate::new(22))
     }
 }

@@ -6,8 +6,11 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use crate::field::extension::{Extendable, FieldExtension, OEF};
-use crate::field::types::{Field, Field64};
+use itertools::Itertools;
+use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64};
+
+use plonky2_field::types::HasExtension;
+
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
 use crate::gates::multiplication_extension::MulExtensionGate;
 use crate::hash::hash_types::RichField;
@@ -20,7 +23,11 @@ use crate::plonk::circuit_data::CommonCircuitData;
 use crate::util::bits_u64;
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     pub fn arithmetic_extension(
         &mut self,
         const_0: F,
@@ -52,7 +59,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             return result;
         }
 
-        let result = if self.target_as_constant_ext(addend) == Some(F::Extension::ZERO) {
+        let result = if self.target_as_constant_ext(addend)
+            == Some(<F::Extension as AbstractField>::zero())
+        {
             // If the addend is zero, we use a multiplication gate.
             self.compute_mul_extension_operation(operation)
         } else {
@@ -125,21 +134,21 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         let addend_const = self.target_as_constant_ext(addend);
 
         let first_term_zero =
-            const_0 == F::ZERO || multiplicand_0 == zero || multiplicand_1 == zero;
-        let second_term_zero = const_1 == F::ZERO || addend == zero;
+            const_0 == F::zero() || multiplicand_0 == zero || multiplicand_1 == zero;
+        let second_term_zero = const_1 == F::zero() || addend == zero;
 
         // If both terms are constant, return their (constant) sum.
         let first_term_const = if first_term_zero {
-            Some(F::Extension::ZERO)
+            Some(<F::Extension as AbstractField>::zero())
         } else if let (Some(x), Some(y)) = (mul_0_const, mul_1_const) {
-            Some((x * y).scalar_mul(const_0))
+            Some(x * y * F::Extension::from_base(const_0))
         } else {
             None
         };
         let second_term_const = if second_term_zero {
-            Some(F::Extension::ZERO)
+            Some(<F::Extension as AbstractField>::zero())
         } else {
-            addend_const.map(|x| x.scalar_mul(const_1))
+            addend_const.map(|x| x * F::Extension::from_base(const_1))
         };
         if let (Some(x), Some(y)) = (first_term_const, second_term_const) {
             return Some(self.constant_extension(x + y));
@@ -151,12 +160,12 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
         if second_term_zero {
             if let Some(x) = mul_0_const {
-                if x.scalar_mul(const_0).is_one() {
+                if (x * F::Extension::from_base(const_0)).is_one() {
                     return Some(multiplicand_1);
                 }
             }
             if let Some(x) = mul_1_const {
-                if x.scalar_mul(const_0).is_one() {
+                if (x * F::Extension::from_base(const_0)).is_one() {
                     return Some(multiplicand_0);
                 }
             }
@@ -174,7 +183,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         d: ExtensionTarget<D>,
         e: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.inner_product_extension(F::ONE, e, vec![(a, b), (c, d)])
+        self.inner_product_extension(F::one(), e, vec![(a, b), (c, d)])
     }
 
     /// Returns `sum_{(a,b) in vecs} constant * a * b`.
@@ -186,7 +195,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     ) -> ExtensionTarget<D> {
         let mut acc = starting_acc;
         for (a, b) in pairs {
-            acc = self.arithmetic_extension(constant, F::ONE, a, b, acc);
+            acc = self.arithmetic_extension(constant, F::one(), a, b, acc);
         }
         acc
     }
@@ -196,8 +205,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         a: ExtensionTarget<D>,
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        let one = self.one_extension();
-        self.arithmetic_extension(F::ONE, F::ONE, one, a, b)
+        if self.config.use_base_arithmetic_gate {
+            ExtensionTarget::<D>(
+                a.0.into_iter()
+                    .zip_eq(b.0)
+                    .map(|(x, y)| self.add(x, y))
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+            )
+        } else {
+            let one = self.one_extension();
+            self.arithmetic_extension(F::one(), F::one(), one, a, b)
+        }
     }
 
     pub fn add_ext_algebra(
@@ -219,9 +239,29 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
     where
         T: Borrow<ExtensionTarget<D>>,
     {
-        terms.into_iter().fold(self.zero_extension(), |acc, t| {
-            self.add_extension(acc, *t.borrow())
-        })
+        if self.config.use_base_arithmetic_gate {
+            let addends_base_arrays: Vec<[Target; D]> = terms
+                .into_iter()
+                .map(|ext_target| (*ext_target.borrow()).0)
+                .collect();
+            let num_addends = addends_base_arrays.len();
+            ExtensionTarget::<D>(
+                (0..D)
+                    .map(|i| {
+                        let base_addends: Vec<Target> = (0..num_addends)
+                            .map(|j| addends_base_arrays[j][i])
+                            .collect();
+                        self.add_many(base_addends)
+                    })
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+            )
+        } else {
+            terms.into_iter().fold(self.zero_extension(), |acc, t| {
+                self.add_extension(acc, *t.borrow())
+            })
+        }
     }
 
     pub fn sub_extension(
@@ -229,8 +269,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         a: ExtensionTarget<D>,
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        let one = self.one_extension();
-        self.arithmetic_extension(F::ONE, F::NEG_ONE, one, a, b)
+        if self.config.use_base_arithmetic_gate {
+            ExtensionTarget::<D>(
+                a.0.into_iter()
+                    .zip_eq(b.0)
+                    .map(|(x, y)| self.sub(x, y))
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+            )
+        } else {
+            let one = self.one_extension();
+            self.arithmetic_extension(F::one(), F::neg_one(), one, a, b)
+        }
     }
 
     pub fn sub_ext_algebra(
@@ -251,7 +302,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         multiplicand_1: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let zero = self.zero_extension();
-        self.arithmetic_extension(const_0, F::ZERO, multiplicand_0, multiplicand_1, zero)
+        self.arithmetic_extension(const_0, F::zero(), multiplicand_0, multiplicand_1, zero)
     }
 
     pub fn mul_extension(
@@ -259,7 +310,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         multiplicand_0: ExtensionTarget<D>,
         multiplicand_1: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.mul_extension_with_const(F::ONE, multiplicand_0, multiplicand_1)
+        self.mul_extension_with_const(F::one(), multiplicand_0, multiplicand_1)
     }
 
     /// Computes `x^2`.
@@ -294,8 +345,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
             .zip(inner)
             .zip(c.0)
             .map(|((pairs_w, pairs), ci)| {
-                let acc = self.inner_product_extension(F::Extension::W, ci, pairs_w);
-                self.inner_product_extension(F::ONE, acc, pairs)
+                let acc = self.inner_product_extension(F::w(), ci, pairs_w);
+                self.inner_product_extension(F::one(), acc, pairs)
             })
             .collect::<Vec<_>>();
 
@@ -332,7 +383,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.arithmetic_extension(F::ONE, F::ONE, a, b, c)
+        self.arithmetic_extension(F::one(), F::one(), a, b, c)
     }
 
     /// Like `add_const`, but for `ExtensionTarget`s.
@@ -366,7 +417,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let a_ext = self.convert_to_ext(a);
-        self.arithmetic_extension(F::ONE, F::ONE, a_ext, b, c)
+        self.arithmetic_extension(F::one(), F::one(), a_ext, b, c)
     }
 
     /// Like `mul_sub`, but for `ExtensionTarget`s.
@@ -376,7 +427,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         b: ExtensionTarget<D>,
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        self.arithmetic_extension(F::ONE, F::NEG_ONE, a, b, c)
+        self.arithmetic_extension(F::one(), F::neg_one(), a, b, c)
     }
 
     /// Like `mul_sub`, but for `ExtensionTarget`s.
@@ -387,7 +438,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
         c: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
         let a_ext = self.convert_to_ext(a);
-        self.arithmetic_extension(F::ONE, F::NEG_ONE, a_ext, b, c)
+        self.arithmetic_extension(F::one(), F::neg_one(), a_ext, b, c)
     }
 
     /// Returns `a * b`, where `b` is in the extension field and `a` is in the base field.
@@ -506,8 +557,10 @@ pub struct QuotientGeneratorExtension<const D: usize> {
     quotient: ExtensionTarget<D>,
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-    for QuotientGeneratorExtension<D>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientGeneratorExtension<D>
+where
+    
 {
     fn id(&self) -> String {
         "QuotientGeneratorExtension".to_string()
@@ -526,13 +579,20 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
         out_buffer.set_extension_target(self.quotient, quotient)
     }
 
-    fn serialize(&self, dst: &mut Vec<u8>, _common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
+    fn serialize(
+        &self,
+        dst: &mut Vec<u8>,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<()> {
         dst.write_target_ext(self.numerator)?;
         dst.write_target_ext(self.denominator)?;
         dst.write_target_ext(self.quotient)
     }
 
-    fn deserialize(src: &mut Buffer, _common_data: &CommonCircuitData<F, D>) -> IoResult<Self> {
+    fn deserialize(
+        src: &mut Buffer,
+        _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> IoResult<Self> {
         let numerator = src.read_target_ext()?;
         let denominator = src.read_target_ext()?;
         let quotient = src.read_target_ext()?;
@@ -552,20 +612,26 @@ pub struct PowersTarget<const D: usize> {
 }
 
 impl<const D: usize> PowersTarget<D> {
-    pub fn next<F: RichField + Extendable<D>>(
+    pub fn next<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         &mut self,
-        builder: &mut CircuitBuilder<F, D>,
-    ) -> ExtensionTarget<D> {
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> ExtensionTarget<D>
+    where
+        
+    {
         let result = self.current;
         self.current = builder.mul_extension(self.base, self.current);
         result
     }
 
-    pub fn repeated_frobenius<F: RichField + Extendable<D>>(
+    pub fn repeated_frobenius<F: RichField + HasExtension<D>, const NUM_HASH_OUT_ELTS: usize>(
         self,
         k: usize,
-        builder: &mut CircuitBuilder<F, D>,
-    ) -> Self {
+        builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
+    ) -> Self
+    where
+        
+    {
         let Self { base, current } = self;
         Self {
             base: base.repeated_frobenius(k, builder),
@@ -574,7 +640,11 @@ impl<const D: usize> PowersTarget<D> {
     }
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
+where
+    
+{
     pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
         PowersTarget {
             base,
@@ -585,7 +655,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilder<F, D> {
 
 /// Represents an extension arithmetic operation in the circuit. Used to memoize results.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct ExtensionArithmeticOperation<F: Field64 + Extendable<D>, const D: usize> {
+pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + HasExtension<D>, const D: usize> {
     const_0: F,
     const_1: F,
     multiplicand_0: ExtensionTarget<D>,
@@ -597,8 +667,11 @@ pub(crate) struct ExtensionArithmeticOperation<F: Field64 + Extendable<D>, const
 mod tests {
     use anyhow::Result;
 
-    use crate::field::extension::algebra::ExtensionAlgebra;
+    use plonky2_field::extension_algebra::ExtensionAlgebra;
+    use plonky2_field::types::HasExtension;
+
     use crate::field::types::Sample;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::ext_target::ExtensionAlgebraTarget;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
@@ -610,13 +683,14 @@ mod tests {
     fn test_mul_many() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         let mut pw = PartialWitness::<F>::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let vs = FF::rand_vec(3);
         let ts = builder.add_virtual_extension_targets(3);
@@ -646,13 +720,14 @@ mod tests {
     fn test_div_extension() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::FE;
 
-        let config = CircuitConfig::standard_recursion_zk_config();
+        let config = CircuitConfig::standard_recursion_zk_config_gl();
 
         let pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let x = FF::rand();
         let y = FF::rand();
@@ -673,13 +748,14 @@ mod tests {
     fn test_mul_algebra() -> Result<()> {
         const D: usize = 2;
         type C = KeccakGoldilocksConfig;
-        type F = <C as GenericConfig<D>>::F;
-        type FF = <C as GenericConfig<D>>::FE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+        type FF = <F as HasExtension<D>>::Extension;
 
-        let config = CircuitConfig::standard_recursion_config();
+        let config = CircuitConfig::standard_recursion_config_gl();
 
         let mut pw = PartialWitness::new();
-        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
 
         let xt =
             ExtensionAlgebraTarget(builder.add_virtual_extension_targets(D).try_into().unwrap());
@@ -692,8 +768,8 @@ mod tests {
             builder.connect_extension(zt.0[i], comp_zt.0[i]);
         }
 
-        let x = ExtensionAlgebra::<FF, D>(FF::rand_array());
-        let y = ExtensionAlgebra::<FF, D>(FF::rand_array());
+        let x = ExtensionAlgebra::<F, D>(FF::rand_array());
+        let y = ExtensionAlgebra::<F, D>(FF::rand_array());
         let z = x * y;
         for i in 0..D {
             pw.set_extension_target(xt.0[i], x.0[i]);
