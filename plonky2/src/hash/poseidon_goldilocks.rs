@@ -3,7 +3,8 @@
 //! These contents of the implementations *must* be generated using the
 //! `poseidon_constants.sage` script in the `0xPolygonZero/hash-constants`
 //! repository.
-
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
 use p3_field::{AbstractField, ExtensionField, Field, TwoAdicField};

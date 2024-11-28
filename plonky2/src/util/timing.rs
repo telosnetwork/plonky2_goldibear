@@ -180,10 +180,11 @@ impl TimingTree {
             child.print_helper(depth + 1);
         }
     }
+    #[cfg(feature = "timing")]
     pub fn push_statistic_value(&mut self, key: StatisticsItem, value: usize) {
         self.statistics_values.insert(key, value);
     }
-
+    #[cfg(feature = "timing")]
     pub fn get_statistic_value(&self, key: StatisticsItem) -> Option<&usize> {
         self.statistics_values.get(&key)
     }

@@ -47,7 +47,7 @@ pub enum ProverError {
     GenericFailure
 }
 impl core::fmt::Display for ProverError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::InvZeroPermArg => write!(f, "Permutation argument division by zero"),
             Self::TooManyPermArgFailures => write!(f, "Couldn't find random values avoiding permutation argument division by zero"),

@@ -1,6 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use std::mem::size_of;
+use core::mem::size_of;
 
 use anyhow::ensure;
 use p3_baby_bear::BabyBear;
@@ -296,6 +296,8 @@ impl<'de, const N: usize> Deserialize<'de> for BytesHash<N> {
 }
 
 mod generic_arrays {
+    #[cfg(not(feature = "std"))]
+    use alloc::{format, vec::Vec};
     use core::marker::PhantomData;
 
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -321,7 +323,7 @@ mod generic_arrays {
     {
         type Value = [T; N];
 
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
             formatter.write_str(&format!("an array of length {}", N))
         }
 
