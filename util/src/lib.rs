@@ -2,7 +2,6 @@
 #![no_std]
 
 extern crate alloc;
-
 use alloc::vec::Vec;
 use core::hint::unreachable_unchecked;
 use core::mem::size_of;

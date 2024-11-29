@@ -1,5 +1,8 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 use core::fmt::Debug;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
+
 
 use lazy_static::lazy_static;
 use p3_baby_bear::BabyBear;

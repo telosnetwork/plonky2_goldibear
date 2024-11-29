@@ -2,7 +2,6 @@
 use alloc::{
     format,
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
 use core::marker::PhantomData;

@@ -4,44 +4,47 @@ use log::{Level, log};
 use web_time::{Duration, Instant};
 
 /// The hierarchy of scopes, and the time consumed by each one. Useful for profiling.
-#[cfg(feature = "timing")]
 #[derive(Debug)]
-pub struct TimingTree {
+pub struct ProvingProcessInfo {
+    #[cfg(feature = "timing")]
     /// The name of this scope.
     name: String,
     /// The level at which to log this scope and its children.
     level: log::Level,
+
+    #[cfg(feature = "timing")]
     /// The time when this scope was created.
     enter_time: Instant,
+
+    #[cfg(feature = "timing")]
     /// The time when this scope was destroyed, or None if it has not yet been destroyed.
     exit_time: Option<Instant>,
+    #[cfg(feature = "timing")]
     /// Any child scopes.
-    children: Vec<TimingTree>,
+    children: Vec<ProvingProcessInfo>,
+
     statistics_values: HashMap<StatisticsItem, usize>,
 }
 #[derive(Debug, Clone, Eq, PartialEq, Copy, Hash)]
 pub enum StatisticsItem {
     PermArgRetries
 }
-#[cfg(not(feature = "timing"))]
-#[derive(Debug)]
-pub struct TimingTree(Level);
 
 #[cfg(feature = "timing")]
-impl Default for TimingTree {
+impl Default for ProvingProcessInfo {
     fn default() -> Self {
-        TimingTree::new("root", Level::Debug)
+        ProvingProcessInfo::new("root", Level::Debug)
     }
 }
 
 #[cfg(not(feature = "timing"))]
-impl Default for TimingTree {
+impl Default for ProvingProcessInfo {
     fn default() -> Self {
-        TimingTree::new("", Level::Debug)
+        ProvingProcessInfo::new("", Level::Debug)
     }
 }
 
-impl TimingTree {
+impl ProvingProcessInfo {
     #[cfg(feature = "timing")]
     pub fn new(root_name: &str, level: Level) -> Self {
         Self {
@@ -56,7 +59,10 @@ impl TimingTree {
 
     #[cfg(not(feature = "timing"))]
     pub fn new(_root_name: &str, level: Level) -> Self {
-        Self(level)
+        Self {
+            level,
+            statistics_values: HashMap::new(),
+        }
     }
 
     /// Whether this scope is still in scope.
@@ -97,7 +103,7 @@ impl TimingTree {
             }
         }
 
-        self.children.push(TimingTree {
+        self.children.push(ProvingProcessInfo {
             name: ctx.to_string(),
             level,
             enter_time: Instant::now(),
@@ -161,8 +167,8 @@ impl TimingTree {
     #[cfg(not(feature = "timing"))]
     pub fn print(&self) {
         log!(
-            self.0,
-            "TimingTree is not supported without the 'timing' feature enabled"
+            self.level,
+            "ProvingStatistics is not supported without the 'timing' feature enabled"
         );
     }
 
@@ -183,7 +189,6 @@ impl TimingTree {
     pub fn push_statistic_value(&mut self, key: StatisticsItem, value: usize) {
         self.statistics_values.insert(key, value);
     }
-
     pub fn get_statistic_value(&self, key: StatisticsItem) -> Option<&usize> {
         self.statistics_values.get(&key)
     }

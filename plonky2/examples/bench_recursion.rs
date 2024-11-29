@@ -31,7 +31,7 @@ use plonky2::plonk::config::{
 use plonky2::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
 use plonky2::plonk::prover::prove;
 use plonky2::util::serialization::DefaultGateSerializer;
-use plonky2::util::timing::TimingTree;
+use plonky2::util::proving_process_info::ProvingProcessInfo;
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::rayon;
 use rand::rngs::OsRng;
@@ -109,7 +109,7 @@ where
     let data = builder.build::<C>();
     let inputs = PartialWitness::new();
 
-    let mut timing = TimingTree::new("prove", Level::Debug);
+    let mut timing = ProvingProcessInfo::new("prove", Level::Debug);
     let proof =
         prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
@@ -161,7 +161,7 @@ where
     let data = builder.build::<C>();
     let mut inputs = PartialWitness::<F>::new();
     inputs.set_target(initial_a, F::one());
-    let mut timing = TimingTree::new("prove with one lookup", Level::Debug);
+    let mut timing = ProvingProcessInfo::new("prove with one lookup", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
     data.verify(proof.clone())?;
@@ -217,7 +217,7 @@ where
     let mut pw = PartialWitness::new();
     pw.set_target(initial_a, F::one());
     let data = builder.build::<C>();
-    let mut timing = TimingTree::new("prove with many lookups", Level::Debug);
+    let mut timing = ProvingProcessInfo::new("prove with many lookups", Level::Debug);
     let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();
 
@@ -266,7 +266,7 @@ where
     pw.set_proof_with_pis_target(&pt, inner_proof);
     pw.set_verifier_data_target(&inner_data, inner_vd);
 
-    let mut timing = TimingTree::new("prove", Level::Debug);
+    let mut timing = ProvingProcessInfo::new("prove", Level::Debug);
     let proof =
         prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, pw, &mut timing)?;
     timing.print();

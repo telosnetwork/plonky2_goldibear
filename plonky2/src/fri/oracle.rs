@@ -20,7 +20,7 @@ use crate::plonk::config::GenericConfig;
 use crate::timed;
 use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
 use crate::util::reducing::ReducingFactor;
-use crate::util::timing::TimingTree;
+use crate::util::proving_process_info::ProvingProcessInfo;
 
 /// Four (~64 bit) field elements gives ~128 bit security.
 pub const SALT_SIZE: usize = 4;
@@ -77,7 +77,7 @@ where
         rate_bits: usize,
         blinding: bool,
         cap_height: usize,
-        timing: &mut TimingTree,
+        timing: &mut ProvingProcessInfo,
         fft_root_table: Option<&FftRootTable<F>>,
     ) -> Self {
         let coeffs = timed!(
@@ -102,7 +102,7 @@ where
         rate_bits: usize,
         blinding: bool,
         cap_height: usize,
-        timing: &mut TimingTree,
+        timing: &mut ProvingProcessInfo,
         fft_root_table: Option<&FftRootTable<F>>,
     ) -> Self {
         let degree = polynomials[0].len();
@@ -196,7 +196,7 @@ where
         oracles: &[&Self],
         challenger: &mut Challenger<F, C::Hasher>,
         fri_params: &FriParams,
-        timing: &mut TimingTree,
+        timing: &mut ProvingProcessInfo,
     ) -> FriProof<F, C::Hasher, D> {
         assert!(D > 1, "Not implemented for D=1.");
         let alpha = challenger.get_extension_challenge::<D>();

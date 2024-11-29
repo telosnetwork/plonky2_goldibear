@@ -17,7 +17,7 @@ use plonky2::plonk::config::{
 };
 use plonky2::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use plonky2::plonk::prover::prove;
-use plonky2::util::timing::TimingTree;
+use plonky2::util::proving_process_info::ProvingProcessInfo;
 use plonky2_field::types::HasExtension;
 
 mod allocator;
@@ -58,7 +58,7 @@ where
     let data = builder.build::<C>();
     let inputs = PartialWitness::new();
 
-    let mut timing = TimingTree::new("prove", Level::Debug);
+    let mut timing = ProvingProcessInfo::new("prove", Level::Debug);
     let proof =
         prove::<F, C, D, NUM_HASH_OUT_ELTS>(&data.prover_only, &data.common, inputs, &mut timing)?;
     timing.print();
@@ -126,7 +126,7 @@ where
     pw.set_proof_with_pis_target(input_proof_target, input_proof);
     pw.set_verifier_data_target(input_proof_verifier_data_target, input_verifier_data);
 
-    let mut timing = TimingTree::new("prove", Level::Info);
+    let mut timing = ProvingProcessInfo::new("prove", Level::Info);
     let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
         &circuit_data.prover_only,
         &circuit_data.common,
@@ -339,7 +339,7 @@ where
     pw.set_proof_with_pis_target(input_proof_target_two, input_proof);
     pw.set_verifier_data_target(input_proof_verifier_data_target, input_verifier_data);
 
-    let mut timing = TimingTree::new("prove", Level::Info);
+    let mut timing = ProvingProcessInfo::new("prove", Level::Info);
     let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
         &circuit_data.prover_only,
         &circuit_data.common,

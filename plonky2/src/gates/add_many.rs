@@ -1,5 +1,5 @@
 #[cfg(not(feature = "std"))]
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{format, string::String, string::ToString, vec, vec::Vec};
 use core::ops::Range;
 
 use p3_field::{AbstractField, PackedField, PrimeField64};

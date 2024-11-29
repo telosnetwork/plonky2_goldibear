@@ -36,7 +36,7 @@ use crate::plonk::vars::EvaluationVarsBaseBatch;
 use crate::timed;
 use crate::util::{ceil_div_usize, log2_ceil, transpose};
 use crate::util::partial_products::{partial_products_and_z_gx, quotient_chunk_products};
-use crate::util::timing::{StatisticsItem, TimingTree};
+use crate::util::proving_process_info::{StatisticsItem, ProvingProcessInfo};
 
 use super::circuit_builder::{LookupChallenges, LookupWire};
 
@@ -47,7 +47,7 @@ pub enum ProverError {
     GenericFailure
 }
 impl core::fmt::Display for ProverError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::InvZeroPermArg => write!(f, "Permutation argument division by zero"),
             Self::TooManyPermArgFailures => write!(f, "Couldn't find random values avoiding permutation argument division by zero"),
@@ -141,7 +141,7 @@ pub fn prove<
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     inputs: PartialWitness<F>,
-    timing: &mut TimingTree,
+    timing: &mut ProvingProcessInfo,
 ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: Hasher<F>,
@@ -166,7 +166,7 @@ pub fn prove_with_partition_witness<
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     mut partition_witness: PartitionWitness<F>,
-    timing: &mut TimingTree,
+    timing: &mut ProvingProcessInfo,
 ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: Hasher<F>,
@@ -231,7 +231,7 @@ fn internal_prove_with_partition_witness<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     witness: &MatrixWitness<F>,
     public_inputs: &Vec<F>,
-    timing: &mut TimingTree,
+    timing: &mut ProvingProcessInfo,
 ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: Hasher<F>,
