@@ -17,7 +17,7 @@ use crate::plonk::config::GenericConfig;
 use crate::plonk::plonk_common::reduce_with_powers;
 use crate::timed;
 use crate::util::reverse_index_bits_in_place;
-use crate::util::timing::TimingTree;
+use crate::util::proving_process_info::ProvingProcessInfo;
 
 /// Builds a FRI proof.
 pub fn fri_proof<
@@ -33,7 +33,7 @@ pub fn fri_proof<
     lde_polynomial_values: PolynomialValues<F::Extension>,
     challenger: &mut Challenger<F, C::Hasher>,
     fri_params: &FriParams,
-    timing: &mut TimingTree,
+    timing: &mut ProvingProcessInfo,
 ) -> FriProof<F, C::Hasher, D>
 where
     

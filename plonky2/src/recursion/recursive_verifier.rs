@@ -236,7 +236,7 @@ mod tests {
     };
     use crate::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
     use crate::plonk::prover::prove;
-    use crate::util::timing::TimingTree;
+    use crate::util::proving_process_info::ProvingProcessInfo;
 
     use super::*;
 
@@ -862,7 +862,7 @@ mod tests {
 
         let data = builder.build::<C>();
 
-        let mut timing = TimingTree::new("prove", Level::Debug);
+        let mut timing = ProvingProcessInfo::new("prove", Level::Debug);
         let proof = prove(&data.prover_only, &data.common, pw, &mut timing)?;
         if print_timing {
             timing.print();

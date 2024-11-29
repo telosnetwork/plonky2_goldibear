@@ -53,7 +53,7 @@ use crate::timed;
 use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 use crate::util::context_tree::ContextTree;
 use crate::util::partial_products::num_partial_products;
-use crate::util::timing::TimingTree;
+use crate::util::proving_process_info::ProvingProcessInfo;
 
 /// Number of random coins needed for lookups (for each challenge).
 /// A coin is a randomly sampled extension field element from the verifier,
@@ -1120,7 +1120,7 @@ where
         
     {
         self.complete_gates_wires();
-        let mut timing = TimingTree::new("preprocess", Level::Trace);
+        let mut timing = ProvingProcessInfo::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]
         let start = Instant::now();

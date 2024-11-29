@@ -52,7 +52,7 @@ use crate::plonk::verifier::verify;
 use crate::util::serialization::{
     Buffer, GateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
-use crate::util::timing::TimingTree;
+use crate::util::proving_process_info::ProvingProcessInfo;
 
 use super::circuit_builder::LookupWire;
 
@@ -253,14 +253,14 @@ where
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         self.prove_with_timing(
             inputs,
-            &mut TimingTree::default(),
+            &mut ProvingProcessInfo::default(),
         )
     }
 
     pub fn prove_with_timing(
         &self,
         inputs: PartialWitness<F>,
-        timing: &mut TimingTree,
+        timing: &mut ProvingProcessInfo,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
         prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
@@ -383,7 +383,7 @@ where
             &self.prover_only,
             &self.common,
             inputs,
-            &mut TimingTree::default(),
+            &mut ProvingProcessInfo::default(),
         );
         proof
     }

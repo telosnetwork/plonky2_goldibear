@@ -645,7 +645,7 @@ mod tests {
         use crate::plonk::circuit_data::CircuitConfig;
         use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
         use crate::plonk::verifier::verify;
-        use crate::util::timing::{StatisticsItem, TimingTree};
+        use crate::util::proving_process_info::{StatisticsItem, ProvingProcessInfo};
 
         #[test]
         fn test_proof_permutation_argument_div_zero()  {
@@ -677,7 +677,7 @@ mod tests {
                 let mut pw = PartialWitness::new();
                 pw.set_target(xt, x);
 
-                let mut timing = TimingTree::default();
+                let mut timing = ProvingProcessInfo::default();
                 let res = data.prove_with_timing(pw, &mut timing).unwrap();
                 assert!(verify(res, &data.verifier_only, &data.common).is_ok());
 
@@ -693,7 +693,7 @@ mod tests {
                 let mut pw = PartialWitness::new();
                 pw.set_target(xt, x);
 
-                let mut timing = TimingTree::default();
+                let mut timing = ProvingProcessInfo::default();
                 let res = data.prove_with_timing(pw, &mut timing).unwrap();
                 assert!(verify(res, &data.verifier_only, &data.common).is_ok());
 
