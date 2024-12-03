@@ -213,6 +213,7 @@ where
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{sync::Arc, vec};
+    use p3_field::AbstractField;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
@@ -375,6 +376,7 @@ mod tests {
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
         assert_eq!(common_data.degree_bits(), 14);
+        assert_eq!(vd.circuit_digest.elements, [8432421367864141243, 14664604448411724612, 5886388820728283451, 6226320497402393979].map(F::from_canonical_u64));
         // Shrink it to 2^13.
         let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
             proof,
@@ -398,6 +400,7 @@ mod tests {
             true,
         )?;
         assert_eq!(common_data.degree_bits(), 12);
+        assert_eq!(vd.circuit_digest.elements, [5000568515610536070, 17514281206585518617, 17334557576105184524, 4950795566141018980].map(F::from_canonical_u64));
 
         test_serialization(&proof, &vd, &common_data)?;
 
