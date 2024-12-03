@@ -6,7 +6,6 @@ use alloc::{
 };
 use core::borrow::Borrow;
 
-use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64};
 
 use plonky2_field::types::HasExtension;
@@ -205,19 +204,8 @@ where
         a: ExtensionTarget<D>,
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        if self.config.use_base_arithmetic_gate {
-            ExtensionTarget::<D>(
-                a.0.into_iter()
-                    .zip_eq(b.0)
-                    .map(|(x, y)| self.add(x, y))
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap(),
-            )
-        } else {
             let one = self.one_extension();
             self.arithmetic_extension(F::one(), F::one(), one, a, b)
-        }
     }
 
     pub fn add_ext_algebra(
@@ -239,29 +227,9 @@ where
     where
         T: Borrow<ExtensionTarget<D>>,
     {
-        if self.config.use_base_arithmetic_gate {
-            let addends_base_arrays: Vec<[Target; D]> = terms
-                .into_iter()
-                .map(|ext_target| (*ext_target.borrow()).0)
-                .collect();
-            let num_addends = addends_base_arrays.len();
-            ExtensionTarget::<D>(
-                (0..D)
-                    .map(|i| {
-                        let base_addends: Vec<Target> = (0..num_addends)
-                            .map(|j| addends_base_arrays[j][i])
-                            .collect();
-                        self.add_many(base_addends)
-                    })
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap(),
-            )
-        } else {
             terms.into_iter().fold(self.zero_extension(), |acc, t| {
                 self.add_extension(acc, *t.borrow())
             })
-        }
     }
 
     pub fn sub_extension(
@@ -269,19 +237,8 @@ where
         a: ExtensionTarget<D>,
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-        if self.config.use_base_arithmetic_gate {
-            ExtensionTarget::<D>(
-                a.0.into_iter()
-                    .zip_eq(b.0)
-                    .map(|(x, y)| self.sub(x, y))
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap(),
-            )
-        } else {
             let one = self.one_extension();
             self.arithmetic_extension(F::one(), F::neg_one(), one, a, b)
-        }
     }
 
     pub fn sub_ext_algebra(

@@ -388,7 +388,7 @@ mod tests {
             false,
         )?;
         assert_eq!(common_data.degree_bits(), 13);
-
+        assert_eq!(vd.circuit_digest.elements,[14839025416225437588, 13588008562724358006, 4147565255902737239, 7805652275147400996].map(F::from_canonical_u64));
         // Shrink it to 2^12.
         let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
             proof,

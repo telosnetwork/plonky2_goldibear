@@ -926,35 +926,3 @@ where
         .map(|values| values.coset_ifft(F::generator()))
         .collect()
 }
-
-#[cfg(test)]
-mod tests {
-    use p3_field::AbstractField;
-    use p3_goldilocks::Goldilocks;
-    use crate::plonk::circuit_data::CircuitConfig;
-    use crate::plonk::circuit_builder::CircuitBuilder;
-    use crate::gates::gate::GateRef;
-    use crate::gates::noop::NoopGate;
-    use crate::gates::poseidon_goldilocks::PoseidonGate;
-    use crate::plonk::config::PoseidonGoldilocksConfig;
-
-    #[test]
-    fn circuit_digest_regression_test() {
-        type F = Goldilocks;
-        const D: usize = 2;
-        const NUM_HASH_OUT_ELTS: usize = 4;
-
-        let config = CircuitConfig::standard_recursion_config_gl();
-        let mut builder = CircuitBuilder::<F,D,NUM_HASH_OUT_ELTS>::new(config);
-        builder.add_gate_to_gate_set(GateRef::new(PoseidonGate::new()));
-        builder.add_gate_to_gate_set(GateRef::new(NoopGate));
-
-        let data = builder.build::<PoseidonGoldilocksConfig>();
-        assert_eq!(data.verifier_only.circuit_digest.elements, [
-            16756371218519877898,
-            10543666013268206116,
-            16762175036259733946,
-            16068936267983513973,
-        ].map(Goldilocks::from_canonical_u64));
-    }
-}
