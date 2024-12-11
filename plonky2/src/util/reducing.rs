@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 use core::borrow::Borrow;
 
 use p3_field::{AbstractExtensionField, ExtensionField, Field, PackedField, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
@@ -142,7 +141,6 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let l = terms.len();
 
@@ -198,7 +196,6 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let l = terms.len();
 
@@ -252,7 +249,6 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         self.count += terms.len() as u64;
         terms
@@ -270,7 +266,6 @@ impl<const D: usize> ReducingFactorTarget<D> {
     ) -> ExtensionTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let zero_ext = builder.zero_extension();
         let exp = if x == zero_ext {
@@ -294,14 +289,13 @@ mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     fn test_reduce_gadget_base(n: usize) -> Result<()> {
         const D: usize = 2;

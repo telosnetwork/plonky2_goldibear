@@ -3,7 +3,6 @@ use alloc::{string::String, vec::Vec};
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, PackedField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -32,8 +31,6 @@ impl PublicInputGate {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate
-where
-    
 {
     fn id(&self) -> String {
         "PublicInputGate".into()
@@ -117,8 +114,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate
-where
-    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,

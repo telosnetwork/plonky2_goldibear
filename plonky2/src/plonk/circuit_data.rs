@@ -20,18 +20,18 @@ use std::collections::BTreeMap;
 
 use anyhow::Result;
 use p3_field::{AbstractExtensionField, TwoAdicField};
+use plonky2_field::types::HasExtension;
 use serde::Serialize;
 
-use plonky2_field::types::HasExtension;
-
+use super::circuit_builder::LookupWire;
 use crate::field::fft::FftRootTable;
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::reduction_strategies::FriReductionStrategy;
 use crate::fri::structure::{
     FriBatchInfo, FriBatchInfoTarget, FriInstanceInfo, FriInstanceInfoTarget, FriOracleInfo,
     FriPolynomialInfo,
 };
+use crate::fri::{FriConfig, FriParams};
 use crate::gates::gate::GateRef;
 use crate::gates::lookup::Lookup;
 use crate::gates::lookup_table::LookupTable;
@@ -49,12 +49,10 @@ use crate::plonk::plonk_common::PlonkOracle;
 use crate::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
 use crate::plonk::prover::prove;
 use crate::plonk::verifier::verify;
+use crate::util::proving_process_info::ProvingProcessInfo;
 use crate::util::serialization::{
     Buffer, GateSerializer, IoResult, Read, WitnessGeneratorSerializer, Write,
 };
-use crate::util::proving_process_info::ProvingProcessInfo;
-
-use super::circuit_builder::LookupWire;
 
 /// Configuration to be used when building a circuit. This defines the shape of the circuit
 /// as well as its targeted security level and sub-protocol (e.g. FRI) parameters.
@@ -179,9 +177,7 @@ pub struct MockCircuitData<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
@@ -192,8 +188,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
         generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(
@@ -211,9 +205,7 @@ pub struct CircuitData<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
@@ -225,8 +217,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn to_bytes(
         &self,
@@ -251,10 +241,7 @@ where
         &self,
         inputs: PartialWitness<F>,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
-        self.prove_with_timing(
-            inputs,
-            &mut ProvingProcessInfo::default(),
-        )
+        self.prove_with_timing(inputs, &mut ProvingProcessInfo::default())
     }
 
     pub fn prove_with_timing(
@@ -262,12 +249,7 @@ where
         inputs: PartialWitness<F>,
         timing: &mut ProvingProcessInfo,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>> {
-        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
-            &self.prover_only,
-            &self.common,
-            inputs,
-            timing,
-        )
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(&self.prover_only, &self.common, inputs, timing)
     }
     pub fn verify(
         &self,
@@ -337,9 +319,7 @@ pub struct ProverCircuitData<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub prover_only: ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
@@ -350,8 +330,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn to_bytes(
         &self,
@@ -376,9 +354,7 @@ where
         &self,
         inputs: PartialWitness<F>,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
@@ -396,9 +372,7 @@ pub struct VerifierCircuitData<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub verifier_only: VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     pub common: CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 }
@@ -409,8 +383,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn to_bytes(
         &self,
@@ -451,9 +423,7 @@ pub struct ProverOnlyCircuitData<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub generators: Vec<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>,
     /// Generator indices (within the `Vec` above), indexed by the representative of each target
     /// they watch.
@@ -489,8 +459,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn to_bytes(
         &self,
@@ -557,9 +525,7 @@ pub struct CommonCircuitData<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub config: CircuitConfig,
 
     pub fri_params: FriParams,
@@ -599,8 +565,6 @@ pub struct CommonCircuitData<
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn to_bytes(
         &self,

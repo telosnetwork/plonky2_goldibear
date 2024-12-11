@@ -6,16 +6,14 @@ use p3_field::{AbstractField, PrimeField64, TwoAdicField};
 use p3_poseidon2;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_symmetric::Permutation;
-
 use plonky2_field::types::HasExtension;
 
+use super::hash_types::{HashOut, RichField};
+use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
-
-use super::hash_types::{HashOut, RichField};
-use super::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
@@ -218,6 +216,7 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
 #[cfg(test)]
 mod tests {
     use p3_baby_bear::BabyBear;
+
     use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::hash::poseidon2_babybear::Poseidon2BabyBearHash;
     use crate::plonk::circuit_builder::CircuitBuilder;

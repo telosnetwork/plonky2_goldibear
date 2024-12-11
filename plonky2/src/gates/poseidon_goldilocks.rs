@@ -8,7 +8,6 @@ use alloc::{
 use core::marker::PhantomData;
 
 use p3_field::AbstractField;
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -16,7 +15,7 @@ use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
 use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::poseidon_goldilocks::{
-    HALF_N_FULL_ROUNDS, N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, PoseidonGoldilocks, SPONGE_WIDTH,
+    PoseidonGoldilocks, HALF_N_FULL_ROUNDS, N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -36,10 +35,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 #[derive(Debug, Default)]
 pub struct PoseidonGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> PoseidonGate<F, D> {
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -106,8 +102,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonGate<F, D>
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -448,8 +442,6 @@ pub struct PoseidonGenerator<F: RichField + HasExtension<D>, const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "PoseidonGenerator".to_string()
@@ -569,14 +561,13 @@ mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
 
+    use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     #[test]
     fn wire_indices() {

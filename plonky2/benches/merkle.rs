@@ -1,12 +1,11 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use p3_goldilocks::Goldilocks;
-use tynm::type_name;
-
 use plonky2::hash::hash_types::RichField;
 use plonky2::hash::keccak::KeccakHash;
 use plonky2::hash::merkle_tree::MerkleTree;
 use plonky2::hash::poseidon_goldilocks::Poseidon64Hash;
 use plonky2::plonk::config::Hasher;
+use tynm::type_name;
 
 mod allocator;
 

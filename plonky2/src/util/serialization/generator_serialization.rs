@@ -5,7 +5,6 @@ pub use alloc::vec::Vec;
 #[cfg(feature = "std")]
 pub use std::vec::Vec;
 
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -19,8 +18,7 @@ pub trait WitnessGeneratorSerializer<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
+>
 {
     fn read_generator(
         &self,
@@ -108,8 +106,6 @@ macro_rules! impl_generator_serializer {
 pub mod default {
     use core::marker::PhantomData;
 
-    
-
     use plonky2_field::types::HasExtension;
 
     use crate::gadgets::arithmetic::EqualityGenerator;
@@ -167,7 +163,7 @@ pub mod default {
         for DefaultGeneratorSerializer<C, D, NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     {

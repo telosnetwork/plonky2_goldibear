@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
 use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
@@ -32,7 +31,6 @@ pub fn test_low_degree<
     gate: G,
 ) where
     F::Extension: TwoAdicField + Sample,
-    
 {
     let rate_bits = log2_ceil(gate.degree() + 1);
 
@@ -112,7 +110,6 @@ pub fn test_eval_fns<
 ) -> Result<()>
 where
     F::Extension: Sample + TwoAdicField,
-    
 {
     // Test that `eval_unfiltered` and `eval_unfiltered_base` are coherent.
     let wires_base = F::rand_vec(gate.num_wires());

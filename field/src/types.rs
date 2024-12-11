@@ -4,7 +4,9 @@ use p3_baby_bear::BabyBear;
 use p3_field::extension::{
     BinomialExtensionField, BinomiallyExtendable, HasTwoAdicBionmialExtension,
 };
-use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, PrimeField32, PrimeField64, TwoAdicField};
+use p3_field::{
+    AbstractExtensionField, AbstractField, ExtensionField, PrimeField32, PrimeField64, TwoAdicField,
+};
 use p3_goldilocks::Goldilocks;
 use rand::rngs::OsRng;
 use rand::RngCore;

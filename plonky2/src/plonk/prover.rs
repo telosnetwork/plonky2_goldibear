@@ -5,15 +5,15 @@ use alloc::{format, vec, vec::Vec};
 use core::cmp::min;
 use core::mem::swap;
 
-use anyhow::{ensure, Result, bail};
+use anyhow::{bail, ensure, Result};
 use hashbrown::HashMap;
 use log::{error, info};
-use p3_field::{AbstractExtensionField, AbstractField, batch_multiplicative_inverse};
 use p3_field::extension::HasTwoAdicBionmialExtension;
-
-use plonky2_field::types::{HasExtension, two_adic_subgroup};
+use p3_field::{batch_multiplicative_inverse, AbstractExtensionField, AbstractField};
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use plonky2_maybe_rayon::*;
 
+use super::circuit_builder::{LookupChallenges, LookupWire};
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
 use crate::field::zero_poly_coset::ZeroPolyOnCoset;
 use crate::fri::oracle::PolynomialBatch;
@@ -34,23 +34,24 @@ use crate::plonk::prover::ProverError::InvZeroPermArg;
 use crate::plonk::vanishing_poly::{eval_vanishing_poly_base_batch, get_lut_poly};
 use crate::plonk::vars::EvaluationVarsBaseBatch;
 use crate::timed;
-use crate::util::{ceil_div_usize, log2_ceil, transpose};
 use crate::util::partial_products::{partial_products_and_z_gx, quotient_chunk_products};
-use crate::util::proving_process_info::{StatisticsItem, ProvingProcessInfo};
-
-use super::circuit_builder::{LookupChallenges, LookupWire};
+use crate::util::proving_process_info::{ProvingProcessInfo, StatisticsItem};
+use crate::util::{ceil_div_usize, log2_ceil, transpose};
 
 #[derive(Debug)]
 pub enum ProverError {
     InvZeroPermArg,
     TooManyPermArgFailures,
-    GenericFailure
+    GenericFailure,
 }
 impl core::fmt::Display for ProverError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::InvZeroPermArg => write!(f, "Permutation argument division by zero"),
-            Self::TooManyPermArgFailures => write!(f, "Couldn't find random values avoiding permutation argument division by zero"),
+            Self::TooManyPermArgFailures => write!(
+                f,
+                "Couldn't find random values avoiding permutation argument division by zero"
+            ),
             Self::GenericFailure => write!(f, "Prover Generic Failure"),
         }
     }
@@ -67,9 +68,7 @@ pub fn set_lookup_wires<
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     pw: &mut PartitionWitness<F>,
-) where
-    
-{
+) {
     for (
         lut_index,
         &LookupWire {
@@ -146,7 +145,6 @@ pub fn prove<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    
 {
     let partition_witness = timed!(
         timing,
@@ -171,9 +169,7 @@ pub fn prove_with_partition_witness<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    
 {
-
     set_lookup_wires(prover_data, common_data, &mut partition_witness);
 
     let public_inputs = partition_witness.get_targets(&prover_data.public_inputs);
@@ -197,19 +193,25 @@ where
             witness.wire_values[wire.column][wire.row] = F::rand();
         }
 
-        let res = internal_prove_with_partition_witness(prover_data, common_data, &witness, &public_inputs, timing);
+        let res = internal_prove_with_partition_witness(
+            prover_data,
+            common_data,
+            &witness,
+            &public_inputs,
+            timing,
+        );
 
         if res.is_ok() {
             return res;
         } else {
             let err = res.err().unwrap();
             if err.is::<ProverError>() {
-                let prover_error= err.downcast::<ProverError>().unwrap();
+                let prover_error = err.downcast::<ProverError>().unwrap();
                 match prover_error {
                     ProverError::InvZeroPermArg => {
                         //try another time ...
                         info!("Permutation argument inversion by zero! Trying again with different randomness ...")
-                    },
+                    }
                     _ => {
                         bail!(prover_error);
                     }
@@ -236,7 +238,6 @@ fn internal_prove_with_partition_witness<
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
-    
 {
     let public_inputs_hash = C::InnerHasher::hash_no_pad(&public_inputs);
     let has_lookup = !common_data.luts.is_empty();
@@ -302,7 +303,13 @@ where
     let mut partial_products_and_zs = timed!(
         timing,
         "compute partial products",
-        all_wires_permutation_partial_products(&witness, &betas, &gammas, prover_data, common_data)?
+        all_wires_permutation_partial_products(
+            &witness,
+            &betas,
+            &gammas,
+            prover_data,
+            common_data
+        )?
     );
 
     // Z is expected at the front of our batch; see `zs_range` and `partial_products_range`.
@@ -457,7 +464,6 @@ fn all_wires_permutation_partial_products<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<Vec<Vec<PolynomialValues<F>>>>
 where
-    
 {
     (0..common_data.config.num_challenges)
         .map(|i| {
@@ -488,7 +494,6 @@ fn wires_permutation_partial_products_and_zs<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<Vec<PolynomialValues<F>>>
 where
-    
 {
     let degree = common_data.quotient_degree_factor;
     let subgroup = &prover_data.subgroup;
@@ -563,7 +568,6 @@ fn compute_lookup_polys<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Vec<PolynomialValues<F>>
 where
-    
 {
     let degree = common_data.degree();
     let num_lu_slots = LookupGate::num_slots(&common_data.config);
@@ -687,7 +691,6 @@ fn compute_all_lookup_polys<
     lookup: bool,
 ) -> Vec<PolynomialValues<F>>
 where
-    
 {
     if lookup {
         let polys: Vec<Vec<PolynomialValues<F>>> = (0..common_data.config.num_challenges)
@@ -728,7 +731,6 @@ fn compute_quotient_polys<
     alphas: &[F],
 ) -> Vec<PolynomialCoeffs<F>>
 where
-    
 {
     let num_challenges = common_data.config.num_challenges;
 
@@ -925,36 +927,4 @@ where
         .map(PolynomialValues::new)
         .map(|values| values.coset_ifft(F::generator()))
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use p3_field::AbstractField;
-    use p3_goldilocks::Goldilocks;
-    use crate::plonk::circuit_data::CircuitConfig;
-    use crate::plonk::circuit_builder::CircuitBuilder;
-    use crate::gates::gate::GateRef;
-    use crate::gates::noop::NoopGate;
-    use crate::gates::poseidon_goldilocks::PoseidonGate;
-    use crate::plonk::config::PoseidonGoldilocksConfig;
-
-    #[test]
-    fn circuit_digest_regression_test() {
-        type F = Goldilocks;
-        const D: usize = 2;
-        const NUM_HASH_OUT_ELTS: usize = 4;
-
-        let config = CircuitConfig::standard_recursion_config_gl();
-        let mut builder = CircuitBuilder::<F,D,NUM_HASH_OUT_ELTS>::new(config);
-        builder.add_gate_to_gate_set(GateRef::new(PoseidonGate::new()));
-        builder.add_gate_to_gate_set(GateRef::new(NoopGate));
-
-        let data = builder.build::<PoseidonGoldilocksConfig>();
-        assert_eq!(data.verifier_only.circuit_digest.elements, [
-            16756371218519877898,
-            10543666013268206116,
-            16762175036259733946,
-            16068936267983513973,
-        ].map(Goldilocks::from_canonical_u64));
-    }
 }

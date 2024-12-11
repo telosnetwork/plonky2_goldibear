@@ -1,14 +1,13 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-
 use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{FriInitialTreeProof, FriProof, FriQueryRound, FriQueryStep};
+use crate::fri::{FriConfig, FriParams};
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::merkle_tree::MerkleTree;
@@ -16,8 +15,8 @@ use crate::iop::challenger::Challenger;
 use crate::plonk::config::GenericConfig;
 use crate::plonk::plonk_common::reduce_with_powers;
 use crate::timed;
-use crate::util::reverse_index_bits_in_place;
 use crate::util::proving_process_info::ProvingProcessInfo;
+use crate::util::reverse_index_bits_in_place;
 
 /// Builds a FRI proof.
 pub fn fri_proof<
@@ -36,7 +35,6 @@ pub fn fri_proof<
     timing: &mut ProvingProcessInfo,
 ) -> FriProof<F, C::Hasher, D>
 where
-    
 {
     let n = lde_polynomial_values.len();
     assert_eq!(lde_polynomial_coeffs.len(), n);
@@ -94,7 +92,6 @@ fn fri_committed_trees<
     fri_params: &FriParams,
 ) -> FriCommitedTrees<F, C, D, NUM_HASH_OUT_ELTS>
 where
-    
 {
     let mut trees = Vec::with_capacity(fri_params.reduction_arity_bits.len());
 
@@ -146,7 +143,6 @@ fn fri_proof_of_work<
     config: &FriConfig,
 ) -> F
 where
-    
 {
     let min_leading_zeros = config.proof_of_work_bits + (64 - F::order().bits()) as u32;
 
@@ -204,7 +200,6 @@ fn fri_prover_query_rounds<
     fri_params: &FriParams,
 ) -> Vec<FriQueryRound<F, C::Hasher, D>>
 where
-    
 {
     challenger
         .get_n_challenges(fri_params.config.num_query_rounds)
@@ -233,7 +228,6 @@ fn fri_prover_query_round<
     fri_params: &FriParams,
 ) -> FriQueryRound<F, C::Hasher, D>
 where
-    
 {
     let mut query_steps = Vec::new();
     let initial_proof = initial_merkle_trees

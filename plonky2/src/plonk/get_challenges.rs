@@ -2,9 +2,9 @@
 use alloc::{vec, vec::Vec};
 
 use hashbrown::HashSet;
-
 use plonky2_field::types::HasExtension;
 
+use super::circuit_builder::NUM_COINS_LOOKUP;
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::proof::{CompressedFriProof, FriChallenges, FriProof, FriProofTarget};
 use crate::fri::verifier::{compute_evaluation, fri_combine_initial, PrecomputedReducedOpenings};
@@ -22,8 +22,6 @@ use crate::plonk::proof::{
     ProofWithPublicInputs, ProofWithPublicInputsTarget,
 };
 use crate::util::reverse_bits;
-
-use super::circuit_builder::NUM_COINS_LOOKUP;
 
 fn get_challenges<
     F: RichField + HasExtension<D>,
@@ -43,7 +41,6 @@ fn get_challenges<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> anyhow::Result<ProofChallenges<F, D>>
 where
-    
 {
     let config = &common_data.config;
     let num_challenges = config.num_challenges;
@@ -105,8 +102,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub(crate) fn fri_query_indices(
         &self,
@@ -163,8 +158,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Computes all Fiat-Shamir challenges used in the Plonk proof.
     pub(crate) fn get_challenges(
@@ -281,8 +274,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn get_challenges<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         &mut self,
@@ -370,7 +361,6 @@ impl<const D: usize, const NUM_HASH_OUT_ELTS: usize>
     ) -> ProofChallengesTarget<D>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let ProofTarget {
             wires_cap,

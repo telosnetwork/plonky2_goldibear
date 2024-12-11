@@ -5,7 +5,7 @@ use p3_field::{PrimeField64, TwoAdicField};
 use plonky2::gates::arithmetic_base::ArithmeticBaseGenerator;
 use plonky2::gates::poseidon_goldilocks::PoseidonGenerator;
 use plonky2::gates::poseidon_goldilocks_mds::PoseidonMdsGenerator;
-use plonky2::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, RichField};
+use plonky2::hash::hash_types::{RichField, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 use plonky2::iop::generator::{
     ConstantGenerator, GeneratedValues, RandomValueGenerator, SimpleGenerator,
 };
@@ -24,10 +24,7 @@ use plonky2_field::types::{HasExtension, Sample};
 /// A generator used by the prover to calculate the square root (`x`) of a given value
 /// (`x_squared`), outside of the circuit, in order to supply it as an additional public input.
 #[derive(Debug, Default)]
-struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+struct SquareRootGenerator<F: RichField + HasExtension<D>, const D: usize> {
     x: Target,
     x_squared: Target,
     _phantom: PhantomData<F>,
@@ -35,8 +32,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for SquareRootGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "SquareRootGenerator".to_string()
@@ -94,7 +89,6 @@ where
     F: RichField + HasExtension<D>,
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension> + 'static,
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    
 {
     impl_generator_serializer! {
         CustomGeneratorSerializer,

@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::random_access::RandomAccessGate;
@@ -14,8 +13,6 @@ use crate::util::log2_strict;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Checks that a `Target` matches a vector at a particular index.
     pub fn random_access(&mut self, access_index: Target, v: Vec<Target>) -> Target {
@@ -111,14 +108,13 @@ mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     fn test_random_access_given_len(len_log: usize) -> Result<()> {
         const D: usize = 2;

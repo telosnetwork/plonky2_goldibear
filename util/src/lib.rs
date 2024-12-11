@@ -291,8 +291,8 @@ mod tests {
     use alloc::vec;
     use alloc::vec::Vec;
 
-    use rand::Rng;
     use rand::rngs::OsRng;
+    use rand::Rng;
 
     use crate::{log2_ceil, log2_strict};
 

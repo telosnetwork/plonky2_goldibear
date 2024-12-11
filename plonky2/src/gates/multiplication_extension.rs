@@ -7,7 +7,6 @@ use alloc::{
 use core::ops::Range;
 
 use p3_field::AbstractExtensionField;
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -56,8 +55,6 @@ impl<const D: usize> MulExtensionGate<D> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for MulExtensionGate<D>
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -187,8 +184,6 @@ pub struct MulExtensionGenerator<F: RichField + HasExtension<D>, const D: usize>
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for MulExtensionGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "MulExtensionGenerator".to_string()
@@ -247,11 +242,10 @@ mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
 
+    use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     #[test]
     fn low_degree() {

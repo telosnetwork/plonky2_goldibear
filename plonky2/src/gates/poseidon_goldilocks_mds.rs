@@ -9,7 +9,6 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, AbstractField};
-
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
 
@@ -30,10 +29,7 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 #[derive(Debug, Default)]
 pub struct PoseidonMdsGate<F: RichField + HasExtension<D>, const D: usize>(PhantomData<F>);
 
-impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> PoseidonMdsGate<F, D> {
     pub const fn new() -> Self {
         Self(PhantomData)
     }
@@ -133,7 +129,6 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     Gate<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGate<F, D>
 where
     F: HasExtension<D>,
-    
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -255,8 +250,6 @@ pub struct PoseidonMdsGenerator<const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for PoseidonMdsGenerator<D>
-where
-    
 {
     fn id(&self) -> String {
         "PoseidonMdsGenerator".to_string()

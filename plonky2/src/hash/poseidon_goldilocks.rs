@@ -8,11 +8,11 @@ use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
 use p3_field::{AbstractField, ExtensionField, Field, TwoAdicField};
-use unroll::unroll_for_loops;
-
 use plonky2_field::types::HasExtension;
 use plonky2_util::{assume, branch_hint};
+use unroll::unroll_for_loops;
 
+use super::hash_types::HashOut;
 use crate::gates::gate::Gate;
 use crate::gates::poseidon_goldilocks::PoseidonGate;
 use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
@@ -22,8 +22,6 @@ use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
-
-use super::hash_types::HashOut;
 
 /// Note that these work for the Goldilocks field, but not necessarily others. See
 /// `generate_constants` about how these were generated. We include enough for a width of 12;
@@ -1124,7 +1122,6 @@ impl<F: RichField> AlgebraicHasher<F, 4> for Poseidon64Hash {
     ) -> Self::AlgebraicPermutation
     where
         F: RichField + HasExtension<D>,
-        
     {
         let gate_type = PoseidonGate::<F, D>::new();
         let gate = builder.add_gate(gate_type, vec![]);
@@ -1208,9 +1205,8 @@ pub(crate) mod test_helpers {
     use p3_field::{AbstractField, PrimeField64};
     use p3_goldilocks::Goldilocks;
 
-    use crate::hash::poseidon_goldilocks::PoseidonGoldilocks;
-
     use super::*;
+    use crate::hash::poseidon_goldilocks::PoseidonGoldilocks;
 
     type F = Goldilocks;
     pub(crate) fn check_test_vectors(

@@ -9,9 +9,8 @@ use core::marker::PhantomData;
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, Field};
-
 use plonky2_field::extension_algebra::ExtensionAlgebra;
-use plonky2_field::types::{HasExtension, two_adic_subgroup};
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 
 use crate::field::interpolation::barycentric_weights;
 use crate::gates::gate::Gate;
@@ -56,31 +55,21 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 /// Then $e[N]$ is the final interpolated value. The non-routed wires hold every $(d - 1)$'th
 /// intermediate value of $p$ and $e$, starting at $p[d]$ and $e[d]$, where $d$ is the gate degree.
 #[derive(Clone, Debug, Default)]
-pub struct CosetInterpolationGate<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct CosetInterpolationGate<F: RichField + HasExtension<D>, const D: usize> {
     pub subgroup_bits: usize,
     pub degree: usize,
     pub barycentric_weights: Vec<F>,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> CosetInterpolationGate<F, D> {
     pub fn new(subgroup_bits: usize) -> Self
-    where
-        
-    {
+where {
         Self::with_max_degree(subgroup_bits, 1 << subgroup_bits)
     }
 
     pub(crate) fn with_max_degree(subgroup_bits: usize, max_degree: usize) -> Self
-    where
-        
-    {
+where {
         assert!(max_degree > 1, "need at least quadratic constraints");
 
         let n_points = 1 << subgroup_bits;
@@ -187,8 +176,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for CosetInterpolationGate<F, D>
-where
-    
 {
     fn id(&self) -> String {
         let arr = self
@@ -462,20 +449,14 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct InterpolationGenerator<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct InterpolationGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     gate: CosetInterpolationGate<F, D>,
     interpolation_domain: Vec<F>,
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> InterpolationGenerator<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> InterpolationGenerator<F, D> {
     fn new(row: usize, gate: CosetInterpolationGate<F, D>) -> Self {
         let interpolation_domain = two_adic_subgroup::<F>(gate.subgroup_bits);
         InterpolationGenerator {
@@ -489,8 +470,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for InterpolationGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "InterpolationGenerator".to_string()
@@ -698,7 +677,6 @@ fn partial_interpolate_ext_algebra_target<
     initial_partial_prod: ExtensionAlgebraTarget<D>,
 ) -> (ExtensionAlgebraTarget<D>, ExtensionAlgebraTarget<D>)
 where
-    
 {
     let n = values.len();
     debug_assert!(n != 0);
@@ -734,16 +712,14 @@ mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
-
     use plonky2_field::polynomial::PolynomialValues;
     use plonky2_util::log2_strict;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
+    use crate::hash::hash_types::{HashOut, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
-    use super::*;
 
     #[test]
     fn test_degree_and_wires_minimized() {

@@ -2,9 +2,8 @@
 use alloc::{vec, vec::Vec};
 use core::ops::Range;
 
-use serde::Serialize;
-
 use plonky2_field::types::HasExtension;
+use serde::Serialize;
 
 use crate::field::polynomial::PolynomialValues;
 use crate::gates::gate::{GateInstance, GateRef};
@@ -57,7 +56,6 @@ pub(crate) fn selectors_lookup<
     lookup_rows: &[LookupWire],
 ) -> Vec<PolynomialValues<F>>
 where
-    
 {
     let n = instances.len();
     let mut lookup_selectors = Vec::with_capacity(LookupSelectors::StartEnd as usize);
@@ -94,7 +92,6 @@ pub(crate) fn selector_ends_lookups<
     instances: &[GateInstance<F, D, NUM_HASH_OUT_ELTS>],
 ) -> Vec<PolynomialValues<F>>
 where
-    
 {
     let n = instances.len();
     let mut lookups_ends = Vec::with_capacity(lookup_rows.len());
@@ -133,7 +130,6 @@ pub(crate) fn selector_polynomials<
     max_degree: usize,
 ) -> (Vec<PolynomialValues<F>>, SelectorsInfo)
 where
-    
 {
     let n = instances.len();
     let num_gates = gates.len();

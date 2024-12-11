@@ -9,7 +9,6 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 
 use p3_field::Field;
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -35,7 +34,6 @@ pub fn generate_partial_witness<
     common_data: &'a CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> PartitionWitness<'a, F>
 where
-    
 {
     let config = &common_data.config;
     let generators = &prover_data.generators;
@@ -113,8 +111,7 @@ pub trait WitnessGenerator<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
->: 'static + Send + Sync + Debug where
-    
+>: 'static + Send + Sync + Debug
 {
     fn id(&self) -> String;
 
@@ -151,8 +148,6 @@ pub struct WitnessGeneratorRef<
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn new<G: WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>>(
         generator: G,
@@ -163,8 +158,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
     for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
@@ -173,15 +166,11 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
     for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
     for WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0.id())
@@ -229,7 +218,6 @@ impl<F: Field> GeneratedValues<F> {
     ) -> Self
     where
         F: RichField + HasExtension<D>,
-        
     {
         let mut witness = Self::with_capacity(D);
         witness.set_extension_target(et, value);
@@ -242,8 +230,7 @@ pub trait SimpleGenerator<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
->: 'static + Send + Sync + Debug where
-    
+>: 'static + Send + Sync + Debug
 {
     fn id(&self) -> String;
 
@@ -281,9 +268,7 @@ pub struct SimpleGeneratorAdapter<
     SG: SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> + ?Sized,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     _phantom: PhantomData<F>,
     inner: SG,
 }
@@ -295,8 +280,6 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > WitnessGenerator<F, D, NUM_HASH_OUT_ELTS>
     for SimpleGeneratorAdapter<F, SG, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn id(&self) -> String {
         self.inner.id()
@@ -343,8 +326,6 @@ pub struct CopyGenerator {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for CopyGenerator
-where
-    
 {
     fn id(&self) -> String {
         "CopyGenerator".to_string()
@@ -386,8 +367,6 @@ pub struct RandomValueGenerator {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomValueGenerator
-where
-    
 {
     fn id(&self) -> String {
         "RandomValueGenerator".to_string()
@@ -428,8 +407,6 @@ pub struct NonzeroTestGenerator {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for NonzeroTestGenerator
-where
-    
 {
     fn id(&self) -> String {
         "NonzeroTestGenerator".to_string()
@@ -487,8 +464,6 @@ impl<F: Field> ConstantGenerator<F> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ConstantGenerator<F>
-where
-    
 {
     fn id(&self) -> String {
         "ConstantGenerator".to_string()

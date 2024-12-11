@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::RichField;
@@ -27,9 +26,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: Target,
     ) -> ExtensionTarget<D>
-    where
-        
-    {
+where {
         let point = builder.convert_to_ext(point);
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
@@ -40,9 +37,7 @@ impl<const D: usize> PolynomialCoeffsExtTarget<D> {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         point: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
-    where
-        
-    {
+where {
         let mut point = ReducingFactorTarget::new(point);
         point.reduce(&self.0, builder)
     }
@@ -59,7 +54,6 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -75,7 +69,6 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let mut acc = builder.zero_ext_algebra();
         for &c in self.0.iter().rev() {
@@ -92,7 +85,6 @@ impl<const D: usize> PolynomialCoeffsExtAlgebraTarget<D> {
     ) -> ExtensionAlgebraTarget<D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         debug_assert_eq!(self.0.len(), powers.len() + 1);
         let acc = self.0[0];

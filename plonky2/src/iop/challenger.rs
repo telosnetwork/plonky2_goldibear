@@ -3,7 +3,6 @@ use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
 
 use p3_field::AbstractExtensionField;
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -53,7 +52,6 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_extension_element<const D: usize>(&mut self, element: &F::Extension)
     where
         F: RichField + HasExtension<D>,
-        
     {
         self.observe_elements(element.as_base_slice());
     }
@@ -67,7 +65,6 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_extension_elements<const D: usize>(&mut self, elements: &[F::Extension])
     where
         F: RichField + HasExtension<D>,
-        
     {
         for element in elements {
             self.observe_extension_element(element);
@@ -109,7 +106,6 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn get_extension_challenge<const D: usize>(&mut self) -> F::Extension
     where
         F: RichField + HasExtension<D>,
-        
     {
         let mut arr = [F::zero(); D];
         arr.copy_from_slice(&self.get_n_challenges(D));
@@ -119,7 +115,6 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn get_n_extension_challenges<const D: usize>(&mut self, n: usize) -> Vec<F::Extension>
     where
         F: RichField + HasExtension<D>,
-        
     {
         (0..n)
             .map(|_| self.get_extension_challenge::<D>())
@@ -169,9 +164,7 @@ pub struct RecursiveChallenger<
     H: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     sponge_state: H::AlgebraicPermutation,
     input_buffer: Vec<Target>,
     output_buffer: Vec<Target>,
@@ -184,8 +177,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn new(builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>) -> Self {
         let zero = builder.zero();

@@ -3,21 +3,20 @@ use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
 use p3_field::{AbstractExtensionField, AbstractField, TwoAdicField};
-
 use plonky2_field::extension::flatten;
 use plonky2_field::types::HasExtension;
 
 use crate::field::interpolation::{barycentric_weights, interpolate};
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{FriChallenges, FriInitialTreeProof, FriProof, FriQueryRound};
 use crate::fri::structure::{FriBatchInfo, FriInstanceInfo, FriOpenings};
 use crate::fri::validate_shape::validate_fri_proof_shape;
+use crate::fri::{FriConfig, FriParams};
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_proofs::verify_merkle_proof_to_cap;
 use crate::hash::merkle_tree::MerkleCap;
 use crate::plonk::config::{GenericConfig, Hasher};
-use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place};
 use crate::util::reducing::ReducingFactor;
+use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place};
 
 /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
 /// and P' is the FRI reduced polynomial.
@@ -53,7 +52,6 @@ pub(crate) fn fri_verify_proof_of_work<F: RichField + HasExtension<D>, const D: 
     config: &FriConfig,
 ) -> Result<()>
 where
-    
 {
     ensure!(
         fri_pow_response.as_canonical_u64().leading_zeros()
@@ -78,7 +76,6 @@ pub fn verify_fri_proof<
     params: &FriParams,
 ) -> Result<()>
 where
-    
 {
     validate_fri_proof_shape::<F, C, D, NUM_HASH_OUT_ELTS>(proof, instance, params)?;
 
@@ -143,7 +140,6 @@ pub(crate) fn fri_combine_initial<
     params: &FriParams,
 ) -> F::Extension
 where
-    
 {
     assert!(D > 1, "Not implemented for D=1.");
     let subgroup_x = F::Extension::from_base(subgroup_x);
@@ -191,7 +187,6 @@ fn fri_verifier_query_round<
     params: &FriParams,
 ) -> Result<()>
 where
-    
 {
     fri_verify_initial_proof::<F, C::Hasher>(
         x_index,
@@ -260,17 +255,11 @@ where
 /// For each opening point, holds the reduced (by `alpha`) evaluations of each polynomial that's
 /// opened at that point.
 #[derive(Clone, Debug)]
-pub(crate) struct PrecomputedReducedOpenings<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub(crate) struct PrecomputedReducedOpenings<F: RichField + HasExtension<D>, const D: usize> {
     pub reduced_openings_at_point: Vec<F::Extension>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> PrecomputedReducedOpenings<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> PrecomputedReducedOpenings<F, D> {
     pub(crate) fn from_os_and_alpha(openings: &FriOpenings<F, D>, alpha: F::Extension) -> Self {
         let reduced_openings_at_point = openings
             .batches

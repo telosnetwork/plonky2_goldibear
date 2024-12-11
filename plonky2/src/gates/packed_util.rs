@@ -2,7 +2,6 @@
 use alloc::{vec, vec::Vec};
 
 use p3_field::{PackedField, PackedValue};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -14,8 +13,7 @@ pub trait PackedEvaluableBase<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
->: Gate<F, D, NUM_HASH_OUT_ELTS> where
-    
+>: Gate<F, D, NUM_HASH_OUT_ELTS>
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,

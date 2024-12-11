@@ -1,12 +1,11 @@
 use core::usize;
 
-
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::fri::FriConfig;
 use crate::fri::proof::{FriChallenges, FriChallengesTarget};
 use crate::fri::structure::{FriOpenings, FriOpeningsTarget};
+use crate::fri::FriConfig;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
@@ -19,7 +18,6 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     pub fn observe_openings<const D: usize>(&mut self, openings: &FriOpenings<F, D>)
     where
         F: RichField + HasExtension<D>,
-        
     {
         for v in &openings.batches {
             self.observe_extension_elements(&v.values);
@@ -40,7 +38,6 @@ impl<F: RichField, H: Hasher<F>> Challenger<F, H> {
     ) -> FriChallenges<F, D>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let num_fri_queries = config.num_query_rounds;
         let lde_size = 1 << (degree_bits + config.rate_bits);
@@ -80,8 +77,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > RecursiveChallenger<F, H, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn observe_openings(&mut self, openings: &FriOpeningsTarget<D>) {
         for v in &openings.batches {

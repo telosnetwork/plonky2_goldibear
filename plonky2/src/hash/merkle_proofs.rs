@@ -3,9 +3,8 @@ use alloc::{vec, vec::Vec};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
-
 use plonky2_field::types::HasExtension;
+use serde::{Deserialize, Serialize};
 
 use crate::hash::hash_types::{HashOutTarget, MerkleCapTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
@@ -79,8 +78,6 @@ pub fn verify_merkle_proof_to_cap<F: RichField, H: Hasher<F>>(
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Verifies that the given leaf data is present at the given index in the Merkle tree with the
     /// given root. The index is given by its little-endian bits.
@@ -191,19 +188,17 @@ where
 #[cfg(test)]
 mod tests {
     use p3_field::{AbstractField, Field};
-    use rand::Rng;
-    use rand::rngs::OsRng;
-
     use plonky2_field::types::Sample;
+    use rand::rngs::OsRng;
+    use rand::Rng;
 
+    use super::*;
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     fn random_data<F: Field + Sample>(n: usize, k: usize) -> Vec<Vec<F>> {
         (0..n).map(|_| F::rand_vec(k)).collect()
@@ -212,7 +207,7 @@ mod tests {
     #[test]
     fn test_recursive_merkle_proof() -> Result<()> {
         const D: usize = 2;
-        const NUM_HASH_OUT_ELTS:usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let config = CircuitConfig::standard_recursion_config_gl();
