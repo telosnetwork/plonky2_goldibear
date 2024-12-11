@@ -1,20 +1,20 @@
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-#[cfg(not(feature = "std"))]
-use alloc::vec;
+use alloc::format;
 #[cfg(not(feature = "std"))]
 use alloc::string::{String, ToString};
 #[cfg(not(feature = "std"))]
-use alloc::format;
-
+use alloc::vec;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use core::ops::Range;
 
 use itertools::Itertools;
 use p3_field::{AbstractExtensionField, AbstractField};
-
 use plonky2_field::extension_algebra::ExtensionAlgebra;
 use plonky2_field::types::HasExtension;
+
+use super::gate::Gate;
 use crate::hash::hash_types::RichField;
 use crate::iop::ext_target::{ExtensionAlgebraTarget, ExtensionTarget};
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -23,8 +23,6 @@ use crate::iop::witness::{PartitionWitness, Witness, WitnessWrite};
 use crate::plonk::circuit_data::{CircuitConfig, CommonCircuitData};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-use super::gate::Gate;
-
 /// Apply Mat4 Gate
 #[derive(Clone, Debug, Default)]
 pub struct ApplyMat4Gate<F: RichField + HasExtension<D>, const D: usize> {
@@ -32,10 +30,7 @@ pub struct ApplyMat4Gate<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> ApplyMat4Gate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> ApplyMat4Gate<F, D> {
     pub const fn new_from_config(config: &CircuitConfig) -> Self {
         let wires_per_op = 8 * D;
         let num_ops = config.num_routed_wires / wires_per_op;
@@ -58,8 +53,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for ApplyMat4Gate<F, D>
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?} number of operations = {}", self.num_ops)
@@ -232,8 +225,6 @@ pub struct ApplyMat4Generator<const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ApplyMat4Generator<D>
-where
-    
 {
     fn id(&self) -> String {
         "ApplyMat4Generator".to_string()

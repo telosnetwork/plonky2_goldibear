@@ -1,5 +1,5 @@
 use hashbrown::HashMap;
-use log::{Level, log};
+use log::{log, Level};
 #[cfg(feature = "timing")]
 use web_time::{Duration, Instant};
 
@@ -27,7 +27,7 @@ pub struct ProvingProcessInfo {
 }
 #[derive(Debug, Clone, Eq, PartialEq, Copy, Hash)]
 pub enum StatisticsItem {
-    PermArgRetries
+    PermArgRetries,
 }
 
 #[cfg(feature = "timing")]

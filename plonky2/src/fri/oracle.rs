@@ -3,24 +3,23 @@ use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
 use p3_field::{AbstractField, PackedField, TwoAdicField};
-
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
 
 use crate::field::fft::FftRootTable;
 use crate::field::polynomial::{PolynomialCoeffs, PolynomialValues};
-use crate::fri::FriParams;
 use crate::fri::proof::FriProof;
 use crate::fri::prover::fri_proof;
 use crate::fri::structure::{FriBatchInfo, FriInstanceInfo};
+use crate::fri::FriParams;
 use crate::hash::hash_types::RichField;
 use crate::hash::merkle_tree::MerkleTree;
 use crate::iop::challenger::Challenger;
 use crate::plonk::config::GenericConfig;
 use crate::timed;
-use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
-use crate::util::reducing::ReducingFactor;
 use crate::util::proving_process_info::ProvingProcessInfo;
+use crate::util::reducing::ReducingFactor;
+use crate::util::{log2_strict, reverse_bits, reverse_index_bits_in_place, transpose};
 
 /// Four (~64 bit) field elements gives ~128 bit security.
 pub const SALT_SIZE: usize = 4;
@@ -32,9 +31,7 @@ pub struct PolynomialBatch<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub polynomials: Vec<PolynomialCoeffs<F>>,
     pub merkle_tree: MerkleTree<F, C::Hasher>,
     pub degree_log: usize,
@@ -48,8 +45,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > Default for PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn default() -> Self {
         PolynomialBatch {
@@ -68,8 +63,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Creates a list polynomial commitment for the polynomials interpolating the values in `values`.
     pub fn from_values(

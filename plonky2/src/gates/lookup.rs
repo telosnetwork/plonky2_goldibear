@@ -10,9 +10,9 @@ use core::usize;
 use itertools::Itertools;
 use keccak_hash::keccak;
 use p3_field::PackedField;
-
 use plonky2_field::types::HasExtension;
 
+use super::lookup_table::LookupTable;
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
 use crate::gates::util::StridedConstraintConsumer;
@@ -28,8 +28,6 @@ use crate::plonk::vars::{
     EvaluationVarsBasePacked,
 };
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
-
-use super::lookup_table::LookupTable;
 
 pub type Lookup = Vec<(Target, Target)>;
 
@@ -73,8 +71,6 @@ impl LookupGate {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for LookupGate
-where
-    
 {
     fn id(&self) -> String {
         // Custom implementation to not have the entire lookup table
@@ -183,8 +179,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for LookupGate
-where
-    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -203,8 +197,6 @@ pub struct LookupGenerator {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for LookupGenerator
-where
-    
 {
     fn id(&self) -> String {
         "LookupGenerator".to_string()

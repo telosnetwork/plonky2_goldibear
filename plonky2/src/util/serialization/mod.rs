@@ -7,23 +7,22 @@ use core::ops::Range;
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, sync::Arc};
 
-use hashbrown::HashMap;
-use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
-
 pub use gate_serialization::default::DefaultGateSerializer;
 pub use gate_serialization::GateSerializer;
 pub use generator_serialization::default::DefaultGeneratorSerializer;
 pub use generator_serialization::WitnessGeneratorSerializer;
+use hashbrown::HashMap;
+use p3_field::{AbstractExtensionField, PrimeField64, TwoAdicField};
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, CompressedFriQueryRounds, FriInitialTreeProof, FriInitialTreeProofTarget,
     FriProof, FriProofTarget, FriQueryRound, FriQueryRoundTarget, FriQueryStep, FriQueryStepTarget,
 };
 use crate::fri::reduction_strategies::FriReductionStrategy;
+use crate::fri::{FriConfig, FriParams};
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
 use crate::gates::gate::GateRef;
 use crate::gates::lookup::Lookup;
@@ -193,7 +192,6 @@ pub trait Read {
     ) -> IoResult<Vec<F::Extension>>
     where
         F: RichField + HasExtension<D>,
-        
     {
         (0..length).map(|_| self.read_field_ext::<F, D>()).collect()
     }
@@ -348,7 +346,7 @@ pub trait Read {
     ) -> IoResult<OpeningSet<F, D>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -439,7 +437,7 @@ pub trait Read {
     ) -> IoResult<FriInitialTreeProof<F, C::Hasher>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -496,7 +494,7 @@ pub trait Read {
     ) -> IoResult<FriQueryStep<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let evals = self.read_field_ext_vec::<F, D>(arity - usize::from(compressed))?;
@@ -529,7 +527,7 @@ pub trait Read {
     ) -> IoResult<Vec<FriQueryRound<F, C::Hasher, D>>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -580,7 +578,7 @@ pub trait Read {
     ) -> IoResult<FriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -751,9 +749,7 @@ pub trait Read {
     >(
         &mut self,
     ) -> IoResult<PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let poly_len = self.read_usize()?;
         let mut polynomials = Vec::with_capacity(poly_len);
         for _ in 0..poly_len {
@@ -783,9 +779,7 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let config = self.read_circuit_config()?;
         let fri_params = self.read_fri_params()?;
 
@@ -850,9 +844,7 @@ pub trait Read {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<CircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let common = self.read_common_circuit_data(gate_serializer)?;
         let prover_only = self.read_prover_only_circuit_data(generator_serializer, &common)?;
         let verifier_only = self.read_verifier_only_circuit_data()?;
@@ -873,9 +865,7 @@ pub trait Read {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let gen_len = self.read_usize()?;
         let mut generators = Vec::with_capacity(gen_len);
         for _ in 0..gen_len {
@@ -940,7 +930,10 @@ pub trait Read {
         let random_wire = if random_wire_column == 0 && random_wire_column == 0 {
             None
         } else {
-            Some( Wire{ row: random_wire_row, column: random_wire_column } )
+            Some(Wire {
+                row: random_wire_row,
+                column: random_wire_column,
+            })
         };
         Ok(ProverOnlyCircuitData {
             generators,
@@ -968,9 +961,7 @@ pub trait Read {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let common = self.read_common_circuit_data(gate_serializer)?;
         let prover_only = self.read_prover_only_circuit_data(generator_serializer, &common)?;
         Ok(ProverCircuitData {
@@ -987,9 +978,7 @@ pub trait Read {
     >(
         &mut self,
     ) -> IoResult<VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let height = self.read_usize()?;
         let constants_sigmas_cap = self.read_merkle_cap(height)?;
         let circuit_digest =
@@ -1009,9 +998,7 @@ pub trait Read {
         &mut self,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let verifier_only = self.read_verifier_only_circuit_data()?;
         let common = self.read_common_circuit_data(gate_serializer)?;
         Ok(VerifierCircuitData {
@@ -1039,9 +1026,8 @@ pub trait Read {
     ) -> IoResult<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
-        
     {
         let config = &common_data.config;
         let wires_cap = self.read_merkle_cap(config.fri_config.cap_height)?;
@@ -1086,7 +1072,7 @@ pub trait Read {
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let proof = self.read_proof(common_data)?;
@@ -1119,7 +1105,7 @@ pub trait Read {
     ) -> IoResult<CompressedFriQueryRounds<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -1171,7 +1157,7 @@ pub trait Read {
     ) -> IoResult<CompressedFriProof<F, C::Hasher, D>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -1200,7 +1186,7 @@ pub trait Read {
     ) -> IoResult<CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let config = &common_data.config;
@@ -1233,7 +1219,7 @@ pub trait Read {
     where
         Self: Remaining,
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let proof = self.read_compressed_proof(common_data)?;
@@ -1361,7 +1347,6 @@ pub trait Write {
     fn write_field_ext<F, const D: usize>(&mut self, x: F::Extension) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
     {
         for &a in x.as_base_slice() {
             self.write_field(a)?;
@@ -1374,7 +1359,6 @@ pub trait Write {
     fn write_field_ext_vec<F, const D: usize>(&mut self, v: &[F::Extension]) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
     {
         for &a in v {
             self.write_field_ext::<F, D>(a)?;
@@ -1530,7 +1514,6 @@ pub trait Write {
     fn write_opening_set<F, const D: usize>(&mut self, os: &OpeningSet<F, D>) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
     {
         self.write_field_ext_vec::<F, D>(&os.constants)?;
         self.write_field_ext_vec::<F, D>(&os.plonk_sigmas)?;
@@ -1605,7 +1588,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for (v, p) in &fitp.evals_proofs {
@@ -1637,7 +1620,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_field_ext_vec::<F, D>(&fqs.evals)?;
@@ -1662,7 +1645,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for fqr in fqrs {
@@ -1699,7 +1682,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for cap in &fp.commit_phase_merkle_caps {
@@ -1863,9 +1846,7 @@ pub trait Write {
         &mut self,
         poly_batch: &PolynomialBatch<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         self.write_usize(poly_batch.polynomials.len())?;
         for i in 0..poly_batch.polynomials.len() {
             self.write_usize(poly_batch.polynomials[i].coeffs.len())?;
@@ -1888,9 +1869,7 @@ pub trait Write {
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         let CommonCircuitData {
             config,
             fri_params,
@@ -1947,9 +1926,7 @@ pub trait Write {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         self.write_common_circuit_data(&circuit_data.common, gate_serializer)?;
         self.write_prover_only_circuit_data(
             &circuit_data.prover_only,
@@ -1970,9 +1947,7 @@ pub trait Write {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         let ProverOnlyCircuitData {
             generators,
             generator_indices_by_watches,
@@ -2062,9 +2037,7 @@ pub trait Write {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         self.write_common_circuit_data(&prover_circuit_data.common, gate_serializer)?;
         self.write_prover_only_circuit_data(
             &prover_circuit_data.prover_only,
@@ -2082,9 +2055,7 @@ pub trait Write {
         &mut self,
         verifier_only_circuit_data: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         let VerifierOnlyCircuitData {
             constants_sigmas_cap,
             circuit_digest,
@@ -2107,9 +2078,7 @@ pub trait Write {
         verifier_circuit_data: &VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         self.write_verifier_only_circuit_data(&verifier_circuit_data.verifier_only)?;
         self.write_common_circuit_data(&verifier_circuit_data.common, gate_serializer)
     }
@@ -2137,7 +2106,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
@@ -2168,7 +2137,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let ProofWithPublicInputs {
@@ -2202,7 +2171,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for &i in &cfqrs.indices {
@@ -2231,7 +2200,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         for cap in &fp.commit_phase_merkle_caps {
@@ -2252,7 +2221,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         self.write_merkle_cap(&proof.wires_cap)?;
@@ -2275,7 +2244,7 @@ pub trait Write {
     ) -> IoResult<()>
     where
         F: RichField + HasExtension<D>,
-        
+
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     {
         let CompressedProofWithPublicInputs {
@@ -2320,15 +2289,17 @@ impl Write for Vec<u8> {
         Ok(())
     }
 
-    fn write_gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+    fn write_gate<
+        F: RichField + HasExtension<D>,
+        const D: usize,
+        const NUM_HASH_OUT_ELTS: usize,
+    >(
         &mut self,
         gate: &GateRef<F, D, NUM_HASH_OUT_ELTS>,
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         gate_serializer.write_gate(self, gate, common_data)
     }
 
@@ -2342,9 +2313,7 @@ impl Write for Vec<u8> {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<()>
-    where
-        
-    {
+where {
         generator_serializer.write_generator(self, generator, common_data)
     }
 }
@@ -2406,9 +2375,7 @@ impl<'a> Read for Buffer<'a> {
         gate_serializer: &dyn GateSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<GateRef<F, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         gate_serializer.read_gate(self, common_data)
     }
 
@@ -2421,9 +2388,7 @@ impl<'a> Read for Buffer<'a> {
         generator_serializer: &dyn WitnessGeneratorSerializer<F, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<WitnessGeneratorRef<F, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         generator_serializer.read_generator(self, common_data)
     }
 }

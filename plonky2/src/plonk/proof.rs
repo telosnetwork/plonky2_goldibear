@@ -8,12 +8,10 @@
 use alloc::{vec, vec::Vec};
 
 use anyhow::ensure;
-use serde::{Deserialize, Serialize};
-
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::*;
+use serde::{Deserialize, Serialize};
 
-use crate::fri::FriParams;
 use crate::fri::oracle::PolynomialBatch;
 use crate::fri::proof::{
     CompressedFriProof, FriChallenges, FriChallengesTarget, FriProof, FriProofTarget,
@@ -21,6 +19,7 @@ use crate::fri::proof::{
 use crate::fri::structure::{
     FriOpeningBatch, FriOpeningBatchTarget, FriOpenings, FriOpeningsTarget,
 };
+use crate::fri::FriParams;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
 use crate::hash::merkle_tree::MerkleCap;
 use crate::iop::ext_target::ExtensionTarget;
@@ -37,9 +36,7 @@ pub struct Proof<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -67,8 +64,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > Proof<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Compress the proof.
     pub fn compress(
@@ -101,9 +96,7 @@ pub struct ProofWithPublicInputs<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub proof: Proof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
@@ -114,8 +107,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn compress(
         self,
@@ -163,9 +154,7 @@ pub struct CompressedProof<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     /// Merkle cap of LDEs of wire values.
     pub wires_cap: MerkleCap<F, C::Hasher>,
     /// Merkle cap of LDEs of Z, in the context of Plonk's permutation argument.
@@ -184,8 +173,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Decompress the proof.
     pub(crate) fn decompress(
@@ -219,9 +206,7 @@ pub struct CompressedProofWithPublicInputs<
     C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub proof: CompressedProof<F, C, D, NUM_HASH_OUT_ELTS>,
     pub public_inputs: Vec<F>,
 }
@@ -232,8 +217,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > CompressedProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn decompress(
         self,
@@ -307,10 +290,7 @@ where
 }
 
 #[derive(Debug)]
-pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct ProofChallenges<F: RichField + HasExtension<D>, const D: usize> {
     /// Random values used in Plonk's permutation argument.
     pub plonk_betas: Vec<F>,
 
@@ -351,10 +331,7 @@ pub struct ProofWithPublicInputsTarget<const D: usize, const NUM_HASH_OUT_ELTS: 
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Eq, PartialEq)]
 /// The purported values of each polynomial at a single point.
-pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct OpeningSet<F: RichField + HasExtension<D>, const D: usize> {
     pub constants: Vec<F::Extension>,
     pub plonk_sigmas: Vec<F::Extension>,
     pub wires: Vec<F::Extension>,
@@ -366,10 +343,7 @@ where
     pub lookup_zs_next: Vec<F::Extension>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> OpeningSet<F, D> {
     pub fn new<
         C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>,
         const NUM_HASH_OUT_ELTS: usize,
@@ -522,9 +496,9 @@ mod tests {
     use anyhow::Result;
     use itertools::Itertools;
     use p3_field::AbstractField;
-
     use plonky2_field::types::Sample;
 
+    use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
     use crate::gates::lookup_table::LookupTable;
     use crate::gates::noop::NoopGate;
@@ -534,8 +508,6 @@ mod tests {
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::PoseidonGoldilocksConfig;
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     #[test]
     fn test_proof_compression() -> Result<()> {
@@ -638,6 +610,7 @@ mod tests {
     mod tests_non_rand {
         use p3_field::AbstractField;
         use plonky2_field::types::tests_non_rand;
+
         use crate::gates::noop::NoopGate;
         use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
         use crate::iop::witness::{PartialWitness, WitnessWrite};
@@ -645,15 +618,14 @@ mod tests {
         use crate::plonk::circuit_data::CircuitConfig;
         use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
         use crate::plonk::verifier::verify;
-        use crate::util::proving_process_info::{StatisticsItem, ProvingProcessInfo};
+        use crate::util::proving_process_info::{ProvingProcessInfo, StatisticsItem};
 
         #[test]
-        fn test_proof_permutation_argument_div_zero()  {
+        fn test_proof_permutation_argument_div_zero() {
             const D: usize = 4;
             type C = Poseidon2BabyBearConfig;
             const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
             type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-
 
             let config = CircuitConfig::standard_recursion_config_bb_wide();
 
@@ -664,7 +636,7 @@ mod tests {
 
             let comp_zt = builder.mul(xt, yt);
             builder.connect(zt, comp_zt);
-            for _ in 0.. (1 << 11) {
+            for _ in 0..(1 << 11) {
                 builder.add_gate(NoopGate, vec![]);
             }
             let data = builder.build::<C>();
@@ -682,7 +654,9 @@ mod tests {
                 assert!(verify(res, &data.verifier_only, &data.common).is_ok());
 
                 //Ensure one retry was automatically performed due to a division by zero in permutation argument
-                let perm_arg_retries = timing.get_statistic_value(StatisticsItem::PermArgRetries).unwrap();
+                let perm_arg_retries = timing
+                    .get_statistic_value(StatisticsItem::PermArgRetries)
+                    .unwrap();
                 assert_eq!(*perm_arg_retries, 1);
             }
             tests_non_rand::NonRandomRng::reset();
@@ -698,7 +672,9 @@ mod tests {
                 assert!(verify(res, &data.verifier_only, &data.common).is_ok());
 
                 //Ensure no division by zero happened in permutation argument
-                let perm_arg_retries = timing.get_statistic_value(StatisticsItem::PermArgRetries).unwrap();
+                let perm_arg_retries = timing
+                    .get_statistic_value(StatisticsItem::PermArgRetries)
+                    .unwrap();
                 assert_eq!(*perm_arg_retries, 0);
             }
         }

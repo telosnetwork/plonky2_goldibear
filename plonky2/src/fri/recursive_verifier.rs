@@ -2,31 +2,28 @@
 use alloc::{format, vec::Vec};
 
 use itertools::Itertools;
-
 use plonky2_field::types::HasExtension;
 
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::proof::{
     FriChallengesTarget, FriInitialTreeProofTarget, FriProofTarget, FriQueryRoundTarget,
     FriQueryStepTarget,
 };
 use crate::fri::structure::{FriBatchInfoTarget, FriInstanceInfoTarget, FriOpeningsTarget};
+use crate::fri::{FriConfig, FriParams};
 use crate::gates::coset_interpolation::CosetInterpolationGate;
 use crate::gates::gate::Gate;
 use crate::gates::random_access::RandomAccessGate;
 use crate::hash::hash_types::{MerkleCapTarget, RichField};
-use crate::iop::ext_target::{ExtensionTarget, flatten_target};
+use crate::iop::ext_target::{flatten_target, ExtensionTarget};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, GenericConfig};
-use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::util::reducing::ReducingFactorTarget;
+use crate::util::{log2_strict, reverse_index_bits_in_place};
 use crate::with_context;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Computes P'(x^arity) from {P(x*g^i)}_(i=0..arity), where g is a `arity`-th root of unity
     /// and P' is the FRI reduced polynomial.
@@ -486,9 +483,7 @@ impl<const D: usize> PrecomputedReducedOpeningsTarget<D> {
         alpha: ExtensionTarget<D>,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
-    where
-        
-    {
+where {
         let reduced_openings_at_point = openings
             .batches
             .iter()

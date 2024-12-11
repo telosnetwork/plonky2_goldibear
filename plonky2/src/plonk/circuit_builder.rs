@@ -8,17 +8,16 @@ use std::{collections::BTreeMap, sync::Arc, time::Instant};
 
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
-use log::{debug, info, Level, warn};
+use log::{debug, info, warn, Level};
 use p3_field::{AbstractExtensionField, Field};
-
-use plonky2_field::types::{HasExtension, two_adic_subgroup};
+use plonky2_field::types::{two_adic_subgroup, HasExtension};
 use plonky2_util::ceil_div_usize;
 
 use crate::field::cosets::get_unique_coset_shifts;
 use crate::field::fft::fft_root_table;
 use crate::field::polynomial::PolynomialValues;
-use crate::fri::{FriConfig, FriParams};
 use crate::fri::oracle::PolynomialBatch;
+use crate::fri::{FriConfig, FriParams};
 use crate::gadgets::arithmetic::BaseArithmeticOperation;
 use crate::gadgets::arithmetic_extension::ExtensionArithmeticOperation;
 use crate::gadgets::polynomial::PolynomialCoeffsExtTarget;
@@ -50,10 +49,10 @@ use crate::plonk::copy_constraint::CopyConstraint;
 use crate::plonk::permutation_argument::Forest;
 use crate::plonk::plonk_common::PlonkOracle;
 use crate::timed;
-use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 use crate::util::context_tree::ContextTree;
 use crate::util::partial_products::num_partial_products;
 use crate::util::proving_process_info::ProvingProcessInfo;
+use crate::util::{log2_ceil, log2_strict, transpose, transpose_poly_values};
 
 /// Number of random coins needed for lookups (for each challenge).
 /// A coin is a randomly sampled extension field element from the verifier,
@@ -146,9 +145,7 @@ pub struct CircuitBuilder<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     /// Circuit configuration to be used by this [`CircuitBuilder`].
     pub config: CircuitConfig,
 
@@ -218,8 +215,6 @@ pub struct CircuitBuilder<
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Given a [`CircuitConfig`], generate a new [`CircuitBuilder`] instance.
     /// It will also check that the configuration provided is consistent, i.e.
@@ -1069,7 +1064,10 @@ where
     /// See <https://github.com/0xPolygonZero/plonky2/issues/456>.
     fn randomize_unused_pi_wires(&mut self, pi_gate: usize) {
         for wire in PublicInputGate::wires_public_inputs_hash().end..self.config.num_wires {
-            let wire_obj = wire::Wire{row: pi_gate, column:wire};
+            let wire_obj = wire::Wire {
+                row: pi_gate,
+                column: wire,
+            };
             if wire == self.config.num_wires - 1 {
                 self.random_wire = Some(wire_obj);
             }
@@ -1100,9 +1098,7 @@ where
         self,
         commit_to_sigma: bool,
     ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-    where
-        
-    {
+where {
         let (circuit_data, success) = self.try_build_with_options(commit_to_sigma);
         if !success {
             panic!("Failed to build circuit");
@@ -1116,9 +1112,7 @@ where
         mut self,
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
-    where
-        
-    {
+where {
         self.complete_gates_wires();
         let mut timing = ProvingProcessInfo::new("preprocess", Level::Trace);
 
@@ -1335,7 +1329,6 @@ where
             }
         }
 
-
         let prover_only = ProverOnlyCircuitData::<F, C, D, NUM_HASH_OUT_ELTS> {
             generators: self.generators,
             generator_indices_by_watches,
@@ -1373,18 +1366,14 @@ where
     pub fn build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> CircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-    where
-        
-    {
+where {
         self.build_with_options(true)
     }
 
     pub fn mock_build<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-    where
-        
-    {
+where {
         let circuit_data = self.build_with_options(false);
         MockCircuitData {
             prover_only: circuit_data.prover_only,
@@ -1395,9 +1384,7 @@ where
     pub fn build_prover<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> ProverCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-    where
-        
-    {
+where {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.prover_data()
@@ -1407,9 +1394,7 @@ where
     pub fn build_verifier<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
         self,
     ) -> VerifierCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
-    where
-        
-    {
+where {
         // TODO: Can skip parts of this.
         let circuit_data = self.build::<C>();
         circuit_data.verifier_data()

@@ -7,7 +7,6 @@ use alloc::{
 use core::borrow::Borrow;
 
 use p3_field::{AbstractExtensionField, AbstractField, Field, PrimeField64};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
@@ -24,8 +23,6 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn arithmetic_extension(
         &mut self,
@@ -204,8 +201,8 @@ where
         a: ExtensionTarget<D>,
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-            let one = self.one_extension();
-            self.arithmetic_extension(F::one(), F::one(), one, a, b)
+        let one = self.one_extension();
+        self.arithmetic_extension(F::one(), F::one(), one, a, b)
     }
 
     pub fn add_ext_algebra(
@@ -227,9 +224,9 @@ where
     where
         T: Borrow<ExtensionTarget<D>>,
     {
-            terms.into_iter().fold(self.zero_extension(), |acc, t| {
-                self.add_extension(acc, *t.borrow())
-            })
+        terms.into_iter().fold(self.zero_extension(), |acc, t| {
+            self.add_extension(acc, *t.borrow())
+        })
     }
 
     pub fn sub_extension(
@@ -237,8 +234,8 @@ where
         a: ExtensionTarget<D>,
         b: ExtensionTarget<D>,
     ) -> ExtensionTarget<D> {
-            let one = self.one_extension();
-            self.arithmetic_extension(F::one(), F::neg_one(), one, a, b)
+        let one = self.one_extension();
+        self.arithmetic_extension(F::one(), F::neg_one(), one, a, b)
     }
 
     pub fn sub_ext_algebra(
@@ -516,8 +513,6 @@ pub struct QuotientGeneratorExtension<const D: usize> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for QuotientGeneratorExtension<D>
-where
-    
 {
     fn id(&self) -> String {
         "QuotientGeneratorExtension".to_string()
@@ -573,9 +568,7 @@ impl<const D: usize> PowersTarget<D> {
         &mut self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> ExtensionTarget<D>
-    where
-        
-    {
+where {
         let result = self.current;
         self.current = builder.mul_extension(self.base, self.current);
         result
@@ -586,9 +579,7 @@ impl<const D: usize> PowersTarget<D> {
         k: usize,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Self
-    where
-        
-    {
+where {
         let Self { base, current } = self;
         Self {
             base: base.repeated_frobenius(k, builder),
@@ -599,8 +590,6 @@ impl<const D: usize> PowersTarget<D> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn powers(&mut self, base: ExtensionTarget<D>) -> PowersTarget<D> {
         PowersTarget {
@@ -623,7 +612,6 @@ pub(crate) struct ExtensionArithmeticOperation<F: PrimeField64 + HasExtension<D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
     use plonky2_field::extension_algebra::ExtensionAlgebra;
     use plonky2_field::types::HasExtension;
 

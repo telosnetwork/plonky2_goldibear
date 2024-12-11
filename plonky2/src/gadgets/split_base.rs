@@ -3,7 +3,6 @@ use alloc::{format, string::String, vec, vec::Vec};
 use core::borrow::Borrow;
 
 use itertools::Itertools;
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::base_sum::BaseSumGate;
@@ -18,8 +17,6 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Split the given element into a list of targets, where each one represents a
     /// base-B limb of the element, with little-endian ordering.
@@ -97,8 +94,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for BaseSumGenerator<B>
-where
-    
 {
     fn id(&self) -> String {
         format!("BaseSumGenerator + Base: {B}")
@@ -144,16 +139,15 @@ where
 mod tests {
     use anyhow::Result;
     use p3_field::AbstractField;
-    use rand::Rng;
     use rand::rngs::OsRng;
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
+    use rand::Rng;
 
+    use super::*;
+    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::plonk::verifier::verify;
-
-    use super::*;
 
     #[test]
     fn test_split_base() -> Result<()> {

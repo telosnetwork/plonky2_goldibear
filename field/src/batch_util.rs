@@ -1,5 +1,4 @@
-use p3_field::Field;
-use p3_field::PackedField;
+use p3_field::{Field, PackedField};
 
 const fn pack_with_leftovers_split_point<P: PackedField>(slice: &[P::Scalar]) -> usize {
     let n = slice.len();
@@ -30,8 +29,7 @@ pub fn batch_multiply_inplace<F: Field>(out: &mut [F], a: &[F]) {
     assert_eq!(n, a.len(), "both arrays must have the same length");
 
     // Split out slice of vectors, leaving leftovers as scalars
-    let (out_packed, out_leftovers) =
-        pack_slice_with_leftovers_mut::<F::Packing>(out);
+    let (out_packed, out_leftovers) = pack_slice_with_leftovers_mut::<F::Packing>(out);
     let (a_packed, a_leftovers) = pack_slice_with_leftovers::<F::Packing>(a);
 
     // Multiply packed and the leftovers
@@ -50,8 +48,7 @@ pub fn batch_add_inplace<F: Field>(out: &mut [F], a: &[F]) {
     assert_eq!(n, a.len(), "both arrays must have the same length");
 
     // Split out slice of vectors, leaving leftovers as scalars
-    let (out_packed, out_leftovers) =
-        pack_slice_with_leftovers_mut::<F::Packing>(out);
+    let (out_packed, out_leftovers) = pack_slice_with_leftovers_mut::<F::Packing>(out);
     let (a_packed, a_leftovers) = pack_slice_with_leftovers::<F::Packing>(a);
 
     // Add packed and the leftovers

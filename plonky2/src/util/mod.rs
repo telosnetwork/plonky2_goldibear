@@ -4,7 +4,6 @@
 use alloc::vec::Vec;
 
 use p3_field::Field;
-
 use plonky2_maybe_rayon::*;
 #[doc(inline)]
 pub use plonky2_util::*;
@@ -13,10 +12,10 @@ use crate::field::polynomial::PolynomialValues;
 
 pub(crate) mod context_tree;
 pub(crate) mod partial_products;
+pub mod proving_process_info;
 pub mod reducing;
 pub mod serialization;
 pub mod strided_view;
-pub mod proving_process_info;
 
 pub(crate) fn transpose_poly_values<F: Field>(polys: Vec<PolynomialValues<F>>) -> Vec<Vec<F>> {
     let poly_values = polys.into_iter().map(|p| p.values).collect::<Vec<_>>();

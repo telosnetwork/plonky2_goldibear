@@ -8,7 +8,6 @@ use alloc::{
 use core::marker::PhantomData;
 
 use p3_field::{AbstractField, PackedField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -30,18 +29,12 @@ use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
 /// A gate for raising a value to a power.
 #[derive(Clone, Debug, Default)]
-pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct ExponentiationGate<F: RichField + HasExtension<D>, const D: usize> {
     pub num_power_bits: usize,
     pub _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> ExponentiationGate<F, D> {
     pub const fn new(num_power_bits: usize) -> Self {
         Self {
             num_power_bits,
@@ -83,8 +76,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for ExponentiationGate<F, D>
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
@@ -232,8 +223,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ExponentiationGate<F, D>
-where
-    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -272,18 +261,13 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct ExponentiationGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     gate: ExponentiationGate<F, D>,
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for ExponentiationGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "ExponentiationGenerator".to_string()
@@ -358,16 +342,15 @@ mod tests {
     use anyhow::Result;
     use p3_field::Field;
     use p3_goldilocks::Goldilocks;
-    use rand::Rng;
     use rand::rngs::OsRng;
-
-    use crate::field::types::Sample;
-    use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
-    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use crate::util::log2_ceil;
+    use rand::Rng;
 
     use super::*;
+    use crate::field::types::Sample;
+    use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::{HashOut, GOLDILOCKS_NUM_HASH_OUT_ELTS};
+    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use crate::util::log2_ceil;
 
     const MAX_POWER_BITS: usize = 17;
 

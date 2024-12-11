@@ -3,7 +3,6 @@ use alloc::vec::Vec;
 
 use hashbrown::HashMap;
 use p3_field::{Field, TwoAdicField};
-
 use plonky2_maybe_rayon::*;
 
 use crate::field::polynomial::PolynomialValues;

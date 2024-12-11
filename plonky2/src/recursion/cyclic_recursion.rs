@@ -5,7 +5,6 @@ use alloc::vec::Vec;
 
 use anyhow::{ensure, Result};
 use p3_field::TwoAdicField;
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget, RichField};
@@ -75,9 +74,7 @@ impl<const NUM_HASH_OUT_ELTS: usize> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
         slice: &[Target],
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<Self>
-    where
-        
-    {
+where {
         let cap_len = common_data.config.fri_config.num_cap_elements();
         let len = slice.len();
         ensure!(len >= 4 + 4 * cap_len, "Not enough public inputs");
@@ -101,8 +98,6 @@ impl<const NUM_HASH_OUT_ELTS: usize> VerifierCircuitTarget<NUM_HASH_OUT_ELTS> {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// If `condition` is true, recursively verify a proof for the same circuit as the one we're
     /// currently building. Otherwise, verify `other_proof_with_pis`.
@@ -129,7 +124,6 @@ where
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let verifier_data = self
             .verifier_data_public_input
@@ -184,7 +178,6 @@ where
     ) -> Result<()>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(common_data)?;
@@ -213,7 +206,6 @@ pub fn check_cyclic_proof_verifier_data<
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    
 {
     let pis = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS>::from_slice(
         &proof.public_inputs,
@@ -232,11 +224,10 @@ mod tests {
 
     use anyhow::Result;
     use p3_field::{AbstractField, PrimeField64};
-
     use plonky2_field::types::HasExtension;
 
     use crate::gates::noop::NoopGate;
-    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOutTarget, RichField};
+    use crate::hash::hash_types::{HashOutTarget, RichField, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use crate::hash::hashing::hash_n_to_hash_no_pad;
     use crate::hash::poseidon_goldilocks::{Poseidon64Hash, Poseidon64Permutation};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
@@ -255,7 +246,6 @@ mod tests {
     >() -> CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let config = CircuitConfig::standard_recursion_config_gl();
         let builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);

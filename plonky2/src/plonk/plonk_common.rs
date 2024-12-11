@@ -4,7 +4,6 @@
 use alloc::{vec, vec::Vec};
 
 use p3_field::{Field, PackedField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::fri::oracle::SALT_SIZE;
@@ -84,7 +83,6 @@ pub(crate) fn eval_l_0_circuit<
     x_pow_n: ExtensionTarget<D>,
 ) -> ExtensionTarget<D>
 where
-    
 {
     // L_0(x) = (x^n - 1) / (n * (x - 1))
     //        = Z(x) / (n * (x - 1))
@@ -147,7 +145,6 @@ pub fn reduce_with_powers_circuit<
     alpha: Target,
 ) -> Target
 where
-    
 {
     if terms.len() <= ArithmeticGate::new_from_config(&builder.config).num_ops + 1 {
         terms
@@ -171,7 +168,6 @@ pub fn reduce_with_powers_ext_circuit<
     alpha: Target,
 ) -> ExtensionTarget<D>
 where
-    
 {
     let alpha = builder.convert_to_ext(alpha);
     let mut alpha = ReducingFactorTarget::new(alpha);

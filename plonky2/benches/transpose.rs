@@ -1,6 +1,5 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use p3_goldilocks::Goldilocks;
-
 use plonky2::field::types::Sample;
 use plonky2::util::transpose;
 

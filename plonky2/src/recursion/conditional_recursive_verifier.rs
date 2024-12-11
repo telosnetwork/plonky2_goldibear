@@ -2,7 +2,6 @@
 use alloc::vec::Vec;
 
 use itertools::Itertools;
-
 use plonky2_field::types::HasExtension;
 
 use crate::fri::proof::{
@@ -21,8 +20,6 @@ use crate::with_context;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Verify `proof0` if `condition` else verify `proof1`.
     /// `proof0` and `proof1` are assumed to use the same `CommonCircuitData`.
@@ -38,7 +35,6 @@ where
         inner_common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let selected_proof =
             self.select_proof_with_pis(condition, proof_with_pis0, proof_with_pis1);
@@ -70,7 +66,6 @@ where
     ) -> anyhow::Result<()>
     where
         C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let (dummy_proof_with_pis_target, dummy_verifier_data_target) =
             self.dummy_proof_and_vk::<C>(inner_common_data)?;
@@ -355,6 +350,7 @@ mod tests {
     use hashbrown::HashMap;
     use p3_field::PrimeField64;
 
+    use super::*;
     use crate::field::types::Sample;
     use crate::gates::noop::NoopGate;
     use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
@@ -362,8 +358,6 @@ mod tests {
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::PoseidonGoldilocksConfig;
     use crate::recursion::dummy_circuit::{dummy_circuit, dummy_proof};
-
-    use super::*;
 
     #[test]
     fn test_conditional_recursive_verifier() -> Result<()> {

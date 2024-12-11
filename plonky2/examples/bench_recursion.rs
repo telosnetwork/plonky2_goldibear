@@ -30,8 +30,8 @@ use plonky2::plonk::config::{
 };
 use plonky2::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
 use plonky2::plonk::prover::prove;
-use plonky2::util::serialization::DefaultGateSerializer;
 use plonky2::util::proving_process_info::ProvingProcessInfo;
+use plonky2::util::serialization::DefaultGateSerializer;
 use plonky2_field::types::HasExtension;
 use plonky2_maybe_rayon::rayon;
 use rand::rngs::OsRng;
@@ -90,7 +90,6 @@ fn dummy_proof<
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
 where
-    
 {
     // 'size' is in degree, but we want number of noop gates. A non-zero amount of padding will be added and size will be rounded to the next power of two. To hit our target size, we go just under the previous power of two and hope padding is less than half the proof.
     let num_dummy_gates = match log2_size {
@@ -128,7 +127,6 @@ fn dummy_lookup_proof<
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
 where
-    
 {
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
@@ -180,7 +178,6 @@ fn dummy_many_rows_proof<
     log2_size: usize,
 ) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
 where
-    
 {
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     let tip5_table = TIP5_TABLE.to_vec();
@@ -238,7 +235,6 @@ fn recursive_proof<
 ) -> Result<ProofTuple<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    
 {
     let (inner_proof, inner_vd, inner_cd) = inner;
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
@@ -288,7 +284,6 @@ fn test_serialization<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<()>
 where
-    
 {
     let proof_bytes = proof.to_bytes();
     info!("Proof length: {} bytes", proof_bytes.len());
@@ -342,7 +337,6 @@ pub fn benchmark_function<
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    
 {
     let dummy_proof_function = match lookup_type {
         0 => dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>,
@@ -423,7 +417,6 @@ fn do_bench<
 ) -> Result<()>
 where
     C::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-    
 {
     // Parse command line arguments, see `--help` for details.
     let options = Options::from_args_safe()?;

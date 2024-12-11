@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-
 use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOutTarget, RichField};
@@ -19,8 +18,6 @@ use crate::with_context;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Recursively verifies an inner proof.
     pub fn verify_proof<C: GenericConfig<D, NUM_HASH_OUT_ELTS, F = F, FE = F::Extension>>(
@@ -213,20 +210,25 @@ where
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{sync::Arc, vec};
-    use p3_field::AbstractField;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
     use anyhow::Result;
     use itertools::Itertools;
     use log::{info, Level};
-    
+    use p3_baby_bear::BabyBear;
+    use p3_field::{AbstractField, PrimeField64};
+    use p3_goldilocks::Goldilocks;
 
-    use crate::fri::FriConfig;
+    use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
+    use crate::fri::FriConfig;
     use crate::gadgets::lookup::{OTHER_TABLE, TIP5_TABLE};
+    use crate::gates::gate::GateRef;
     use crate::gates::lookup_table::LookupTable;
     use crate::gates::noop::NoopGate;
+    use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
+    use crate::gates::poseidon_goldilocks::PoseidonGate;
     use crate::hash::hash_types::{BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::{CircuitConfig, VerifierOnlyCircuitData};
@@ -236,8 +238,6 @@ mod tests {
     use crate::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
     use crate::plonk::prover::prove;
     use crate::util::proving_process_info::ProvingProcessInfo;
-
-    use super::*;
 
     #[test]
     fn test_recursive_verifier_gl() -> Result<()> {
@@ -374,7 +374,16 @@ mod tests {
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
         assert_eq!(common_data.degree_bits(), 14);
-        assert_eq!(vd.circuit_digest.elements, [8432421367864141243, 14664604448411724612, 5886388820728283451, 6226320497402393979].map(F::from_canonical_u64));
+        assert_eq!(
+            vd.circuit_digest.elements,
+            [
+                8432421367864141243,
+                14664604448411724612,
+                5886388820728283451,
+                6226320497402393979
+            ]
+            .map(F::from_canonical_u64)
+        );
         // Shrink it to 2^13.
         let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
             proof,
@@ -386,7 +395,16 @@ mod tests {
             false,
         )?;
         assert_eq!(common_data.degree_bits(), 13);
-        assert_eq!(vd.circuit_digest.elements,[14839025416225437588, 13588008562724358006, 4147565255902737239, 7805652275147400996].map(F::from_canonical_u64));
+        assert_eq!(
+            vd.circuit_digest.elements,
+            [
+                14839025416225437588,
+                13588008562724358006,
+                4147565255902737239,
+                7805652275147400996
+            ]
+            .map(F::from_canonical_u64)
+        );
         // Shrink it to 2^12.
         let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
             proof,
@@ -398,7 +416,16 @@ mod tests {
             true,
         )?;
         assert_eq!(common_data.degree_bits(), 12);
-        assert_eq!(vd.circuit_digest.elements, [5000568515610536070, 17514281206585518617, 17334557576105184524, 4950795566141018980].map(F::from_canonical_u64));
+        assert_eq!(
+            vd.circuit_digest.elements,
+            [
+                5000568515610536070,
+                17514281206585518617,
+                17334557576105184524,
+                4950795566141018980
+            ]
+            .map(F::from_canonical_u64)
+        );
 
         test_serialization(&proof, &vd, &common_data)?;
 
@@ -595,13 +622,20 @@ mod tests {
         config: &CircuitConfig,
         num_dummy_gates: u64,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         for _ in 0..num_dummy_gates {
             builder.add_gate(NoopGate, vec![]);
         }
+        match F::ORDER_U64 {
+            Goldilocks::ORDER_U64 => {
+                builder.add_gate_to_gate_set(GateRef::new(PoseidonGate::new()))
+            }
+            BabyBear::ORDER_U64 => {
+                builder.add_gate_to_gate_set(GateRef::new(Poseidon2BabyBearGate::new()))
+            }
+            _ => panic!(),
+        };
         let data = builder.build::<C>();
         let inputs = PartialWitness::new();
         let proof = data.prove(inputs)?;
@@ -620,9 +654,7 @@ mod tests {
         config: &CircuitConfig,
         num_dummy_gates: u64,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -681,9 +713,7 @@ mod tests {
     >(
         config: &CircuitConfig,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let initial_a = builder.add_virtual_target();
         let initial_b = builder.add_virtual_target();
@@ -762,9 +792,7 @@ mod tests {
     >(
         config: &CircuitConfig,
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
-    where
-        
-    {
+where {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
 
         let initial_a = builder.add_virtual_target();
@@ -830,7 +858,6 @@ mod tests {
     ) -> Result<Proof<F, C, D, NUM_HASH_OUT_ELTS>>
     where
         InnerC::Hasher: AlgebraicHasher<F, NUM_HASH_OUT_ELTS>,
-        
     {
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
         let mut pw = PartialWitness::new();
@@ -884,9 +911,7 @@ mod tests {
         vd: &VerifierOnlyCircuitData<C, D, NUM_HASH_OUT_ELTS>,
         common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()>
-    where
-        
-    {
+where {
         let proof_bytes = proof.to_bytes();
         info!("Proof length: {} bytes", proof_bytes.len());
         let proof_from_bytes = ProofWithPublicInputs::from_bytes(proof_bytes, common_data)?;
@@ -920,6 +945,4 @@ mod tests {
     fn init_logger() {
         let _ = env_logger::builder().format_timestamp(None).try_init();
     }
-
-
 }

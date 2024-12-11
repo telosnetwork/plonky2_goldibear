@@ -2,9 +2,8 @@
 use alloc::{format, string::String, vec, vec::Vec};
 
 use p3_field::PackedField;
-use serde::{Deserialize, Serialize};
-
 use plonky2_field::types::HasExtension;
+use serde::{Deserialize, Serialize};
 
 use crate::gates::gate::Gate;
 use crate::gates::packed_util::PackedEvaluableBase;
@@ -44,8 +43,6 @@ impl ConstantGate {
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for ConstantGate
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?}")
@@ -138,8 +135,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for ConstantGate
-where
-    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,

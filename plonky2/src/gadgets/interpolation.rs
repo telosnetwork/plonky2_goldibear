@@ -1,7 +1,6 @@
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::coset_interpolation::CosetInterpolationGate;
@@ -12,8 +11,6 @@ use crate::plonk::circuit_builder::CircuitBuilder;
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     /// Interpolates a polynomial, whose points are a coset of the multiplicative subgroup with the
     /// given size, and whose values are given. Returns the evaluation of the interpolant at
@@ -48,8 +45,7 @@ mod tests {
     use alloc::vec::Vec;
 
     use anyhow::Result;
-    use p3_field::{AbstractExtensionField, cyclic_subgroup_coset_known_order, TwoAdicField};
-
+    use p3_field::{cyclic_subgroup_coset_known_order, AbstractExtensionField, TwoAdicField};
     use plonky2_field::types::HasExtension;
 
     use crate::field::interpolation::interpolant;

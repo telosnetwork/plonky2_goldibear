@@ -3,7 +3,6 @@ use alloc::vec::Vec;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-
 use lazy_static::lazy_static;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64, TwoAdicField};
@@ -11,6 +10,7 @@ use p3_poseidon2;
 use p3_poseidon2::{DiffusionPermutation, Poseidon2, Poseidon2ExternalMatrixHL};
 use p3_symmetric::Permutation;
 
+use super::hash_types::RichField;
 use crate::field::types::HasExtension;
 use crate::gates::poseidon2_risc0_babybear::Poseidon2R0BabyBearGate;
 use crate::hash::hash_types::HashOut;
@@ -18,8 +18,6 @@ use crate::hash::hashing::{compress, PlonkyPermutation};
 use crate::iop::target::{BoolTarget, Target};
 use crate::plonk::circuit_builder::CircuitBuilder;
 use crate::plonk::config::{AlgebraicHasher, Hasher};
-
-use super::hash_types::RichField;
 
 pub(crate) const HALF_N_FULL_ROUNDS: usize = 4;
 pub(crate) const N_FULL_ROUNDS_TOTAL: usize = 2 * HALF_N_FULL_ROUNDS;
@@ -248,7 +246,6 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
     where
         F: HasExtension<D>,
         <F as HasExtension<D>>::Extension: TwoAdicField,
-        
     {
         let gate_type: Poseidon2R0BabyBearGate<F, D> = Poseidon2R0BabyBearGate::<F, D>::new();
         let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);
@@ -316,11 +313,10 @@ mod tests {
     use p3_field::AbstractField;
     use p3_symmetric::Permutation;
 
+    use super::{poseidon2_r0, Poseidon2R0BabyBearHash, SPONGE_WIDTH};
     use crate::field::types::Sample;
     use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_builder::CircuitBuilder;
-
-    use super::{poseidon2_r0, Poseidon2R0BabyBearHash, SPONGE_WIDTH};
 
     #[test]
     fn test_against_r0_values() {

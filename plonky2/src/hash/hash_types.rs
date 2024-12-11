@@ -300,9 +300,9 @@ mod generic_arrays {
     use alloc::{format, vec::Vec};
     use core::marker::PhantomData;
 
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use serde::de::{SeqAccess, Visitor};
     use serde::ser::SerializeTuple;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn serialize<S: Serializer, T: Serialize, const N: usize>(
         data: &[T; N],

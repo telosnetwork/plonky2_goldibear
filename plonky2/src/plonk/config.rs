@@ -11,13 +11,12 @@ use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 
 use p3_baby_bear::BabyBear;
-use p3_field::{ExtensionField, Field, TwoAdicField};
 use p3_field::extension::BinomialExtensionField;
+use p3_field::{ExtensionField, Field, TwoAdicField};
 use p3_goldilocks::Goldilocks;
+use plonky2_field::types::HasExtension;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-
-use plonky2_field::types::HasExtension;
 
 use crate::hash::hash_types::{HashOut, HashOutTarget, RichField};
 use crate::hash::hashing::PlonkyPermutation;
@@ -106,7 +105,6 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let zero = builder.zero();
         if inputs.len() <= NUM_HASH_OUT_ELTS {
@@ -122,7 +120,6 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     ) -> HashOutTarget<NUM_HASH_OUT_ELTS>
     where
         F: RichField + HasExtension<D>,
-        
     {
         HashOutTarget::from_vec(Self::hash_n_to_m_no_pad_circuit::<D>(
             builder,
@@ -138,7 +135,6 @@ pub trait AlgebraicHasher<F: RichField, const NUM_HASH_OUT_ELTS: usize>:
     ) -> Vec<Target>
     where
         F: RichField + HasExtension<D>,
-        
     {
         let zero = builder.zero();
         let mut state = Self::AlgebraicPermutation::new(core::iter::repeat(zero));

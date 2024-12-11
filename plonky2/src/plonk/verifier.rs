@@ -2,7 +2,6 @@
 
 use anyhow::{ensure, Result};
 use p3_field::AbstractField;
-
 use plonky2_field::types::HasExtension;
 
 use crate::fri::verifier::verify_fri_proof;
@@ -26,7 +25,6 @@ pub(crate) fn verify<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<()>
 where
-    
 {
     validate_proof_with_pis_shape(&proof_with_pis, common_data)?;
 
@@ -59,7 +57,6 @@ pub(crate) fn verify_with_challenges<
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
 ) -> Result<()>
 where
-    
 {
     let local_constants = &proof.openings.constants;
     let local_wires = &proof.openings.wires;

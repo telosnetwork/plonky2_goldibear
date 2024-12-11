@@ -9,7 +9,6 @@ use core::marker::PhantomData;
 
 use itertools::Itertools;
 use p3_field::{AbstractField, PackedField};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -44,10 +43,7 @@ pub struct RandomAccessGate<F: RichField + HasExtension<D>, const D: usize> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> RandomAccessGate<F, D> {
     const fn new(num_copies: usize, bits: usize, num_extra_constants: usize) -> Self {
         Self {
             bits,
@@ -126,8 +122,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?}<D={D}>")
@@ -324,8 +318,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGate<F, D>
-where
-    
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -372,10 +364,7 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct RandomAccessGenerator<F: RichField + HasExtension<D>, const D: usize> {
     row: usize,
     gate: RandomAccessGate<F, D>,
     copy: usize,
@@ -383,8 +372,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for RandomAccessGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "RandomAccessGenerator".to_string()
@@ -458,15 +445,14 @@ mod tests {
     use anyhow::Result;
     use p3_field::Field;
     use p3_goldilocks::Goldilocks;
-    use rand::Rng;
     use rand::rngs::OsRng;
-
-    use crate::field::types::Sample;
-    use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::{GOLDILOCKS_NUM_HASH_OUT_ELTS, HashOut};
-    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use rand::Rng;
 
     use super::*;
+    use crate::field::types::Sample;
+    use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use crate::hash::hash_types::{HashOut, GOLDILOCKS_NUM_HASH_OUT_ELTS};
+    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {

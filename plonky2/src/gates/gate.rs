@@ -10,9 +10,8 @@ use std::sync::Arc;
 
 use hashbrown::HashMap;
 use p3_field::{AbstractExtensionField, AbstractField, ExtensionField, Field};
-use serde::{Serialize, Serializer};
-
 use plonky2_field::types::HasExtension;
+use serde::{Serialize, Serializer};
 
 use crate::field::batch_util::batch_multiply_inplace;
 use crate::gates::selectors::UNUSED_SELECTOR;
@@ -54,8 +53,6 @@ use crate::util::serialization::{Buffer, IoResult};
 /// impact the overall performances when generating proofs for a circuit containing them.
 pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
     'static + Send + Sync
-where
-    
 {
     /// Defines a unique identifier for this custom gate.
     ///
@@ -178,7 +175,7 @@ where
             group_range,
             vars.local_constants[selector_index],
             num_selectors > 1,
-            F::ORDER_U64
+            F::ORDER_U64,
         );
         vars.remove_prefix(num_selectors);
         vars.remove_prefix(num_lookup_selectors);
@@ -207,7 +204,7 @@ where
                     group_range.clone(),
                     vars.local_constants[selector_index],
                     num_selectors > 1,
-                    F::ORDER_U64
+                    F::ORDER_U64,
                 )
             })
             .collect();
@@ -295,8 +292,6 @@ where
 /// A wrapper trait over a `Gate`, to allow for gate serialization.
 pub trait AnyGate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>:
     Gate<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn as_any(&self) -> &dyn Any;
 }
@@ -307,8 +302,6 @@ impl<
         const D: usize,
         const NUM_HASH_OUT_ELTS: usize,
     > AnyGate<F, D, NUM_HASH_OUT_ELTS> for T
-where
-    
 {
     fn as_any(&self) -> &dyn Any {
         self
@@ -323,8 +316,6 @@ pub struct GateRef<F: RichField + HasExtension<D>, const D: usize, const NUM_HAS
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     GateRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     pub fn new<G: Gate<F, D, NUM_HASH_OUT_ELTS>>(gate: G) -> GateRef<F, D, NUM_HASH_OUT_ELTS> {
         GateRef(Arc::new(gate))
@@ -333,8 +324,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> PartialEq
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn eq(&self, other: &Self) -> bool {
         self.0.id() == other.0.id()
@@ -343,8 +332,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Hash
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.id().hash(state)
@@ -353,15 +340,11 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Eq
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Debug
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", self.0.id())
@@ -370,8 +353,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize> Serialize
     for GateRef<F, D, NUM_HASH_OUT_ELTS>
-where
-    
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0.id())
@@ -392,9 +373,7 @@ pub struct GateInstance<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub gate_ref: GateRef<F, D, NUM_HASH_OUT_ELTS>,
     pub constants: Vec<F>,
 }
@@ -405,15 +384,19 @@ pub struct PrefixedGate<
     F: RichField + HasExtension<D>,
     const D: usize,
     const NUM_HASH_OUT_ELTS: usize,
-> where
-    
-{
+> {
     pub gate: GateRef<F, D, NUM_HASH_OUT_ELTS>,
     pub prefix: Vec<bool>,
 }
 
 /// A gate's filter designed so that it is non-zero if `s = row`.
-fn compute_filter<K: Field>(row: usize, group_range: Range<usize>, s: K, many_selector: bool, characteristic: u64) -> K {
+fn compute_filter<K: Field>(
+    row: usize,
+    group_range: Range<usize>,
+    s: K,
+    many_selector: bool,
+    characteristic: u64,
+) -> K {
     debug_assert!(group_range.contains(&row));
     group_range
         .filter(|&i| i != row)
@@ -434,7 +417,6 @@ fn compute_filter_circuit<
     many_selectors: bool,
 ) -> ExtensionTarget<D>
 where
-    
 {
     debug_assert!(group_range.contains(&row));
     let v = group_range

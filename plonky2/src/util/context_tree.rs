@@ -5,7 +5,7 @@ use alloc::{
     vec::Vec,
 };
 
-use log::{Level, log};
+use log::{log, Level};
 
 /// The hierarchy of contexts, and the gate count contributed by each one. Useful for debugging.
 #[derive(Debug)]

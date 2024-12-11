@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
 use core::cmp::{max, min};
 
-use p3_field::{Field, PackedValue, TwoAdicField};
+use p3_field::{Field, PackedField, PackedValue, TwoAdicField};
 use plonky2_util::{log2_strict, reverse_index_bits_in_place};
 use unroll::unroll_for_loops;
 
-use p3_field::PackedField;
 use crate::polynomial::{PolynomialCoeffs, PolynomialValues};
 
 pub type FftRootTable<F> = Vec<Vec<F>>;

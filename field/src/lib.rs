@@ -6,10 +6,7 @@
 #![deny(missing_debug_implementations)]
 #![feature(specialization)]
 #![cfg_attr(
-    all(
-        target_arch = "x86_64",
-        target_feature = "avx512f"
-    ),
+    all(target_arch = "x86_64", target_feature = "avx512f"),
     feature(stdarch_x86_avx512)
 )]
 

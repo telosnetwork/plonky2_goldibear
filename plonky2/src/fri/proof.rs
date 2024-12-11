@@ -3,10 +3,9 @@ use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
 use itertools::izip;
-use serde::{Deserialize, Serialize};
-
 use plonky2_field::extension::{flatten, unflatten};
 use plonky2_field::types::HasExtension;
+use serde::{Deserialize, Serialize};
 
 use crate::field::polynomial::PolynomialCoeffs;
 use crate::fri::FriParams;
@@ -24,10 +23,7 @@ use crate::plonk::proof::{FriInferredElements, ProofChallenges};
 /// Evaluations and Merkle proof produced by the prover in a FRI query step.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct FriQueryStep<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
-where
-    
-{
+pub struct FriQueryStep<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
     pub evals: Vec<F::Extension>,
     pub merkle_proof: MerkleProof<F, H>,
 }
@@ -81,10 +77,7 @@ impl<const NUM_HASH_OUT_ELTS: usize> FriInitialTreeProofTarget<NUM_HASH_OUT_ELTS
 /// Proof for a FRI query round.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct FriQueryRound<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
-where
-    
-{
+pub struct FriQueryRound<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
     pub initial_trees_proof: FriInitialTreeProof<F, H>,
     pub steps: Vec<FriQueryStep<F, H, D>>,
 }
@@ -98,10 +91,7 @@ pub struct FriQueryRoundTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
 /// Compressed proof of the FRI query rounds.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedFriQueryRounds<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
-where
-    
-{
+pub struct CompressedFriQueryRounds<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
     /// Query indices.
     pub indices: Vec<usize>,
     /// Map from initial indices `i` to the `FriInitialProof` for the `i`th leaf.
@@ -112,10 +102,7 @@ where
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct FriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
-where
-    
-{
+pub struct FriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
     /// A Merkle cap for each reduced polynomial in the commit phase.
     pub commit_phase_merkle_caps: Vec<MerkleCap<F, H>>,
     /// Query rounds proofs
@@ -136,10 +123,7 @@ pub struct FriProofTarget<const D: usize, const NUM_HASH_OUT_ELTS: usize> {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(bound = "")]
-pub struct CompressedFriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize>
-where
-    
-{
+pub struct CompressedFriProof<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> {
     /// A Merkle cap for each reduced polynomial in the commit phase.
     pub commit_phase_merkle_caps: Vec<MerkleCap<F, H>>,
     /// Compressed query rounds proof.
@@ -150,10 +134,7 @@ where
     pub pow_witness: F,
 }
 
-impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> FriProof<F, H, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> FriProof<F, H, D> {
     /// Compress all the Merkle paths in the FRI proof and remove duplicate indices.
     pub fn compress(self, indices: &[usize], params: &FriParams) -> CompressedFriProof<F, H, D> {
         let FriProof {
@@ -255,10 +236,7 @@ where
     }
 }
 
-impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> CompressedFriProof<F, H, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, H: Hasher<F>, const D: usize> CompressedFriProof<F, H, D> {
     /// Decompress all the Merkle paths in the FRI proof and reinsert duplicate indices.
     pub(crate) fn decompress(
         self,
@@ -384,10 +362,7 @@ where
 }
 
 #[derive(Debug)]
-pub struct FriChallenges<F: RichField + HasExtension<D>, const D: usize>
-where
-    
-{
+pub struct FriChallenges<F: RichField + HasExtension<D>, const D: usize> {
     // Scaling factor to combine polynomials.
     pub fri_alpha: F::Extension,
 

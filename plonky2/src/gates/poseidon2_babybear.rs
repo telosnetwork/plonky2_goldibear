@@ -11,7 +11,6 @@ use core::usize;
 use itertools::Itertools;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64};
-
 use plonky2_field::types::HasExtension;
 
 use crate::gates::gate::Gate;
@@ -19,8 +18,8 @@ use crate::gates::util::StridedConstraintConsumer;
 use crate::hash::hash_types::RichField;
 use crate::hash::hashing::PlonkyPermutation;
 use crate::hash::poseidon2_babybear::{
-    EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS, N_FULL_ROUNDS_TOTAL,
-    N_PARTIAL_ROUNDS, Poseidon2BabyBearHash, SPONGE_CAPACITY, SPONGE_WIDTH,
+    Poseidon2BabyBearHash, EXTERNAL_CONSTANTS, HALF_N_FULL_ROUNDS, INTERNAL_CONSTANTS,
+    N_FULL_ROUNDS_TOTAL, N_PARTIAL_ROUNDS, SPONGE_CAPACITY, SPONGE_WIDTH,
 };
 use crate::iop::ext_target::ExtensionTarget;
 use crate::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
@@ -53,10 +52,7 @@ const ROUTED_WIRES_PER_OP: usize = 2 * SPONGE_WIDTH + 1;
 const NON_ROUTED_WIRES_PER_OP: usize =
     SPONGE_CAPACITY + SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1) + N_PARTIAL_ROUNDS;
 
-impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D>
-where
-    
-{
+impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D> {
     pub fn new() -> Self {
         Self::new_from_config(&CircuitConfig::standard_recursion_config_bb_wide())
     }
@@ -148,8 +144,6 @@ where
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     Gate<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGate<F, D>
-where
-    
 {
     fn id(&self) -> String {
         format!("{self:?}<WIDTH={SPONGE_WIDTH}>")
@@ -500,8 +494,6 @@ pub struct Poseidon2BabyBearGenerator<F: RichField + HasExtension<D>, const D: u
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     SimpleGenerator<F, D, NUM_HASH_OUT_ELTS> for Poseidon2BabyBearGenerator<F, D>
-where
-    
 {
     fn id(&self) -> String {
         "PoseidonGenerator".to_string()
@@ -626,7 +618,6 @@ fn sbox_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_O
     input: ExtensionTarget<D>,
 ) -> ExtensionTarget<D>
 where
-    
 {
     let x2 = builder.square_extension(input);
     let x3 = builder.mul_extension(input, x2);
@@ -634,13 +625,15 @@ where
     builder.mul_extension(x3, x4)
 }
 
-fn add_rc_circuit<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>(
+fn add_rc_circuit<
+    F: RichField + HasExtension<D>,
+    const D: usize,
+    const NUM_HASH_OUT_ELTS: usize,
+>(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     round_idx: usize,
-) where
-    
-{
+) {
     (0..SPONGE_WIDTH).for_each(|i| {
         state[i] = builder.add_const_extension(
             state[i],
@@ -662,9 +655,7 @@ fn permute_internal_mut_circuit<
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
-) where
-    
-{
+) {
     if USE_INTERNAL_PERMUTATION_GATE {
         let gate =
             super::poseidon2_internal_permutation::Poseidon2InternalPermutationGate::<F, D>::new();
@@ -757,9 +748,7 @@ fn permute_external_mut_circuit<
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     state: &mut [ExtensionTarget<D>; WIDTH],
-) where
-    
-{
+) {
     assert_eq!(WIDTH % 4, 0);
     for i in (0..WIDTH).step_by(4) {
         // Would be nice to find a better way to do this.
@@ -793,9 +782,7 @@ fn apply_mat4_circuit<
 >(
     builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
     x: &mut [ExtensionTarget<D>; 4],
-) where
-    
-{
+) {
     if USE_EXTERNAL_PERMUTATION_GATE {
         let gate = super::apply_mat4::ApplyMat4Gate::<F, D>::new_from_config(&builder.config);
         let (row, op) = builder.find_slot(gate, &[], &[]);
@@ -847,9 +834,9 @@ where
 mod tests {
     use anyhow::Result;
     use p3_baby_bear::BabyBear;
-
     use plonky2_field::types::Sample;
 
+    use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::hash::poseidon2_babybear::Permuter31;
@@ -857,8 +844,6 @@ mod tests {
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
-
-    use super::*;
 
     #[test]
     fn wire_indices() {
