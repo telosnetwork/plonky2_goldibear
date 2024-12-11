@@ -225,10 +225,8 @@ mod tests {
     use crate::fri::FriConfig;
     use crate::fri::reduction_strategies::FriReductionStrategy;
     use crate::gadgets::lookup::{OTHER_TABLE, TIP5_TABLE};
-    use crate::gates::gate::GateRef;
     use crate::gates::lookup_table::LookupTable;
     use crate::gates::noop::NoopGate;
-    use crate::gates::poseidon_goldilocks::PoseidonGate;
     use crate::hash::hash_types::{BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::{CircuitConfig, VerifierOnlyCircuitData};
@@ -604,7 +602,6 @@ mod tests {
         for _ in 0..num_dummy_gates {
             builder.add_gate(NoopGate, vec![]);
         }
-        builder.add_gate_to_gate_set(GateRef::new(PoseidonGate::new()));
         let data = builder.build::<C>();
         let inputs = PartialWitness::new();
         let proof = data.prove(inputs)?;
