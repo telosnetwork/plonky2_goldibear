@@ -20,7 +20,7 @@ timing = ["std", "dep:web-time"]
 disable-randomness = ["plonky2_field/disable-randomness"]
 
 [dependencies]
-lazy_static = "1.5.0"
+lazy_static = {version = "1.5.0", default-features = false, features = ["spin_no_std"]}
 ahash = { workspace = true }
 anyhow = { workspace = true }
 hashbrown = { workspace = true }

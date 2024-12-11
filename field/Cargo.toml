@@ -25,7 +25,7 @@ p3-monty-31 = { workspace = true }
 p3-goldilocks = { workspace = true }
 p3-baby-bear = { workspace = true }
 
-lazy_static = { version = "1.5.0", optional = true }
+lazy_static = {version = "1.5.0", default-features = false, features = ["spin_no_std"], optional = true }
 rand_xoshiro = { version = "0.6.0", optional = true }
 
 # Display math equations properly in documentation
