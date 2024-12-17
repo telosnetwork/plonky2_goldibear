@@ -181,7 +181,7 @@ where
     let selector_indices = (0..num_gates).map(group).collect();
 
     // Placeholder value to indicate that a gate doesn't use a selector polynomial.
-    let unused = F::from_canonical_usize(UNUSED_SELECTOR % F::ORDER_U64 as usize);
+    let unused = F::from_canonical_usize((UNUSED_SELECTOR as u64 % F::ORDER_U64) as usize);
 
     let mut polynomials = vec![PolynomialValues::zero(n); groups.len()];
     for (j, g) in instances.iter().enumerate() {
