@@ -8,3 +8,6 @@ pub mod conditional_recursive_verifier;
 pub mod cyclic_recursion;
 pub mod dummy_circuit;
 pub mod recursive_verifier;
+
+#[cfg(test)]
+pub(crate) mod regression_test_data;
