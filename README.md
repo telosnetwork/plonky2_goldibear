@@ -48,6 +48,32 @@ To see recursion performance, one can run this bench [`recursion`](plonky2/bench
 RUSTFLAGS=-Ctarget-cpu=native cargo bench recursion
 ```
 
+## Testing
+
+Tests can be simply run with:
+
+```sh
+cargo test
+```
+
+Use `--release` for faster execution.
+
+### Wasm32
+
+Given that the verification of proofs can be run also on different architectures (e.g. `wasm32`), there is a test that is meant to run on `wasm32` (`test_recursive_verifier_gl_regression`).
+
+To run such test, it's required to have `nodejs` installed (tested with version `v23.1.0`) and `wasm-pack` (tested with version `0.13.0`). The latter can be installed with:
+
+```sh
+cargo install wasm-pack
+```
+
+Then, the test can be run with:
+
+```sh
+wasm-pack test --node
+```
+
 ## Jemalloc
 
 Plonky2 prefers the [Jemalloc](http://jemalloc.net) memory allocator due to its superior performance. To use it, include `jemallocator = "0.5.0"` in your `Cargo.toml` and add the following lines

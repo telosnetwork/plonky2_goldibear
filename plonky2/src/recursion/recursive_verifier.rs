@@ -210,6 +210,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{sync::Arc, vec};
+    use wasm_bindgen_test::wasm_bindgen_test;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
@@ -274,6 +275,7 @@ mod tests {
     /// For this reason, it uses the verifier/common data and the proof produced by the previous test and uses them validate the proof.
     /// It is particularly useful to run this test also for the WASM architecture to prevent compatibility issues as the one fixed with `451536ea`.
     #[test]
+    #[wasm_bindgen_test]
     fn test_recursive_verifier_gl_regression() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;

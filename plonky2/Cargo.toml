@@ -60,8 +60,9 @@ serde_cbor = { version = "0.11.2" }
 serde_json = { version = "1.0" }
 structopt = { version = "0.3.26", default-features = false }
 tynm = { version = "0.1.6", default-features = false }
+wasm-bindgen-test = { version = "0.3" }
 
-[target.'cfg(not(target_env = "msvc"))'.dev-dependencies]
+[target.'cfg(not(any(target_env = "msvc", target_arch = "wasm32")))'.dev-dependencies]
 jemallocator = "0.5.0"
 
 [[bin]]
