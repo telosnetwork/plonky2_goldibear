@@ -210,7 +210,6 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 mod tests {
     #[cfg(not(feature = "std"))]
     use alloc::{sync::Arc, vec};
-    use wasm_bindgen_test::wasm_bindgen_test;
     #[cfg(feature = "std")]
     use std::sync::Arc;
 
@@ -220,6 +219,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::{AbstractField, PrimeField64};
     use p3_goldilocks::Goldilocks;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
