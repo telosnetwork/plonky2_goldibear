@@ -130,3 +130,38 @@ jobs:
       #TODO: reintroduce check
       #- name: Run cargo clippy
       #  run: cargo clippy --all-features --all-targets -- -D warnings -A incomplete-features
+
+  wasm-test:
+    name: Run tests in wasm32
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Set up rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Install cargo binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install wasm-pack
+        run: cargo binstall --force --no-confirm wasm-pack
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run wasm-pack tests
+        run: |
+          cd plonky2/src/recursion
+          wasm-pack test --node

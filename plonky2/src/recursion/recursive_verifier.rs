@@ -219,6 +219,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::{AbstractField, PrimeField64};
     use p3_goldilocks::Goldilocks;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
@@ -237,7 +238,13 @@ mod tests {
     };
     use crate::plonk::proof::{CompressedProofWithPublicInputs, ProofWithPublicInputs};
     use crate::plonk::prover::prove;
+    use crate::plonk::verifier::verify;
+    use crate::recursion::regression_test_data::{
+        RECURSIVE_VERIFIER_GL_COMMON_DATA, RECURSIVE_VERIFIER_GL_PROOF,
+        RECURSIVE_VERIFIER_GL_VERIFIER_DATA,
+    };
     use crate::util::proving_process_info::ProvingProcessInfo;
+    use crate::util::serialization::DefaultGateSerializer;
 
     #[test]
     fn test_recursive_verifier_gl() -> Result<()> {
@@ -259,6 +266,44 @@ mod tests {
             true,
         )?;
         test_serialization(&proof, &vd, &common_data)?;
+
+        Ok(())
+    }
+
+    /// This test is strictly related to [`test_recursive_verifier_gl`], but it is meant to verify that the recursive verifier circuit representation
+    /// (e.g. the circuit digest) doesn't change unexpectedly.
+    /// For this reason, it uses the verifier/common data and the proof produced by the previous test and uses them validate the proof.
+    /// It is particularly useful to run this test also for the WASM architecture to prevent compatibility issues as the one fixed with `451536ea`.
+    #[test]
+    #[wasm_bindgen_test]
+    fn test_recursive_verifier_gl_regression() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
+
+        // Deserialize common data
+        let common_data = CommonCircuitData::<F, D, NUM_HASH_OUT_ELTS>::from_bytes(
+            RECURSIVE_VERIFIER_GL_COMMON_DATA.to_vec(),
+            &DefaultGateSerializer,
+        )
+        .unwrap();
+
+        // Deserialize verifier data
+        let verifier_data = VerifierOnlyCircuitData::<PoseidonGoldilocksConfig, 2, 4>::from_bytes(
+            RECURSIVE_VERIFIER_GL_VERIFIER_DATA.to_vec(),
+        )
+        .unwrap();
+
+        // Deserialize the proof
+        let proof = ProofWithPublicInputs::<F, C, D, NUM_HASH_OUT_ELTS>::from_bytes(
+            RECURSIVE_VERIFIER_GL_PROOF.to_vec(),
+            &common_data,
+        )
+        .unwrap();
+
+        // Verify the proof
+        verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof, &verifier_data, &common_data)?;
 
         Ok(())
     }

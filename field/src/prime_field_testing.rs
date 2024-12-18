@@ -159,7 +159,7 @@ macro_rules! test_prime_field_arithmetic {
             fn addition_double_wraparound() {
                 type F = $field;
 
-                let a = F::from_canonical_u64(u64::MAX - F::ORDER_U64);
+                let a = F::from_canonical_u64(u64::MAX % F::ORDER_U64);
                 let b = F::neg_one();
 
                 let c = (a + a) + (b + b);
