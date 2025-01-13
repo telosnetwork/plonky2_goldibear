@@ -122,7 +122,7 @@ impl CircuitConfig {
         }
     }
 
-    fn standard_recursion_config() -> Self {
+    pub fn standard_recursion_config() -> Self {
         Self {
             num_wires: 0,
             num_routed_wires: 80,
