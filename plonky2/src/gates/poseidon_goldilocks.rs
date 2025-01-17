@@ -127,7 +127,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
 
         // Assert that `swap` is binary.
@@ -168,7 +168,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                     state[i] = sbox_in;
                 }
             }
-            PoseidonGoldilocks::sbox_layer_field::<F, F::Extension>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F::Extension>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
@@ -199,7 +199,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 constraints.push(state[i] - sbox_in);
                 state[i] = sbox_in;
             }
-            PoseidonGoldilocks::sbox_layer_field::<F, F::Extension>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F::Extension>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
@@ -304,7 +304,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             );
 
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
 
         // Assert that `swap` is binary.
@@ -492,7 +492,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                     );
                 }
             }
-            PoseidonGoldilocks::sbox_layer_field::<F, F>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
@@ -526,7 +526,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                     state[i],
                 );
             }
-            PoseidonGoldilocks::sbox_layer_field::<F, F>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }

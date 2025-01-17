@@ -561,7 +561,7 @@ impl PoseidonGoldilocks {
         r: usize,
         v: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> ExtensionTarget<D>
-    where F: RichField + HasExtension<D>,
+    where
     F::Extension: TwoAdicField{
         debug_assert!(r < SPONGE_WIDTH);
         let mut res = builder.zero_extension();
@@ -596,7 +596,7 @@ impl PoseidonGoldilocks {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
-    where F: RichField + HasExtension<D>,
+    where
     F::Extension: TwoAdicField{
         // If we have enough routed wires, we will use PoseidonMdsGate.
         let mds_gate = PoseidonMdsGate::new();
@@ -641,7 +641,6 @@ impl PoseidonGoldilocks {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) where 
-    F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField{
         for i in 0..SPONGE_WIDTH {
             let c = Self::FAST_PARTIAL_FIRST_ROUND_CONSTANT[i];
@@ -688,7 +687,6 @@ impl PoseidonGoldilocks {
         state: &[ExtensionTarget<D>; SPONGE_WIDTH],
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where 
-    F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField{
         let mut result = [builder.zero_extension(); SPONGE_WIDTH];
 
@@ -775,7 +773,6 @@ impl PoseidonGoldilocks {
         r: usize,
     ) -> [ExtensionTarget<D>; SPONGE_WIDTH]
     where 
-    F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField{
         let s0 = state[0];
         let mds0to0 = Self::MDS_MATRIX_CIRC[0] + Self::MDS_MATRIX_DIAG[0];
@@ -827,7 +824,7 @@ impl PoseidonGoldilocks {
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
         round_ctr: usize,
     ) 
-    where F: RichField + HasExtension<D>,
+    where
         F::Extension: TwoAdicField{
         for i in 0..SPONGE_WIDTH {
             let c = ALL_ROUND_CONSTANTS[i + SPONGE_WIDTH * round_ctr];
@@ -852,7 +849,6 @@ impl PoseidonGoldilocks {
         x: ExtensionTarget<D>,
     ) -> ExtensionTarget<D>
     where 
-    F: RichField + HasExtension<D>,
     F::Extension: TwoAdicField{
         // x |--> x^7
         builder.exp_u64_extension(x, 7)
@@ -869,7 +865,7 @@ impl PoseidonGoldilocks {
     }
 
     /// Same as `sbox_layer` for field extensions of `Self`.
-    pub(crate) fn sbox_layer_field<BF: Field, F: ExtensionField<F>>(state: &mut [F; SPONGE_WIDTH]) {
+    pub(crate) fn sbox_layer_field<F: ExtensionField<F>>(state: &mut [F; SPONGE_WIDTH]) {
         for i in 0..SPONGE_WIDTH {
             state[i] = Self::sbox_monomial(state[i]);
         }
@@ -880,7 +876,7 @@ impl PoseidonGoldilocks {
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         state: &mut [ExtensionTarget<D>; SPONGE_WIDTH],
     ) 
-    where F: RichField + HasExtension<D>,
+    where
     F::Extension: TwoAdicField{
         for i in 0..SPONGE_WIDTH {
             state[i] = Self::sbox_monomial_circuit(builder, state[i]);

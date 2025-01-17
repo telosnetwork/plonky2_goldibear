@@ -255,9 +255,7 @@ impl<
         &self,
         proof_with_pis: ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>,
     ) -> Result<()> {
-        let res =
-            verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common);
-        res
+        verify::<F, C, D, NUM_HASH_OUT_ELTS>(proof_with_pis, &self.verifier_only, &self.common)
     }
 
     pub fn verify_compressed(
@@ -355,13 +353,12 @@ impl<
         inputs: PartialWitness<F>,
     ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where {
-        let proof = prove::<F, C, D, NUM_HASH_OUT_ELTS>(
+        prove::<F, C, D, NUM_HASH_OUT_ELTS>(
             &self.prover_only,
             &self.common,
             inputs,
             &mut ProvingProcessInfo::default(),
-        );
-        proof
+        )
     }
 }
 

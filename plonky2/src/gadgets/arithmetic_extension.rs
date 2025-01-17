@@ -458,7 +458,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             if j != 0 {
                 current = self.square_extension(current);
             }
-            if (exponent >> j & 1) != 0 {
+            if (exponent >> j) & 1 != 0 {
                 product = self.mul_extension(product, current);
             }
         }

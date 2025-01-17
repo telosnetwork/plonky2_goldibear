@@ -171,8 +171,7 @@ impl<F: RichField> Hasher<F> for Poseidon2BabyBearHash {
     }
 
     fn two_to_one(left: Self::Hash, right: Self::Hash) -> Self::Hash {
-        let res = compress::<F, Self::Permutation, 8>(left, right);
-        res
+        compress::<F, Self::Permutation, 8>(left, right)
     }
 }
 

@@ -150,7 +150,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
 
         for copy in 0..self.num_copies {
@@ -222,7 +222,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         let zero = builder.zero_extension();
         let two = builder.two_extension();
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
 
         for copy in 0..self.num_copies {

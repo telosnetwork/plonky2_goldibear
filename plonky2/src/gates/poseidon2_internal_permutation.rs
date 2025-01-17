@@ -89,12 +89,12 @@ where
         let part_sum: ExtensionAlgebra<F, D> = state
             .iter()
             .skip(1)
-            .fold(ExtensionAlgebra::<F, D>::zero(), |acc, x| acc + x.clone());
-        let full_sum = part_sum.clone() + state[0].clone();
-        state[0] = part_sum.clone() - state[0].clone();
+            .fold(ExtensionAlgebra::<F, D>::zero(), |acc, x| acc + *x);
+        let full_sum = part_sum + state[0];
+        state[0] = part_sum - state[0];
 
         for i in 0..INTERNAL_DIAG_SHIFTS.len() {
-            state[i + 1] = full_sum.clone()
+            state[i + 1] = full_sum
                 + state[i + 1]
                     .clone()
                     .scalar_mul(F::Extension::from_canonical_u32(
@@ -127,14 +127,13 @@ where
         let part_sum: F::Extension = state
             .iter()
             .skip(1)
-            .fold(F::Extension::zero(), |acc, x| acc + x.clone());
-        let full_sum = part_sum.clone() + state[0].clone();
-        state[0] = part_sum.clone() - state[0].clone();
+            .fold(F::Extension::zero(), |acc, x| acc + *x);
+        let full_sum = part_sum + state[0];
+        state[0] = part_sum - state[0];
 
         for i in 0..INTERNAL_DIAG_SHIFTS.len() {
-            state[i + 1] = full_sum.clone()
-                + state[i + 1].clone()
-                    * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
+            state[i + 1] = full_sum
+                + state[i + 1] * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
         }
 
         for i in 0..SPONGE_WIDTH {
@@ -260,14 +259,13 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         let part_sum: F::Extension = state
             .iter()
             .skip(1)
-            .fold(F::Extension::zero(), |acc, x| acc + x.clone());
-        let full_sum = part_sum.clone() + state[0].clone();
-        state[0] = part_sum.clone() - state[0].clone();
+            .fold(F::Extension::zero(), |acc, x| acc + *x);
+        let full_sum = part_sum + state[0];
+        state[0] = part_sum - state[0];
 
         for i in 0..INTERNAL_DIAG_SHIFTS.len() {
-            state[i + 1] = full_sum.clone()
-                + state[i + 1].clone()
-                    * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
+            state[i + 1] = full_sum
+                + state[i + 1] * F::Extension::from_canonical_u32(1 << INTERNAL_DIAG_SHIFTS[i]);
         }
 
         for (i, &out) in state.iter().enumerate() {

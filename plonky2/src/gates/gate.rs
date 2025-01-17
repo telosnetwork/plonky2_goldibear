@@ -4,7 +4,6 @@ use core::any::Any;
 use core::fmt::{Debug, Error, Formatter};
 use core::hash::{Hash, Hasher};
 use core::ops::Range;
-use core::usize;
 #[cfg(feature = "std")]
 use std::sync::Arc;
 
@@ -85,7 +84,6 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OU
         false
     }
     /// Defines and evaluates the constraints that enforce the statement represented by this gate.
-
     /// Constraints must be defined in the extension of this custom gate base field.
     fn eval_unfiltered(&self, vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>) -> Vec<F::Extension>;
 
@@ -138,7 +136,7 @@ pub trait Gate<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OU
         let mut res = vec![
             F::zero();
             vars_base.len()
-                * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)
+                * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self)
         ];
         for (i, vars_base_one) in vars_base.iter().enumerate() {
             self.eval_unfiltered_base_one(

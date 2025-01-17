@@ -1,5 +1,3 @@
-use core::usize;
-
 use plonky2_field::types::HasExtension;
 
 use crate::field::polynomial::PolynomialCoeffs;
