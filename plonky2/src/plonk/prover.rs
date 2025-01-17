@@ -1,4 +1,5 @@
 //! plonky2 prover implementation.
+extern crate alloc;
 
 use alloc::borrow::ToOwned;
 #[cfg(not(feature = "std"))]

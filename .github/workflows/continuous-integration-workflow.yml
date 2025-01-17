@@ -127,9 +127,8 @@ jobs:
       - name: Run cargo fmt
         run: cargo fmt --all --check
 
-      #TODO: reintroduce check
-      #- name: Run cargo clippy
-      #  run: cargo clippy --all-features --all-targets -- -D warnings -A incomplete-features
+      - name: Run cargo clippy
+        run: cargo clippy --all-features --all-targets -- -D warnings -A incomplete-features
 
   wasm-test:
     name: Run tests in wasm32

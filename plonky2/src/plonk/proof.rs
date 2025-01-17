@@ -632,7 +632,7 @@ mod tests {
             let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
             let xt = builder.add_virtual_target();
             let yt = builder.two();
-            let zt = builder.mul(xt.clone(), yt);
+            let zt = builder.mul(xt, yt);
 
             let comp_zt = builder.mul(xt, yt);
             builder.connect(zt, comp_zt);
