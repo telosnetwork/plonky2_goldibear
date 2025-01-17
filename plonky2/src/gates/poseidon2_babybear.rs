@@ -398,7 +398,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
-            
+
             permute_external_mut_circuit(builder, &mut state);
 
             // First set of full rounds.
