@@ -489,7 +489,7 @@ impl PoseidonGoldilocks {
          0xdcedab70f40718ba, 0xe796d293a47a64cb, 0x80772dc2645b280b, ],
     ];
 
-    #[cfg(not(all(target_arch = "aarch64", target_feature = "neon")))]
+    //#[cfg(not(all(target_arch = "aarch64", target_feature = "neon")))]
     #[inline(always)]
     #[unroll::unroll_for_loops]
     pub(crate) fn mds_layer<F: RichField>(state: &[F; 12]) -> [F; 12] {
@@ -524,21 +524,21 @@ impl PoseidonGoldilocks {
         result
     }
 
-    #[cfg(all(target_arch="aarch64", target_feature="neon"))]
-    #[inline(always)]
-    fn sbox_layer(state: &mut [Self; 12]) {
-        unsafe {
-            crate::hash::arch::aarch64::poseidon_goldilocks_neon::sbox_layer(state);
-        }
-    }
+    // #[cfg(all(target_arch="aarch64", target_feature="neon"))]
+    // #[inline(always)]
+    // fn sbox_layer(state: &mut [Self; 12]) {
+    //     unsafe {
+    //         crate::hash::arch::aarch64::poseidon_goldilocks_neon::sbox_layer(state);
+    //     }
+    // }
 
-    #[cfg(all(target_arch="aarch64", target_feature="neon"))]
-    #[inline(always)]
-    fn mds_layer(state: &[Self; 12]) -> [Self; 12] {
-        unsafe {
-            crate::hash::arch::aarch64::poseidon_goldilocks_neon::mds_layer(state)
-        }
-    }
+    // #[cfg(all(target_arch="aarch64", target_feature="neon"))]
+    // #[inline(always)]
+    // fn mds_layer(state: &[Self; 12]) -> [Self; 12] {
+    //     unsafe {
+    //         crate::hash::arch::aarch64::poseidon_goldilocks_neon::mds_layer(state)
+    //     }
+    // }
 
 
     /// Same as `mds_row_shf` for field extensions of `Self`.
@@ -954,7 +954,7 @@ impl PoseidonGoldilocks {
 // MDS layer helper methods
 // The following code has been adapted from winterfell/crypto/src/hash/mds/mds_f64_12x12.rs
 // located at https://github.com/facebook/winterfell.
-#[cfg(not(all(target_arch = "aarch64", target_feature = "neon")))]
+//#[cfg(not(all(target_arch = "aarch64", target_feature = "neon")))]
 mod poseidon12_mds {
     const MDS_FREQ_BLOCK_ONE: [i64; 3] = [16, 32, 16];
     const MDS_FREQ_BLOCK_TWO: [(i64, i64); 3] = [(2, -1), (-4, 1), (16, 1)];
