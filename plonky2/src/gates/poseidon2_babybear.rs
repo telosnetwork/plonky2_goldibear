@@ -225,9 +225,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i] = vars.local_wires[input_lhs] + delta_i;
                 state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
             }
-            for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
-                state[i] = vars.local_wires[Self::wire_input(op, i)];
-            }
+
             permute_external_mut(&mut state);
 
             for r in 0..HALF_N_FULL_ROUNDS {
@@ -311,9 +309,6 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i] = vars.local_wires[input_lhs] + delta_i;
                 state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
             }
-            for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
-                state[i] = vars.local_wires[Self::wire_input(op, i)];
-            }
 
             permute_external_mut(&mut state);
 
@@ -390,9 +385,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i + SPONGE_CAPACITY] =
                     builder.sub_extension(vars.local_wires[input_rhs], delta_i);
             }
-            for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
-                state[i] = vars.local_wires[Self::wire_input(op, i)];
-            }
+
             permute_external_mut_circuit(builder, &mut state);
 
             // First set of full rounds.
