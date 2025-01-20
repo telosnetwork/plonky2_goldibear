@@ -195,7 +195,6 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         res
     }
 
-    #[allow(clippy::all)]
     fn eval_unfiltered(
         &self,
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
@@ -226,6 +225,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i] = vars.local_wires[input_lhs] + delta_i;
                 state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
             }
+
+            // This loop is not executed at the moment based on the current values of
+            // `SPONGE_CAPACITY` and `SPONGE_WIDTH`, but it's wise to keep it as it would
+            // be required if the values of these constants are changed in the future.
+            #[allow(clippy::reversed_empty_ranges)]
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
@@ -286,7 +290,6 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         constraints
     }
 
-    #[allow(clippy::all)]
     fn eval_unfiltered_base_one(
         &self,
         vars: EvaluationVarsBase<F, NUM_HASH_OUT_ELTS>,
@@ -314,6 +317,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i] = vars.local_wires[input_lhs] + delta_i;
                 state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
             }
+
+            // This loop is not executed at the moment based on the current values of
+            // `SPONGE_CAPACITY` and `SPONGE_WIDTH`, but it's wise to keep it as it would
+            // be required if the values of these constants are changed in the future.
+            #[allow(clippy::reversed_empty_ranges)]
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
@@ -361,7 +369,6 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         }
     }
 
-    #[allow(clippy::all)]
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
@@ -395,6 +402,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i + SPONGE_CAPACITY] =
                     builder.sub_extension(vars.local_wires[input_rhs], delta_i);
             }
+
+            // This loop is not executed at the moment based on the current values of
+            // `SPONGE_CAPACITY` and `SPONGE_WIDTH`, but it's wise to keep it as it would
+            // be required if the values of these constants are changed in the future.
+            #[allow(clippy::reversed_empty_ranges)]
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
