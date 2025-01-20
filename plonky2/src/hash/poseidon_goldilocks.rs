@@ -865,7 +865,7 @@ impl PoseidonGoldilocks {
     }
 
     /// Same as `sbox_layer` for field extensions of `Self`.
-    pub(crate) fn sbox_layer_field<F: ExtensionField<F>>(state: &mut [F; SPONGE_WIDTH]) {
+    pub(crate) fn sbox_layer_field<F: Field>(state: &mut [F; SPONGE_WIDTH]) {
         for i in 0..SPONGE_WIDTH {
             state[i] = Self::sbox_monomial(state[i]);
         }
