@@ -168,7 +168,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                     state[i] = sbox_in;
                 }
             }
-            PoseidonGoldilocks::sbox_layer_field::<F::Extension>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F::Extension>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
@@ -199,7 +199,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 constraints.push(state[i] - sbox_in);
                 state[i] = sbox_in;
             }
-            PoseidonGoldilocks::sbox_layer_field::<F::Extension>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F::Extension>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
@@ -492,7 +492,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                     );
                 }
             }
-            PoseidonGoldilocks::sbox_layer_field::<F>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
@@ -526,7 +526,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                     state[i],
                 );
             }
-            PoseidonGoldilocks::sbox_layer_field::<F>(&mut state);
+            PoseidonGoldilocks::sbox_layer_field::<F, F>(&mut state);
             state = PoseidonGoldilocks::mds_layer_field(&state);
             round_ctr += 1;
         }
