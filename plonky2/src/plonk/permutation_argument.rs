@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 
 use hashbrown::HashMap;
-use p3_field::{Field, TwoAdicField};
+use p3_field::TwoAdicField;
 use plonky2_maybe_rayon::*;
 
 use crate::field::polynomial::PolynomialValues;
@@ -110,15 +110,12 @@ pub struct WirePartition {
 }
 
 impl WirePartition {
-    pub(crate) fn get_sigma_polys<F: Field>(
+    pub(crate) fn get_sigma_polys<F: TwoAdicField>(
         &self,
         degree_log: usize,
         k_is: &[F],
         subgroup: &[F],
-    ) -> Vec<PolynomialValues<F>>
-    where
-        F: TwoAdicField,
-    {
+    ) -> Vec<PolynomialValues<F>> {
         let degree = 1 << degree_log;
         let sigma = self.get_sigma_map(degree, k_is.len());
 

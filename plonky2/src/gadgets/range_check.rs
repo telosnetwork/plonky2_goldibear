@@ -4,7 +4,6 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::usize;
 
 use plonky2_field::types::HasExtension;
 
@@ -36,8 +35,8 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         if !are_noncanonical_indices_ok {
             let one = self.one();
             let (lo_bits, hi_bits) = res.split_at(F::EXP1);
-            let lo_bits_sum = self.add_many(lo_bits.into_iter().map(|b| b.target));
-            let hi_bits_sum = self.add_many(hi_bits.into_iter().map(|b| b.target));
+            let lo_bits_sum = self.add_many(lo_bits.iter().map(|b| b.target));
+            let hi_bits_sum = self.add_many(hi_bits.iter().map(|b| b.target));
             let hi_bits_sum_minus_exp0_plus_exp1 =
                 self.add_const(hi_bits_sum, F::from_canonical_usize(F::EXP0 - F::EXP1));
             let y = self.inverse_or_zero(hi_bits_sum_minus_exp0_plus_exp1);

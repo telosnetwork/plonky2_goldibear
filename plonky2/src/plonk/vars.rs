@@ -1,7 +1,6 @@
 //! Logic for evaluating constraints.
 
 use core::ops::Range;
-use core::usize;
 
 use p3_field::{AbstractExtensionField, Field, PackedField};
 use plonky2_field::extension_algebra::ExtensionAlgebra;
@@ -52,8 +51,8 @@ pub struct EvaluationVarsBasePacked<'a, P: PackedField, const NUM_HASH_OUT_ELTS:
     pub public_inputs_hash: &'a HashOut<P::Scalar, NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    EvaluationVars<'a, F, D, NUM_HASH_OUT_ELTS>
+impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
+    EvaluationVars<'_, F, D, NUM_HASH_OUT_ELTS>
 {
     pub fn get_local_ext_algebra(&self, wire_range: Range<usize>) -> ExtensionAlgebra<F, D> {
         debug_assert_eq!(wire_range.len(), D);
@@ -127,7 +126,7 @@ impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize>
     }
 }
 
-impl<'a, F: Field, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBase<'a, F, NUM_HASH_OUT_ELTS> {
+impl<F: Field, const NUM_HASH_OUT_ELTS: usize> EvaluationVarsBase<'_, F, NUM_HASH_OUT_ELTS> {
     pub fn get_local_ext<const D: usize>(&self, wire_range: Range<usize>) -> F::Extension
     where
         F: RichField + HasExtension<D>,
@@ -225,17 +224,15 @@ impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> Iterator
     }
 }
 
-impl<'a, P: PackedField, const NUM_HASH_OUT_ELTS: usize> ExactSizeIterator
-    for EvaluationVarsBaseBatchIterPacked<'a, P, NUM_HASH_OUT_ELTS>
+impl<P: PackedField, const NUM_HASH_OUT_ELTS: usize> ExactSizeIterator
+    for EvaluationVarsBaseBatchIterPacked<'_, P, NUM_HASH_OUT_ELTS>
 {
     fn len(&self) -> usize {
         (self.vars_batch.len() - self.i) / P::WIDTH
     }
 }
 
-impl<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    EvaluationTargets<'a, D, NUM_HASH_OUT_ELTS>
-{
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> EvaluationTargets<'_, D, NUM_HASH_OUT_ELTS> {
     pub fn remove_prefix(&mut self, num_selectors: usize) {
         self.local_constants = &self.local_constants[num_selectors..];
     }
@@ -248,9 +245,7 @@ pub struct EvaluationTargets<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize>
     pub public_inputs_hash: &'a HashOutTarget<NUM_HASH_OUT_ELTS>,
 }
 
-impl<'a, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    EvaluationTargets<'a, D, NUM_HASH_OUT_ELTS>
-{
+impl<const D: usize, const NUM_HASH_OUT_ELTS: usize> EvaluationTargets<'_, D, NUM_HASH_OUT_ELTS> {
     pub fn get_local_ext_algebra(&self, wire_range: Range<usize>) -> ExtensionAlgebraTarget<D> {
         debug_assert_eq!(wire_range.len(), D);
         let arr = self.local_wires[wire_range].try_into().unwrap();

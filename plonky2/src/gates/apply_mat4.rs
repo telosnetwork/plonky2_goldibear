@@ -250,7 +250,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             .try_into()
             .unwrap();
 
-        let mut x = inputs.clone();
+        let mut x = inputs;
         let t01 = x[0] + x[1];
         let t23 = x[2] + x[3];
         let t0123 = t01 + t23;

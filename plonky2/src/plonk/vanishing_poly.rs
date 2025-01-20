@@ -352,6 +352,7 @@ where
 /// - RE ensures the well formation of lookup tables;
 /// - Sum is a running sum of m_i/(X - (input_i + a * output_i)) where (input_i, output_i) are input pairs in the lookup table (LUT);
 /// - LDC is a running sum of 1/(X - (input_i + a * output_i)) where (input_i, output_i) are input pairs that look in the LUT.
+///
 /// Sum and LDC are broken down in partial polynomials to lower the constraint degree, similarly to the permutation argument.
 /// They also share the same partial SLDC polynomials, so that the last SLDC value is Sum(end) - LDC(end). The final constraint
 /// Sum(end) = LDC(end) becomes simply SLDC(end) = 0, and we can remove the LDC initial constraint.

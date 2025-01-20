@@ -5,7 +5,6 @@ use alloc::{
     vec::Vec,
 };
 use core::marker::PhantomData;
-use core::usize;
 
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField64};
@@ -165,7 +164,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     ) -> bool {
         let zero = builder.zero();
         let inputs: [Target; SPONGE_WIDTH] = [zero; SPONGE_WIDTH];
-        let mut slot_idx = slot_idx.clone();
+        let mut slot_idx = slot_idx;
         let res = slot_idx < self.num_ops;
         while slot_idx < self.num_ops {
             let swap_wire = Self::wire_swap(slot_idx);
@@ -194,7 +193,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
         for op in 0..self.num_ops {
             // Assert that `swap` is binary.
@@ -357,7 +356,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
         for op in 0..self.num_ops {
             // Assert that `swap` is binary.
@@ -737,12 +736,7 @@ fn permute_external_mut_circuit<
     assert_eq!(WIDTH % 4, 0);
     for i in (0..WIDTH).step_by(4) {
         // Would be nice to find a better way to do this.
-        let mut state_4 = [
-            state[i].clone(),
-            state[i + 1].clone(),
-            state[i + 2].clone(),
-            state[i + 3].clone(),
-        ];
+        let mut state_4 = [state[i], state[i + 1], state[i + 2], state[i + 3]];
         apply_mat4_circuit(builder, &mut state_4);
         state[i..i + 4].clone_from_slice(&state_4);
     }
@@ -750,7 +744,7 @@ fn permute_external_mut_circuit<
 
     // We first precompute the four sums of every four elements.
     let sums: [ExtensionTarget<D>; 4] = core::array::from_fn(|k| {
-        builder.add_many_extension((0..WIDTH).step_by(4).map(|j| state[j + k].clone()))
+        builder.add_many_extension((0..WIDTH).step_by(4).map(|j| state[j + k]))
     });
 
     // The formula for each y_i involves 2x_i' term and x_j' terms for each j that equals i mod 4.

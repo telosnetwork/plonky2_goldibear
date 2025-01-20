@@ -1341,7 +1341,7 @@ where {
             circuit_digest,
             lookup_rows: self.lookup_rows.clone(),
             lut_to_lookups: self.lut_to_lookups.clone(),
-            random_wire: self.random_wire.clone(),
+            random_wire: self.random_wire,
         };
 
         let verifier_only = VerifierOnlyCircuitData::<C, D, NUM_HASH_OUT_ELTS> {

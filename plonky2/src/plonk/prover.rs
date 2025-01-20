@@ -1,5 +1,7 @@
 //! plonky2 prover implementation.
+extern crate alloc;
 
+use alloc::borrow::ToOwned;
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
 use core::cmp::min;
@@ -232,14 +234,14 @@ fn internal_prove_with_partition_witness<
     prover_data: &ProverOnlyCircuitData<F, C, D, NUM_HASH_OUT_ELTS>,
     common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     witness: &MatrixWitness<F>,
-    public_inputs: &Vec<F>,
+    public_inputs: &[F],
     timing: &mut ProvingProcessInfo,
 ) -> Result<ProofWithPublicInputs<F, C, D, NUM_HASH_OUT_ELTS>>
 where
     C::Hasher: Hasher<F>,
     C::InnerHasher: Hasher<F>,
 {
-    let public_inputs_hash = C::InnerHasher::hash_no_pad(&public_inputs);
+    let public_inputs_hash = C::InnerHasher::hash_no_pad(public_inputs);
     let has_lookup = !common_data.luts.is_empty();
     let config = &common_data.config;
     let num_challenges = config.num_challenges;
@@ -303,13 +305,7 @@ where
     let mut partial_products_and_zs = timed!(
         timing,
         "compute partial products",
-        all_wires_permutation_partial_products(
-            &witness,
-            &betas,
-            &gammas,
-            prover_data,
-            common_data
-        )?
+        all_wires_permutation_partial_products(witness, &betas, &gammas, prover_data, common_data)?
     );
 
     // Z is expected at the front of our batch; see `zs_range` and `partial_products_range`.
@@ -321,7 +317,7 @@ where
 
     // All lookup polys: RE and partial SLDCs.
     let lookup_polys =
-        compute_all_lookup_polys(&witness, &deltas, prover_data, common_data, has_lookup);
+        compute_all_lookup_polys(witness, &deltas, prover_data, common_data, has_lookup);
 
     let zs_partial_products_lookups = if has_lookup {
         [zs_partial_products, lookup_polys].concat()
@@ -446,7 +442,7 @@ where
     };
     Ok(ProofWithPublicInputs::<F, C, D, NUM_HASH_OUT_ELTS> {
         proof,
-        public_inputs: public_inputs.clone(),
+        public_inputs: public_inputs.to_owned(),
     })
 }
 

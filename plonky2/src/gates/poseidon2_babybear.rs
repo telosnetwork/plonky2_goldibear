@@ -6,7 +6,6 @@ use alloc::{
     vec::Vec,
 };
 use core::marker::PhantomData;
-use core::usize;
 
 use itertools::Itertools;
 use p3_baby_bear::BabyBear;
@@ -172,7 +171,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     ) -> bool {
         let zero = builder.zero();
         let inputs: [Target; SPONGE_WIDTH] = [zero; SPONGE_WIDTH];
-        let mut slot_idx = slot_idx.clone();
+        let mut slot_idx = slot_idx;
         let res = slot_idx < self.num_ops;
         while slot_idx < self.num_ops {
             let swap_wire = Self::wire_swap(slot_idx);
@@ -201,7 +200,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
         for op in 0..self.num_ops {
             // Assert that `swap` is binary.
@@ -226,9 +225,15 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i] = vars.local_wires[input_lhs] + delta_i;
                 state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
             }
+
+            // This loop is not executed at the moment based on the current values of
+            // `SPONGE_CAPACITY` and `SPONGE_WIDTH`, but it's wise to keep it as it would
+            // be required if the values of these constants are changed in the future.
+            #[allow(clippy::reversed_empty_ranges)]
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
+
             permute_external_mut(&mut state);
 
             for r in 0..HALF_N_FULL_ROUNDS {
@@ -312,6 +317,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i] = vars.local_wires[input_lhs] + delta_i;
                 state[i + SPONGE_CAPACITY] = vars.local_wires[input_rhs] - delta_i;
             }
+
+            // This loop is not executed at the moment based on the current values of
+            // `SPONGE_CAPACITY` and `SPONGE_WIDTH`, but it's wise to keep it as it would
+            // be required if the values of these constants are changed in the future.
+            #[allow(clippy::reversed_empty_ranges)]
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
@@ -358,13 +368,14 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             }
         }
     }
+
     fn eval_unfiltered_circuit(
         &self,
         builder: &mut CircuitBuilder<F, D, NUM_HASH_OUT_ELTS>,
         vars: EvaluationTargets<D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<ExtensionTarget<D>> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
         for op in 0..self.num_ops {
             // Assert that `swap` is binary.
@@ -391,9 +402,15 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 state[i + SPONGE_CAPACITY] =
                     builder.sub_extension(vars.local_wires[input_rhs], delta_i);
             }
+
+            // This loop is not executed at the moment based on the current values of
+            // `SPONGE_CAPACITY` and `SPONGE_WIDTH`, but it's wise to keep it as it would
+            // be required if the values of these constants are changed in the future.
+            #[allow(clippy::reversed_empty_ranges)]
             for i in 2 * SPONGE_CAPACITY..SPONGE_WIDTH {
                 state[i] = vars.local_wires[Self::wire_input(op, i)];
             }
+
             permute_external_mut_circuit(builder, &mut state);
 
             // First set of full rounds.
@@ -683,7 +700,7 @@ fn permute_internal_mut_circuit<
         state
             .iter_mut()
             .for_each(|x| *x = builder.mul_const_extension(F::from_canonical_u32(943718400), *x));
-        let part_sum = builder.add_many_extension(state[1..].into_iter());
+        let part_sum = builder.add_many_extension(state[1..].iter());
         let full_sum = builder.add_extension(part_sum, state[0]);
         state[0] = builder.sub_extension(part_sum, state[0]);
         (0..SPONGE_WIDTH - 1).for_each(|i| {
@@ -752,12 +769,7 @@ fn permute_external_mut_circuit<
     assert_eq!(WIDTH % 4, 0);
     for i in (0..WIDTH).step_by(4) {
         // Would be nice to find a better way to do this.
-        let mut state_4 = [
-            state[i].clone(),
-            state[i + 1].clone(),
-            state[i + 2].clone(),
-            state[i + 3].clone(),
-        ];
+        let mut state_4 = [state[i], state[i + 1], state[i + 2], state[i + 3]];
         apply_mat4_circuit(builder, &mut state_4);
         state[i..i + 4].clone_from_slice(&state_4);
     }
@@ -765,7 +777,7 @@ fn permute_external_mut_circuit<
 
     // We first precompute the four sums of every four elements.
     let sums: [ExtensionTarget<D>; 4] = core::array::from_fn(|k| {
-        builder.add_many_extension((0..WIDTH).step_by(4).map(|j| state[j + k].clone()))
+        builder.add_many_extension((0..WIDTH).step_by(4).map(|j| state[j + k]))
     });
 
     // The formula for each y_i involves 2x_i' term and x_j' terms for each j that equals i mod 4.
@@ -941,7 +953,7 @@ mod tests {
         type F = BabyBear;
 
         let mut state: [F; SPONGE_WIDTH] = F::rand_array();
-        let mut state_clone: [F; SPONGE_WIDTH] = state.clone();
+        let mut state_clone: [F; SPONGE_WIDTH] = state;
         <BabyBearDiffusionMatrixParameters as DiffusionMatrixParameters<
             BabyBearParameters,
             SPONGE_WIDTH,

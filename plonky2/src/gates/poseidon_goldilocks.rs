@@ -127,7 +127,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         vars: EvaluationVars<F, D, NUM_HASH_OUT_ELTS>,
     ) -> Vec<<F as HasExtension<D>>::Extension> {
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
 
         // Assert that `swap` is binary.
@@ -304,7 +304,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             );
 
         let mut constraints = Vec::with_capacity(
-            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self),
+            <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self),
         );
 
         // Assert that `swap` is binary.

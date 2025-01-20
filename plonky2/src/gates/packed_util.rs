@@ -30,7 +30,7 @@ pub trait PackedEvaluableBase<
         let mut res = vec![
             F::zero();
             vars_batch.len()
-                * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(&self)
+                * <Self as Gate<F, D, NUM_HASH_OUT_ELTS>>::num_constraints(self)
         ];
         let (vars_packed_iter, vars_leftovers_iter) = vars_batch.pack::<F::Packing>();
         let leftovers_start = vars_batch.len() - vars_leftovers_iter.len();
