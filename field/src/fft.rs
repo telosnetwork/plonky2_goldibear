@@ -207,8 +207,8 @@ pub(crate) fn fft_classic<F: Field>(values: &mut [F], r: usize, root_table: &Fft
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
-
-    use p3_field::{AbstractField, TwoAdicField};
+    use p3_baby_bear::BabyBear;
+    use p3_field::TwoAdicField;
     use p3_goldilocks::Goldilocks;
     use plonky2_util::{log2_ceil, log2_strict};
 
@@ -218,7 +218,10 @@ mod tests {
 
     #[test]
     fn fft_and_ifft() {
-        type F = Goldilocks;
+        fft_and_ifft_internal::<Goldilocks>();
+        fft_and_ifft_internal::<BabyBear>();
+    }
+    fn fft_and_ifft_internal<F: TwoAdicField>() {
         let degree = 200usize;
         let degree_padded = degree.next_power_of_two();
 
