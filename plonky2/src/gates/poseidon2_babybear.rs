@@ -52,21 +52,20 @@ const NON_ROUTED_WIRES_PER_OP: usize =
     SPONGE_CAPACITY + SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1) + N_PARTIAL_ROUNDS;
 
 impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D> {
-    pub fn new() -> Self {
-        Self::new_from_config(&CircuitConfig::standard_recursion_config_bb_wide())
+    fn new_with_num_ops(num_ops: usize) -> Self {
+        Self {
+            num_ops,
+            _phantom: PhantomData,
+        }
     }
-
-    pub fn new_from_config(config: &CircuitConfig) -> Self {
+    pub fn new(config: &CircuitConfig) -> Self {
         if BabyBear::ORDER_U64 != F::ORDER_U64 {
             panic!("The Poseidon2 BabyBear gate can be used only for the BabyBear field!")
         }
         let wires_per_op = ROUTED_WIRES_PER_OP + NON_ROUTED_WIRES_PER_OP;
         let num_ops =
             (config.num_wires / wires_per_op).min(config.num_routed_wires / ROUTED_WIRES_PER_OP);
-        Self {
-            num_ops,
-            _phantom: PhantomData,
-        }
+        Self::new_with_num_ops(num_ops)
     }
     /***************** START ROUTED WIRES ***********************/
     /// The wire index for the `i`th input to the permutation.
@@ -160,7 +159,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         _src: &mut Buffer,
         _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
-        Ok(Poseidon2BabyBearGate::new())
+        Ok(Poseidon2BabyBearGate::new(&_common_data.config))
     }
 
     fn complete_wires(
@@ -470,6 +469,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             .map(|op| {
                 WitnessGeneratorRef::new(
                     Poseidon2BabyBearGenerator::<F, D> {
+                        num_ops: self.num_ops,
                         row,
                         op,
                         _phantom: PhantomData,
@@ -504,6 +504,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
 #[derive(Debug, Default)]
 pub struct Poseidon2BabyBearGenerator<F: RichField + HasExtension<D>, const D: usize> {
+    num_ops: usize,
     row: usize,
     op: usize,
     _phantom: PhantomData<F>,
@@ -542,7 +543,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         )));
         debug_assert!(swap_value == F::zero() || swap_value == F::one());
 
-        let gate = Poseidon2BabyBearGate::<F, D>::new();
+        let gate = Poseidon2BabyBearGate::<F, D>::new_with_num_ops(self.num_ops);
         for i in 0..SPONGE_CAPACITY {
             let delta_i = swap_value * (state[i + SPONGE_CAPACITY] - state[i]);
             out_buffer.set_wire(local_wire(gate.wire_delta(self.op, i)), delta_i);
@@ -620,9 +621,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         src: &mut Buffer,
         _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
+        let num_ops = src.read_usize()?;
         let row = src.read_usize()?;
         let op = src.read_usize()?;
         Ok(Self {
+            num_ops,
             row,
             op,
             _phantom: PhantomData,
@@ -888,9 +891,9 @@ mod tests {
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config_bb_wide();
-        let mut builder = CircuitBuilder::new(config);
+        let mut builder = CircuitBuilder::new(config.clone());
         type Gate = Poseidon2BabyBearGate<F, D>;
-        let gate = Gate::new();
+        let gate = Gate::new(&config);
         let (row, op) = builder.find_slot(gate, &[], &[]);
         let circuit = builder.build_prover::<C>();
 
@@ -932,7 +935,8 @@ mod tests {
     #[test]
     fn low_degree() {
         type F = BabyBear;
-        let gate = Poseidon2BabyBearGate::<F, 4>::new();
+        let gate =
+            Poseidon2BabyBearGate::<F, 4>::new(&CircuitConfig::standard_recursion_config_bb_wide());
         test_low_degree::<F, Poseidon2BabyBearGate<F, 4>, 4, 8>(gate)
     }
 
@@ -942,7 +946,8 @@ mod tests {
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let gate = Poseidon2BabyBearGate::<F, D>::new();
+        let gate =
+            Poseidon2BabyBearGate::<F, D>::new(&CircuitConfig::standard_recursion_config_bb_wide());
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 

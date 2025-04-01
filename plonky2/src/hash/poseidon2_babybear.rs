@@ -189,7 +189,8 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
         F: RichField + HasExtension<D>,
         <F as HasExtension<D>>::Extension: TwoAdicField,
     {
-        let gate_type: Poseidon2BabyBearGate<F, D> = Poseidon2BabyBearGate::<F, D>::new();
+        let gate_type: Poseidon2BabyBearGate<F, D> =
+            Poseidon2BabyBearGate::<F, D>::new(&builder.config);
         let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);
 
         let swap_wire = Poseidon2BabyBearGate::<F, D>::wire_swap(op);
