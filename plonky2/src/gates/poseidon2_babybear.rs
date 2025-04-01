@@ -52,11 +52,7 @@ const NON_ROUTED_WIRES_PER_OP: usize =
     SPONGE_CAPACITY + SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1) + N_PARTIAL_ROUNDS;
 
 impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D> {
-    pub fn new() -> Self {
-        Self::new_from_config(&CircuitConfig::standard_recursion_config_bb_wide())
-    }
-
-    pub fn new_from_config(config: &CircuitConfig) -> Self {
+    pub fn new(config: &CircuitConfig) -> Self {
         if BabyBear::ORDER_U64 != F::ORDER_U64 {
             panic!("The Poseidon2 BabyBear gate can be used only for the BabyBear field!")
         }
