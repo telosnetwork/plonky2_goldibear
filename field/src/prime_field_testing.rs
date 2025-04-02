@@ -147,7 +147,7 @@ macro_rules! test_prime_field_arithmetic {
                 type F = $field;
 
                 let (a, b) = (
-                    F::from_canonical_u64((F::ORDER_U64 + 1u64) / 2u64),
+                    F::from_canonical_u64((F::ORDER_U64).div_ceil(2u64)),
                     F::two(),
                 );
                 let x = a * b;
