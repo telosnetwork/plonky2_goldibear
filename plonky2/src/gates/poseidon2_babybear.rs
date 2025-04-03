@@ -52,21 +52,23 @@ const NON_ROUTED_WIRES_PER_OP: usize =
     SPONGE_CAPACITY + SPONGE_WIDTH * (N_FULL_ROUNDS_TOTAL - 1) + N_PARTIAL_ROUNDS;
 
 impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D> {
-    pub fn new() -> Self {
-        Self::new_from_config(&CircuitConfig::standard_recursion_config_bb_wide())
-    }
-
-    pub fn new_from_config(config: &CircuitConfig) -> Self {
-        if BabyBear::ORDER_U64 != F::ORDER_U64 {
-            panic!("The Poseidon2 BabyBear gate can be used only for the BabyBear field!")
-        }
-        let wires_per_op = ROUTED_WIRES_PER_OP + NON_ROUTED_WIRES_PER_OP;
-        let num_ops =
-            (config.num_wires / wires_per_op).min(config.num_routed_wires / ROUTED_WIRES_PER_OP);
+    fn new_with_num_ops(num_ops: usize) -> Self {
         Self {
             num_ops,
             _phantom: PhantomData,
         }
+    }
+    fn num_ops(config: &CircuitConfig) -> usize {
+        let wires_per_op = ROUTED_WIRES_PER_OP + NON_ROUTED_WIRES_PER_OP;
+        (config.num_wires / wires_per_op).min(config.num_routed_wires / ROUTED_WIRES_PER_OP)
+    }
+
+    pub fn new(config: &CircuitConfig) -> Self {
+        if BabyBear::ORDER_U64 != F::ORDER_U64 {
+            panic!("The Poseidon2 BabyBear gate can be used only for the BabyBear field!")
+        }
+        let num_ops = Self::num_ops(config);
+        Self::new_with_num_ops(num_ops)
     }
     /***************** START ROUTED WIRES ***********************/
     /// The wire index for the `i`th input to the permutation.
@@ -85,59 +87,59 @@ impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2BabyBearGate<F, D>
         ROUTED_WIRES_PER_OP * op + 2 * SPONGE_WIDTH
     }
 
-    /************** *******************/
+    /************** START NON-ROUTED WIRES *******************/
 
-    const fn start_delta(&self, op: usize) -> usize {
-        self.num_ops * ROUTED_WIRES_PER_OP + op * NON_ROUTED_WIRES_PER_OP
+    const fn start_delta(num_ops: usize, op: usize) -> usize {
+        num_ops * ROUTED_WIRES_PER_OP + op * NON_ROUTED_WIRES_PER_OP
     }
 
     /// A wire which stores `swap * (input[i + SPONGE_CAPACITY] - input[i])`; used to compute the swapped inputs.
-    const fn wire_delta(&self, op: usize, i: usize) -> usize {
+    const fn wire_delta(num_ops: usize, op: usize, i: usize) -> usize {
         assert!(i < SPONGE_CAPACITY);
-        self.start_delta(op) + i
+        Self::start_delta(num_ops, op) + i
     }
 
-    const fn start_full_0(&self, op: usize) -> usize {
-        self.start_delta(op) + SPONGE_CAPACITY
+    const fn start_full_0(num_ops: usize, op: usize) -> usize {
+        Self::start_delta(num_ops, op) + SPONGE_CAPACITY
     }
 
     /// A wire which stores the input of the `i`-th S-box of the `round`-th round of the first set
     /// of full rounds.
-    const fn wire_full_sbox_0(&self, op: usize, round: usize, i: usize) -> usize {
+    const fn wire_full_sbox_0(num_ops: usize, op: usize, round: usize, i: usize) -> usize {
         debug_assert!(
             round != 0,
             "First round S-box inputs are not stored as wires"
         );
         debug_assert!(round < HALF_N_FULL_ROUNDS);
         debug_assert!(i < SPONGE_WIDTH);
-        self.start_full_0(op) + SPONGE_WIDTH * (round - 1) + i
+        Self::start_full_0(num_ops, op) + SPONGE_WIDTH * (round - 1) + i
     }
 
-    const fn start_partial(&self, op: usize) -> usize {
-        self.start_full_0(op) + SPONGE_WIDTH * (HALF_N_FULL_ROUNDS - 1)
+    const fn start_partial(num_ops: usize, op: usize) -> usize {
+        Self::start_full_0(num_ops, op) + SPONGE_WIDTH * (HALF_N_FULL_ROUNDS - 1)
     }
 
     /// A wire which stores the input of the S-box of the `round`-th round of the partial rounds.
-    const fn wire_partial_sbox(&self, op: usize, round: usize) -> usize {
+    const fn wire_partial_sbox(num_ops: usize, op: usize, round: usize) -> usize {
         debug_assert!(round < N_PARTIAL_ROUNDS);
-        self.start_partial(op) + round
+        Self::start_partial(num_ops, op) + round
     }
 
-    const fn start_full_1(&self, op: usize) -> usize {
-        self.start_partial(op) + N_PARTIAL_ROUNDS
+    const fn start_full_1(num_ops: usize, op: usize) -> usize {
+        Self::start_partial(num_ops, op) + N_PARTIAL_ROUNDS
     }
 
     /// A wire which stores the input of the `i`-th S-box of the `round`-th round of the second set
     /// of full rounds.
-    const fn wire_full_sbox_1(&self, op: usize, round: usize, i: usize) -> usize {
+    const fn wire_full_sbox_1(num_ops: usize, op: usize, round: usize, i: usize) -> usize {
         debug_assert!(round < HALF_N_FULL_ROUNDS);
         debug_assert!(i < SPONGE_WIDTH);
-        self.start_full_1(op) + SPONGE_WIDTH * round + i
+        Self::start_full_1(num_ops, op) + SPONGE_WIDTH * round + i
     }
 
     /// End of wire indices, exclusive.
-    pub(crate) const fn end(&self, op: usize) -> usize {
-        self.start_full_1(op) + SPONGE_WIDTH * HALF_N_FULL_ROUNDS
+    pub(crate) const fn end(num_ops: usize, op: usize) -> usize {
+        Self::start_full_1(num_ops, op) + SPONGE_WIDTH * HALF_N_FULL_ROUNDS
     }
 }
 
@@ -160,7 +162,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         _src: &mut Buffer,
         _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
-        Ok(Poseidon2BabyBearGate::new())
+        Ok(Poseidon2BabyBearGate::new(&_common_data.config))
     }
 
     fn complete_wires(
@@ -212,14 +214,16 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for i in 0..SPONGE_CAPACITY {
                 let input_lhs = vars.local_wires[Self::wire_input(op, i)];
                 let input_rhs = vars.local_wires[Self::wire_input(op, i + SPONGE_CAPACITY)];
-                let delta_i = vars.local_wires[self.wire_delta(op, i)];
+                let delta_i = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_delta(self.num_ops, op, i)];
                 constraints.push(swap * (input_rhs - input_lhs) - delta_i);
             }
 
             // Compute the possibly-swapped input layer.
             let mut state = [<F as HasExtension<D>>::Extension::one(); SPONGE_WIDTH];
             for i in 0..SPONGE_CAPACITY {
-                let delta_i = vars.local_wires[self.wire_delta(op, i)];
+                let delta_i = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_delta(self.num_ops, op, i)];
                 let input_lhs = Self::wire_input(op, i);
                 let input_rhs = Self::wire_input(op, i + SPONGE_CAPACITY);
                 state[i] = vars.local_wires[input_lhs] + delta_i;
@@ -240,7 +244,13 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 add_rc(&mut state, r);
                 if r > 0 {
                     for i in 0..SPONGE_WIDTH {
-                        let sbox_in = vars.local_wires[self.wire_full_sbox_0(op, r, i)];
+                        let sbox_in = vars.local_wires
+                            [Poseidon2BabyBearGate::<F, D>::wire_full_sbox_0(
+                                self.num_ops,
+                                op,
+                                r,
+                                i,
+                            )];
                         constraints.push(state[i] - sbox_in);
                         state[i] = sbox_in;
                     }
@@ -257,7 +267,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             // }
             for r in 0..N_PARTIAL_ROUNDS {
                 state[0] += F::Extension::from_canonical_u32(INTERNAL_CONSTANTS[r]);
-                let sbox_in = vars.local_wires[self.wire_partial_sbox(op, r)];
+                let sbox_in = vars.local_wires[Self::wire_partial_sbox(self.num_ops, op, r)];
                 constraints.push(state[0] - sbox_in);
                 state[0] = sbox_in.exp_const_u64::<SBOX_EXP>();
                 permute_internal_mut(&mut state);
@@ -273,8 +283,12 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
                 add_rc(&mut state, r);
                 for i in 0..SPONGE_WIDTH {
-                    let sbox_in =
-                        vars.local_wires[self.wire_full_sbox_1(op, r - HALF_N_FULL_ROUNDS, i)];
+                    let sbox_in = vars.local_wires[Poseidon2BabyBearGate::<F, D>::wire_full_sbox_1(
+                        self.num_ops,
+                        op,
+                        r - HALF_N_FULL_ROUNDS,
+                        i,
+                    )];
                     constraints.push(state[i] - sbox_in);
                     state[i] = sbox_in;
                 }
@@ -304,14 +318,16 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for i in 0..SPONGE_CAPACITY {
                 let input_lhs = vars.local_wires[Self::wire_input(op, i)];
                 let input_rhs = vars.local_wires[Self::wire_input(op, i + SPONGE_CAPACITY)];
-                let delta_i = vars.local_wires[self.wire_delta(op, i)];
+                let delta_i = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_delta(self.num_ops, op, i)];
                 yield_constr.one(swap * (input_rhs - input_lhs) - delta_i);
             }
 
             // Compute the possibly-swapped input layer.
             let mut state = [F::one(); SPONGE_WIDTH];
             for i in 0..SPONGE_CAPACITY {
-                let delta_i = vars.local_wires[self.wire_delta(op, i)];
+                let delta_i = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_delta(self.num_ops, op, i)];
                 let input_lhs = Self::wire_input(op, i);
                 let input_rhs = Self::wire_input(op, i + SPONGE_CAPACITY);
                 state[i] = vars.local_wires[input_lhs] + delta_i;
@@ -332,7 +348,13 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 add_rc(&mut state, r);
                 if r > 0 {
                     for i in 0..SPONGE_WIDTH {
-                        let sbox_in = vars.local_wires[self.wire_full_sbox_0(op, r, i)];
+                        let sbox_in = vars.local_wires
+                            [Poseidon2BabyBearGate::<F, D>::wire_full_sbox_0(
+                                self.num_ops,
+                                op,
+                                r,
+                                i,
+                            )];
                         yield_constr.one(state[i] - sbox_in);
                         state[i] = sbox_in;
                     }
@@ -343,7 +365,8 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
             for r in 0..N_PARTIAL_ROUNDS {
                 state[0] += F::from_canonical_u32(INTERNAL_CONSTANTS[r]);
-                let sbox_in = vars.local_wires[self.wire_partial_sbox(op, r)];
+                let sbox_in = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_partial_sbox(self.num_ops, op, r)];
                 yield_constr.one(state[0] - sbox_in);
                 state[0] = sbox_in.exp_const_u64::<SBOX_EXP>();
                 permute_internal_mut(&mut state);
@@ -354,8 +377,12 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
                 add_rc(&mut state, r);
                 for i in 0..SPONGE_WIDTH {
-                    let sbox_in =
-                        vars.local_wires[self.wire_full_sbox_1(op, r - HALF_N_FULL_ROUNDS, i)];
+                    let sbox_in = vars.local_wires[Poseidon2BabyBearGate::<F, D>::wire_full_sbox_1(
+                        self.num_ops,
+                        op,
+                        r - HALF_N_FULL_ROUNDS,
+                        i,
+                    )];
                     yield_constr.one(state[i] - sbox_in);
                     state[i] = sbox_in;
                 }
@@ -386,7 +413,8 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for i in 0..SPONGE_CAPACITY {
                 let input_lhs = vars.local_wires[Self::wire_input(op, i)];
                 let input_rhs = vars.local_wires[Self::wire_input(op, i + SPONGE_CAPACITY)];
-                let delta_i = vars.local_wires[self.wire_delta(op, i)];
+                let delta_i = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_delta(self.num_ops, op, i)];
                 let diff = builder.sub_extension(input_rhs, input_lhs);
                 constraints.push(builder.mul_sub_extension(swap, diff, delta_i));
             }
@@ -395,7 +423,8 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             let one = builder.one_extension();
             let mut state = [one; SPONGE_WIDTH];
             for i in 0..SPONGE_CAPACITY {
-                let delta_i = vars.local_wires[self.wire_delta(op, i)];
+                let delta_i = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_delta(self.num_ops, op, i)];
                 let input_lhs = Self::wire_input(op, i);
                 let input_rhs = Self::wire_input(op, i + SPONGE_CAPACITY);
                 state[i] = builder.add_extension(vars.local_wires[input_lhs], delta_i);
@@ -418,7 +447,13 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
                 add_rc_circuit(builder, &mut state, r);
                 if r > 0 {
                     for i in 0..SPONGE_WIDTH {
-                        let sbox_in = vars.local_wires[self.wire_full_sbox_0(op, r, i)];
+                        let sbox_in = vars.local_wires
+                            [Poseidon2BabyBearGate::<F, D>::wire_full_sbox_0(
+                                self.num_ops,
+                                op,
+                                r,
+                                i,
+                            )];
                         constraints.push(builder.sub_extension(state[i], sbox_in));
                         state[i] = sbox_in;
                     }
@@ -431,7 +466,8 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for r in 0..N_PARTIAL_ROUNDS {
                 state[0] = builder
                     .add_const_extension(state[0], F::from_canonical_u32(INTERNAL_CONSTANTS[r]));
-                let sbox_in = vars.local_wires[self.wire_partial_sbox(op, r)];
+                let sbox_in = vars.local_wires
+                    [Poseidon2BabyBearGate::<F, D>::wire_partial_sbox(self.num_ops, op, r)];
                 constraints.push(builder.sub_extension(state[0], sbox_in));
                 state[0] = sbox_circuit(builder, sbox_in);
                 permute_internal_mut_circuit(builder, &mut state);
@@ -442,8 +478,12 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             for r in HALF_N_FULL_ROUNDS..N_FULL_ROUNDS_TOTAL {
                 add_rc_circuit(builder, &mut state, r);
                 for i in 0..SPONGE_WIDTH {
-                    let sbox_in =
-                        vars.local_wires[self.wire_full_sbox_1(op, r - HALF_N_FULL_ROUNDS, i)];
+                    let sbox_in = vars.local_wires[Poseidon2BabyBearGate::<F, D>::wire_full_sbox_1(
+                        self.num_ops,
+                        op,
+                        r - HALF_N_FULL_ROUNDS,
+                        i,
+                    )];
                     constraints.push(builder.sub_extension(state[i], sbox_in));
                     state[i] = sbox_in;
                 }
@@ -470,6 +510,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             .map(|op| {
                 WitnessGeneratorRef::new(
                     Poseidon2BabyBearGenerator::<F, D> {
+                        num_ops: self.num_ops,
                         row,
                         op,
                         _phantom: PhantomData,
@@ -481,7 +522,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     }
 
     fn num_wires(&self) -> usize {
-        self.end(self.num_ops - 1)
+        Poseidon2BabyBearGate::<F, D>::end(self.num_ops, self.num_ops - 1)
     }
 
     fn num_constants(&self) -> usize {
@@ -504,6 +545,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
 #[derive(Debug, Default)]
 pub struct Poseidon2BabyBearGenerator<F: RichField + HasExtension<D>, const D: usize> {
+    num_ops: usize,
     row: usize,
     op: usize,
     _phantom: PhantomData<F>,
@@ -542,10 +584,16 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         )));
         debug_assert!(swap_value == F::zero() || swap_value == F::one());
 
-        let gate = Poseidon2BabyBearGate::<F, D>::new();
         for i in 0..SPONGE_CAPACITY {
             let delta_i = swap_value * (state[i + SPONGE_CAPACITY] - state[i]);
-            out_buffer.set_wire(local_wire(gate.wire_delta(self.op, i)), delta_i);
+            out_buffer.set_wire(
+                local_wire(Poseidon2BabyBearGate::<F, D>::wire_delta(
+                    self.num_ops,
+                    self.op,
+                    i,
+                )),
+                delta_i,
+            );
         }
 
         if swap_value == F::one() {
@@ -564,7 +612,15 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
             if r != 0 {
                 for i in 0..SPONGE_WIDTH {
-                    out_buffer.set_wire(local_wire(gate.wire_full_sbox_0(self.op, r, i)), state[i]);
+                    out_buffer.set_wire(
+                        local_wire(Poseidon2BabyBearGate::<F, D>::wire_full_sbox_0(
+                            self.num_ops,
+                            self.op,
+                            r,
+                            i,
+                        )),
+                        state[i],
+                    );
                 }
             }
             (0..SPONGE_WIDTH).for_each(|i| state[i] = state[i].exp_const_u64::<SBOX_EXP>());
@@ -578,7 +634,14 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             round_ctr += 1;
             state[0] += F::from_canonical_u32(INTERNAL_CONSTANTS[r]);
 
-            out_buffer.set_wire(local_wire(gate.wire_partial_sbox(self.op, r)), state[0]);
+            out_buffer.set_wire(
+                local_wire(Poseidon2BabyBearGate::<F, D>::wire_partial_sbox(
+                    self.num_ops,
+                    self.op,
+                    r,
+                )),
+                state[0],
+            );
             state[0] = state[0].exp_const_u64::<SBOX_EXP>();
             permute_internal_mut(&mut state);
         }
@@ -588,7 +651,12 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
             for i in 0..SPONGE_WIDTH {
                 out_buffer.set_wire(
-                    local_wire(gate.wire_full_sbox_1(self.op, r - HALF_N_FULL_ROUNDS, i)),
+                    local_wire(Poseidon2BabyBearGate::<F, D>::wire_full_sbox_1(
+                        self.num_ops,
+                        self.op,
+                        r - HALF_N_FULL_ROUNDS,
+                        i,
+                    )),
                     state[i],
                 )
             }
@@ -620,9 +688,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         src: &mut Buffer,
         _common_data: &CommonCircuitData<F, D, NUM_HASH_OUT_ELTS>,
     ) -> IoResult<Self> {
+        let num_ops = Poseidon2BabyBearGate::<F, D>::num_ops(&_common_data.config);
         let row = src.read_usize()?;
         let op = src.read_usize()?;
         Ok(Self {
+            num_ops,
             row,
             op,
             _phantom: PhantomData,
@@ -888,9 +958,9 @@ mod tests {
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
         let config = CircuitConfig::standard_recursion_config_bb_wide();
-        let mut builder = CircuitBuilder::new(config);
+        let mut builder = CircuitBuilder::new(config.clone());
         type Gate = Poseidon2BabyBearGate<F, D>;
-        let gate = Gate::new();
+        let gate = Gate::new(&config);
         let (row, op) = builder.find_slot(gate, &[], &[]);
         let circuit = builder.build_prover::<C>();
 
@@ -932,7 +1002,8 @@ mod tests {
     #[test]
     fn low_degree() {
         type F = BabyBear;
-        let gate = Poseidon2BabyBearGate::<F, 4>::new();
+        let gate =
+            Poseidon2BabyBearGate::<F, 4>::new(&CircuitConfig::standard_recursion_config_bb_wide());
         test_low_degree::<F, Poseidon2BabyBearGate<F, 4>, 4, 8>(gate)
     }
 
@@ -942,7 +1013,8 @@ mod tests {
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let gate = Poseidon2BabyBearGate::<F, D>::new();
+        let gate =
+            Poseidon2BabyBearGate::<F, D>::new(&CircuitConfig::standard_recursion_config_bb_wide());
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 

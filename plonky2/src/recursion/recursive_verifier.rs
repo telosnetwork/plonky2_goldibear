@@ -677,7 +677,7 @@ where {
                 builder.add_gate_to_gate_set(GateRef::new(PoseidonGate::new()))
             }
             BabyBear::ORDER_U64 => {
-                builder.add_gate_to_gate_set(GateRef::new(Poseidon2BabyBearGate::new()))
+                builder.add_gate_to_gate_set(GateRef::new(Poseidon2BabyBearGate::new(config)))
             }
             _ => panic!(),
         };
