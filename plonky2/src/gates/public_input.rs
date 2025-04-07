@@ -1,5 +1,5 @@
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec};
+use alloc::{format, string::String, vec::Vec};
 use core::ops::Range;
 
 use p3_field::{AbstractExtensionField, PackedField};
@@ -21,19 +21,19 @@ use crate::util::serialization::{Buffer, IoResult};
 
 /// A gate whose first four wires will be equal to a hash of public inputs.
 #[derive(Debug)]
-pub struct PublicInputGate;
+pub struct PublicInputGate<const NUM_HASH_OUT_ELTS: usize>;
 
-impl PublicInputGate {
+impl<const NUM_HASH_OUT_ELTS: usize> PublicInputGate<NUM_HASH_OUT_ELTS> {
     pub(crate) const fn wires_public_inputs_hash() -> Range<usize> {
-        0..4
+        0..NUM_HASH_OUT_ELTS
     }
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    Gate<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate
+    Gate<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate<NUM_HASH_OUT_ELTS>
 {
     fn id(&self) -> String {
-        "PublicInputGate".into()
+        format!("PublicInputGate<{}>", NUM_HASH_OUT_ELTS)
     }
 
     fn serialize(
@@ -96,7 +96,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     }
 
     fn num_wires(&self) -> usize {
-        4
+        NUM_HASH_OUT_ELTS
     }
 
     fn num_constants(&self) -> usize {
@@ -108,12 +108,12 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     }
 
     fn num_constraints(&self) -> usize {
-        4
+        NUM_HASH_OUT_ELTS
     }
 }
 
 impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: usize>
-    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate
+    PackedEvaluableBase<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate<NUM_HASH_OUT_ELTS>
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -130,23 +130,23 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
 #[cfg(test)]
 mod tests {
-    use p3_goldilocks::Goldilocks;
+    use p3_baby_bear::BabyBear;
 
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::public_input::PublicInputGate;
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
-    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
+    use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2, 4>(PublicInputGate)
+        test_low_degree::<BabyBear, _, 4, 8>(PublicInputGate)
     }
 
     #[test]
     fn eval_fns() -> anyhow::Result<()> {
-        const D: usize = 2;
-        type C = PoseidonGoldilocksConfig;
-        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        const D: usize = 4;
+        type C = Poseidon2BabyBearConfig;
+        const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(PublicInputGate)
     }

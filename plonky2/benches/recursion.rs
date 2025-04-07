@@ -93,6 +93,8 @@ where
         &input_proof_verifier_data_target,
         input_proof_common_circuit_data,
     );
+    let zero = builder.zero();
+    builder.register_public_input(zero);
     builder.print_gate_counts(0);
 
     let circuit_data = builder.build::<C>();
