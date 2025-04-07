@@ -1063,7 +1063,9 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     /// division by zero, the next attempt will have an (almost) independent chance of success.
     /// See <https://github.com/0xPolygonZero/plonky2/issues/456>.
     fn randomize_unused_pi_wires(&mut self, pi_gate: usize) {
-        for wire in PublicInputGate::wires_public_inputs_hash().end..self.config.num_wires {
+        for wire in PublicInputGate::<NUM_HASH_OUT_ELTS>::wires_public_inputs_hash().end
+            ..self.config.num_wires
+        {
             let wire_obj = wire::Wire {
                 row: pi_gate,
                 column: wire,
@@ -1113,7 +1115,6 @@ where {
         commit_to_sigma: bool,
     ) -> (CircuitData<F, C, D, NUM_HASH_OUT_ELTS>, bool)
 where {
-        self.complete_gates_wires();
         let mut timing = ProvingProcessInfo::new("preprocess", Level::Trace);
 
         #[cfg(feature = "std")]
@@ -1128,14 +1129,15 @@ where {
         let num_public_inputs = self.public_inputs.len();
         let public_inputs_hash =
             self.hash_n_to_hash_no_pad::<C::InnerHasher>(self.public_inputs.clone());
-        let pi_gate = self.add_gate(PublicInputGate, vec![]);
+        let pi_gate = self.add_gate(PublicInputGate::<NUM_HASH_OUT_ELTS>, vec![]);
         for (&hash_part, wire) in public_inputs_hash
             .elements
             .iter()
-            .zip(PublicInputGate::wires_public_inputs_hash())
+            .zip(PublicInputGate::<NUM_HASH_OUT_ELTS>::wires_public_inputs_hash())
         {
             self.connect(hash_part, Target::wire(pi_gate, wire))
         }
+        self.complete_gates_wires();
         self.randomize_unused_pi_wires(pi_gate);
 
         // Place LUT-related gates.

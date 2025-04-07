@@ -152,7 +152,7 @@ pub mod default {
             NoopGate,
             PoseidonMdsGate<F, D>,
             PoseidonGate<F, D>,
-            PublicInputGate,
+            PublicInputGate<NUM_HASH_OUT_ELTS>,
             RandomAccessGate<F, D>,
             ReducingExtensionGate<D>,
             ReducingGate<D>,

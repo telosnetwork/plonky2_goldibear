@@ -422,10 +422,10 @@ mod tests {
         assert_eq!(
             vd.circuit_digest.elements,
             [
-                8432421367864141243,
-                14664604448411724612,
-                5886388820728283451,
-                6226320497402393979
+                40392719057770864,
+                9247014007799316719,
+                17436525775388713746,
+                10078131498506678571
             ]
             .map(F::from_canonical_u64)
         );
@@ -443,10 +443,10 @@ mod tests {
         assert_eq!(
             vd.circuit_digest.elements,
             [
-                14839025416225437588,
-                13588008562724358006,
-                4147565255902737239,
-                7805652275147400996
+                13853083556319302030,
+                7032558940778999676,
+                15988113482817466578,
+                3553937068079282312
             ]
             .map(F::from_canonical_u64)
         );
@@ -681,6 +681,8 @@ where {
             }
             _ => panic!(),
         };
+        let zeroes = [builder.zero(); NUM_HASH_OUT_ELTS];
+        builder.register_public_inputs(&zeroes);
         let data = builder.build::<C>();
         let inputs = PartialWitness::new();
         let proof = data.prove(inputs)?;
