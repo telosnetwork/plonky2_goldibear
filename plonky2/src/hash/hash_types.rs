@@ -85,7 +85,11 @@ impl RichField for BabyBear {
         bytes
             .chunks(4)
             .take(Self::NUM_HASH_OUT_ELTS)
-            .map(|x| BabyBear::from_canonical_u32(u32::from_le_bytes(x.try_into().unwrap())))
+            .map(|x| {
+                BabyBear::from_canonical_u32(
+                    u32::from_le_bytes(x.try_into().unwrap()) % Self::ORDER_U32,
+                )
+            })
             .collect::<Vec<_>>()
     }
 
