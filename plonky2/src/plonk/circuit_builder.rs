@@ -934,8 +934,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     fn blind(&mut self) {
         let (regular_poly_openings, z_openings) = self.blinding_counts();
         info!(
-            "Adding {} blinding terms for witness polynomials, and {}*2 for Z polynomials",
-            regular_poly_openings, z_openings
+            "Adding {regular_poly_openings} blinding terms for witness polynomials, and {z_openings}*2 for Z polynomials"
         );
 
         let num_routed_wires = self.config.num_routed_wires;
@@ -1178,7 +1177,7 @@ where {
         );
         self.blind_and_pad();
         let degree = self.gate_instances.len();
-        debug!("Degree after blinding & padding: {}", degree);
+        debug!("Degree after blinding & padding: {degree}");
         let degree_bits = log2_strict(degree);
         let fri_params = self.fri_params(degree_bits);
         assert!(

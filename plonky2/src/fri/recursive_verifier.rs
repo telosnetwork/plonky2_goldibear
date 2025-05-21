@@ -85,16 +85,12 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 
         assert!(
             self.config.num_wires >= min_wires,
-            "To efficiently perform FRI checks with an arity of 2^{}, at least {} wires are needed. Consider reducing arity.",
-            max_fri_arity_bits,
-            min_wires
+            "To efficiently perform FRI checks with an arity of 2^{max_fri_arity_bits}, at least {min_wires} wires are needed. Consider reducing arity."
         );
 
         assert!(
             self.config.num_routed_wires >= min_routed_wires,
-            "To efficiently perform FRI checks with an arity of 2^{}, at least {} routed wires are needed. Consider reducing arity.",
-            max_fri_arity_bits,
-            min_routed_wires
+            "To efficiently perform FRI checks with an arity of 2^{max_fri_arity_bits}, at least {min_routed_wires} routed wires are needed. Consider reducing arity."
         );
     }
 

@@ -33,7 +33,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
     Gate<F, D, NUM_HASH_OUT_ELTS> for PublicInputGate<NUM_HASH_OUT_ELTS>
 {
     fn id(&self) -> String {
-        format!("PublicInputGate<{}>", NUM_HASH_OUT_ELTS)
+        format!("PublicInputGate<{NUM_HASH_OUT_ELTS}>")
     }
 
     fn serialize(

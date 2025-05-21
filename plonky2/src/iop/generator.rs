@@ -99,8 +99,7 @@ where
 
     assert_eq!(
         remaining_generators, 0,
-        "{} generators weren't run",
-        remaining_generators,
+        "{remaining_generators} generators weren't run"
     );
 
     witness

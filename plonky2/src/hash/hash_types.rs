@@ -85,7 +85,11 @@ impl RichField for BabyBear {
         bytes
             .chunks(4)
             .take(Self::NUM_HASH_OUT_ELTS)
-            .map(|x| BabyBear::from_canonical_u32(u32::from_le_bytes(x.try_into().unwrap())))
+            .map(|x| {
+                BabyBear::from_canonical_u32(
+                    u32::from_le_bytes(x.try_into().unwrap()) % Self::ORDER_U32,
+                )
+            })
             .collect::<Vec<_>>()
     }
 
@@ -324,7 +328,7 @@ mod generic_arrays {
         type Value = [T; N];
 
         fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-            formatter.write_str(&format!("an array of length {}", N))
+            formatter.write_str(&format!("an array of length {N}"))
         }
 
         #[inline]

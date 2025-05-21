@@ -77,8 +77,7 @@ fn min_size_arity_bits(
         start.elapsed().as_secs_f32()
     );
     debug!(
-        "Smallest arity_bits {:?} results in estimated FRI proof size of {} elements",
-        arity_bits, fri_proof_size
+        "Smallest arity_bits {arity_bits:?} results in estimated FRI proof size of {fri_proof_size} elements"
     );
 
     arity_bits

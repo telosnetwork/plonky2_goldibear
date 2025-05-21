@@ -823,8 +823,7 @@ where {
         );
         assert!(
             proof.public_inputs[5] == F::from_canonical_u16(final_out),
-            "Output of the second LUT at index {} is incorrect.",
-            s
+            "Output of the second LUT at index {s} is incorrect."
         );
 
         Ok((proof, data.verifier_only, data.common))
