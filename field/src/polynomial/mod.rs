@@ -548,11 +548,7 @@ mod tests {
         assert_eq!(
             m,
             PolynomialCoeffs::new(vec![F::one()]),
-            "a: {:#?}, b:{:#?}, n:{:#?}, m:{:#?}",
-            a,
-            b,
-            n,
-            m
+            "a: {a:#?}, b:{b:#?}, n:{n:#?}, m:{m:#?}"
         );
     }
 

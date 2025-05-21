@@ -403,9 +403,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         let access_index = access_index_f.as_canonical_u64() as usize;
         debug_assert!(
             access_index < vec_size,
-            "Access index {} is larger than the vector size {}",
-            access_index,
-            vec_size
+            "Access index {access_index} is larger than the vector size {vec_size}",
         );
 
         set_local_wire(

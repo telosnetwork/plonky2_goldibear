@@ -98,7 +98,7 @@ where
         2 => 1,
         n => (1 << (n - 1)) + 1,
     };
-    info!("Constructing inner proof with {} gates", num_dummy_gates);
+    info!("Constructing inner proof with {num_dummy_gates} gates");
     let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config.clone());
     for _ in 0..num_dummy_gates {
         builder.add_gate(NoopGate, vec![]);

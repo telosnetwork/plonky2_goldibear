@@ -84,8 +84,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         for lut_index in 0..self.num_luts() {
             assert!(
                 !self.get_lut_lookups(lut_index).is_empty(),
-                "LUT number {:?} is unused",
-                lut_index
+                "LUT number {lut_index:?} is unused"
             );
             if !self.get_lut_lookups(lut_index).is_empty() {
                 // Create LU gates. Connect them to the stored lookups.

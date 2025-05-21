@@ -9,7 +9,9 @@ use core::fmt::Debug;
 
 use p3_field::{AbstractField, ExtensionField, Field, TwoAdicField};
 use plonky2_field::types::HasExtension;
-use plonky2_util::{assume, branch_hint};
+#[cfg(target_arch = "x86_64")]
+use plonky2_util::assume;
+use plonky2_util::branch_hint;
 use unroll::unroll_for_loops;
 
 use super::hash_types::HashOut;

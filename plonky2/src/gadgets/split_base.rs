@@ -41,8 +41,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         let num_bits = bits.len();
         assert!(
             num_bits <= log_floor(F::ORDER_U64, 2),
-            "{} bits may overflow the field",
-            num_bits
+            "{num_bits} bits may overflow the field"
         );
         if num_bits == 0 {
             return self.zero();
