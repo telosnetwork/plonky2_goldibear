@@ -5,11 +5,15 @@ version = "0.3.7"
 [dependencies]
 p3-field = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-field", branch = "goldilocks_improvements" }
 p3-goldilocks = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-goldilocks", branch = "goldilocks_improvements", features = [
-    "nightly-features",
+  "nightly-features",
 ] }
-p3-field-testing = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-field-testing", branch = "goldilocks_improvements"}
-p3-dft = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-dft", branch = "goldilocks_improvements"}
-p3-monty-31 = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-monty-31", branch = "goldilocks_improvements", features = ["nightly-features"]}
-p3-baby-bear = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-baby-bear", branch = "goldilocks_improvements", features = ["nightly-features"]}
-p3-symmetric = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-symmetric", branch = "goldilocks_improvements"}
-p3-poseidon2 = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-poseidon2", branch = "goldilocks_improvements"}
+p3-field-testing = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-field-testing", branch = "goldilocks_improvements" }
+p3-dft = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-dft", branch = "goldilocks_improvements" }
+p3-monty-31 = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-monty-31", branch = "goldilocks_improvements", features = [
+  "nightly-features",
+] }
+p3-baby-bear = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-baby-bear", branch = "goldilocks_improvements", features = [
+  "nightly-features",
+] }
+p3-symmetric = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-symmetric", branch = "goldilocks_improvements" }
+p3-poseidon2 = { git = "https://github.com/telosnetwork/Plonky3.git", package = "p3-poseidon2", branch = "goldilocks_improvements" }
