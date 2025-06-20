@@ -275,6 +275,7 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             x_index,
             n_log,
             Self::are_noncanonical_indices_ok(&params.config),
+            F::bits(),
         );
 
         let cap_index =
