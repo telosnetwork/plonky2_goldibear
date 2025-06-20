@@ -189,7 +189,7 @@ impl<
         const NUM_HASH_OUT_ELTS: usize,
     > MockCircuitData<F, C, D, NUM_HASH_OUT_ELTS>
 {
-    pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<F> {
+    pub fn generate_witness(&self, inputs: PartialWitness<F>) -> PartitionWitness<'_, F> {
         generate_partial_witness::<F, C, D, NUM_HASH_OUT_ELTS>(
             inputs,
             &self.prover_only,
