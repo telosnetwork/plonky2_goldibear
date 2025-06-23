@@ -30,8 +30,10 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
         x: Target,
         num_low_bits: usize,
         are_noncanonical_indices_ok: bool,
+        num_bits: usize,
     ) -> Vec<BoolTarget> {
-        let mut res = self.split_le(x, F::EXP0);
+        assert!(num_bits <= F::EXP0);
+        let mut res = self.split_le(x, num_bits);
         if !are_noncanonical_indices_ok {
             let one = self.one();
             let (lo_bits, hi_bits) = res.split_at(F::EXP1);
