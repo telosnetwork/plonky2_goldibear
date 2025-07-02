@@ -365,3 +365,16 @@ mod generic_arrays {
         deserializer.deserialize_tuple(N, ArrayVisitor::<T, N>(PhantomData))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::hash::hash_types::{BabyBear, BytesHash};
+    use crate::plonk::config::GenericHashOut;
+
+    #[test]
+    fn test_non_canonical_vec_babybear() {
+        let bytes = u32::MAX.to_le_bytes();
+        let bh = BytesHash(bytes);
+        <BytesHash<4> as GenericHashOut<BabyBear>>::to_vec(&bh);
+    }
+}
