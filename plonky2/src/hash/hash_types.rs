@@ -269,9 +269,16 @@ impl<F: RichField, const N: usize> GenericHashOut<F> for BytesHash<N> {
     }
 
     fn to_vec(&self) -> Vec<F> {
-        self.0
+        let chunk_size = match F::ORDER_U64 {
             // Chunks of 7 bytes since 8 bytes would allow collisions.
-            .chunks(7)
+            Goldilocks::ORDER_U64 => 7,
+            // Chunks of 3 bytes since 4 bytes would allow collisions.
+            BabyBear::ORDER_U64 => 3,
+            _ => panic!("Unsupported field"),
+        };
+
+        self.0
+            .chunks(chunk_size)
             .map(|bytes| {
                 let mut arr = [0; 8];
                 arr[..bytes.len()].copy_from_slice(bytes);
