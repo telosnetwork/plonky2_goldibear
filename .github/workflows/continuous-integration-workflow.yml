@@ -22,7 +22,7 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    if: "!contains(github.event.pull_request.title, '[SKIP CI]')"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -55,7 +55,7 @@ jobs:
     name: Check wasm32 compatibility
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    if: "!contains(github.event.pull_request.title, '[SKIP CI]')"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
     name: Test Suite in no-std
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    if: "!contains(github.event.pull_request.title, '[SKIP CI]')"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
     name: Formatting and Clippy
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    if: "!contains(github.event.pull_request.title, '[SKIP CI]')"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -132,7 +132,7 @@ jobs:
     name: Run tests in wasm32
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+    if: "!contains(github.event.pull_request.title, '[SKIP CI]')"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
