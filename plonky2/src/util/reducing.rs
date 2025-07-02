@@ -162,7 +162,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         let zero_ext = builder.zero_extension();
         let mut acc = zero_ext;
         let mut reversed_terms = terms.to_vec();
-        while reversed_terms.len() % max_coeffs_len != 0 {
+        while !reversed_terms.len().is_multiple_of(max_coeffs_len) {
             reversed_terms.push(zero);
         }
         reversed_terms.reverse();
@@ -212,7 +212,7 @@ impl<const D: usize> ReducingFactorTarget<D> {
         let zero_ext = builder.zero_extension();
         let mut acc = zero_ext;
         let mut reversed_terms = terms.to_vec();
-        while reversed_terms.len() % max_coeffs_len != 0 {
+        while !reversed_terms.len().is_multiple_of(max_coeffs_len) {
             reversed_terms.push(zero_ext);
         }
         reversed_terms.reverse();

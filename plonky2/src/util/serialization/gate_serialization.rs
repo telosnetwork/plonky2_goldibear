@@ -104,6 +104,7 @@ pub mod default {
     use plonky2_field::types::HasExtension;
 
     use crate::gates::add_many::AddManyGate;
+    use crate::gates::apply_mat4::ApplyMat4Gate;
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::arithmetic_extension::ArithmeticExtensionGate;
     use crate::gates::base_sum::BaseSumGate;
@@ -115,6 +116,7 @@ pub mod default {
     use crate::gates::multiplication_extension::MulExtensionGate;
     use crate::gates::noop::NoopGate;
     use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
+    use crate::gates::poseidon2_internal_permutation::Poseidon2InternalPermutationGate;
     use crate::gates::poseidon_goldilocks::PoseidonGate;
     use crate::gates::poseidon_goldilocks_mds::PoseidonMdsGate;
     use crate::gates::public_input::PublicInputGate;
@@ -157,7 +159,9 @@ pub mod default {
             ReducingExtensionGate<D>,
             ReducingGate<D>,
             Poseidon2BabyBearGate<F,D>,
-            AddManyGate
+            AddManyGate,
+            ApplyMat4Gate<F,D>,
+            Poseidon2InternalPermutationGate<F,D>
         }
     }
 }
