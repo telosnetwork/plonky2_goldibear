@@ -90,7 +90,13 @@ Jemalloc is known to cause crashes when a binary compiled for x86 is run on an A
 
 ## Contributing guidelines
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+Before pushing a change, please ensure that it passes all tests and adheres to the project's coding style by running:
+
+```sh
+make ci-check
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for additional information.
 
 ## Licenses
 
