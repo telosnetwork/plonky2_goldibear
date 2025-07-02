@@ -399,7 +399,8 @@ mod tests {
         let dummy_inner_data =
             builder.add_virtual_verifier_data(data.common.config.fri_config.cap_height);
         pw.set_verifier_data_target(&dummy_inner_data, &dummy_data.verifier_only);
-        let b = builder.constant_bool(<F as PrimeField64>::as_canonical_u64(&F::rand()) % 2 == 0);
+        let b = builder
+            .constant_bool(<F as PrimeField64>::as_canonical_u64(&F::rand()).is_multiple_of(2));
         builder.conditionally_verify_proof::<C>(
             b,
             &pt,
