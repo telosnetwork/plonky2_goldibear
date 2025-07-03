@@ -819,11 +819,11 @@ where
 mod tests {
     use anyhow::Result;
     use p3_baby_bear::BabyBear;
+    use plonky2_field::{BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS};
 
     use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::hash::poseidon2_risc0_babybear::Permuter31R0;
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
@@ -833,7 +833,7 @@ mod tests {
     #[test]
     fn wire_indices() {
         // type F = BabyBear;
-        // const D: usize = 4;
+        // const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         // type Gate = Poseidon2R0BabyBearGate<F, D>;
 
         // assert_eq!(Gate::wire_input(0), 0);
@@ -855,7 +855,7 @@ mod tests {
 
     #[test]
     fn generated_output() {
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -911,7 +911,7 @@ mod tests {
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -921,7 +921,7 @@ mod tests {
 
     #[test]
     fn test_permute_internal_circuit() {
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = BabyBear;
         type EF = <F as HasExtension<D>>::Extension;
@@ -945,7 +945,7 @@ mod tests {
 
     #[test]
     fn test_permute_external_circuit() {
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = BabyBear;
         type EF = <F as HasExtension<D>>::Extension;

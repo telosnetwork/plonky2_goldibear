@@ -292,22 +292,24 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 mod tests {
     use anyhow::Result;
     use p3_baby_bear::BabyBear;
+    use plonky2_field::{BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS};
 
     use crate::gates::arithmetic_base::ArithmeticGate;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, Poseidon2BabyBearConfig};
 
     #[test]
     fn low_degree() {
         let gate = ArithmeticGate::new_from_config(&CircuitConfig::standard_recursion_config_gl());
-        test_low_degree::<BabyBear, _, 4, 8>(gate);
+        test_low_degree::<BabyBear, _, BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS>(
+            gate,
+        );
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

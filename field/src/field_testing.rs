@@ -198,9 +198,11 @@ mod tests {
     mod goldilocks_ext {
         use crate::{test_field_arithmetic, test_field_extension};
 
-        test_field_extension!(p3_goldilocks::Goldilocks, 2);
+        test_field_extension!(p3_goldilocks::Goldilocks, {
+            crate::GOLDILOCKS_EXTENSION_FIELD_DEGREE
+        });
         test_field_arithmetic!(
-            p3_field::extension::BinomialExtensionField<p3_goldilocks::Goldilocks, 2>
+            p3_field::extension::BinomialExtensionField<p3_goldilocks::Goldilocks, {crate::GOLDILOCKS_EXTENSION_FIELD_DEGREE}>
         );
     }
 
@@ -213,9 +215,11 @@ mod tests {
     mod babybear_ext {
         use crate::{test_field_arithmetic, test_field_extension};
 
-        test_field_extension!(p3_baby_bear::BabyBear, 4);
+        test_field_extension!(p3_baby_bear::BabyBear, {
+            crate::BABYBEAR_EXTENSION_FIELD_DEGREE
+        });
         test_field_arithmetic!(
-            p3_field::extension::BinomialExtensionField<p3_baby_bear::BabyBear, 4>
+            p3_field::extension::BinomialExtensionField<p3_baby_bear::BabyBear, {crate::BABYBEAR_EXTENSION_FIELD_DEGREE}>
         );
     }
 }

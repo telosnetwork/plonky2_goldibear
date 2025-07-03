@@ -216,8 +216,8 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2BabyBearHash {
 #[cfg(test)]
 mod tests {
     use p3_baby_bear::BabyBear;
+    use plonky2_field::{BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS};
 
-    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::hash::poseidon2_babybear::Poseidon2BabyBearHash;
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::config::Hasher;
@@ -230,7 +230,7 @@ mod tests {
         use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
         use crate::plonk::config::Poseidon2BabyBearConfig;
         type F = BabyBear;
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type H = Poseidon2BabyBearHash;
         type C = Poseidon2BabyBearConfig;

@@ -287,10 +287,11 @@ mod tests {
         use p3_goldilocks::Goldilocks;
 
         use super::*;
+        use crate::GOLDILOCKS_EXTENSION_FIELD_DEGREE;
 
         #[test]
         fn test_algebra() {
-            test_extension_algebra::<Goldilocks, 2>();
+            test_extension_algebra::<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>();
         }
     }
 
@@ -298,10 +299,11 @@ mod tests {
         use p3_baby_bear::BabyBear;
 
         use super::*;
+        use crate::BABYBEAR_EXTENSION_FIELD_DEGREE;
 
         #[test]
         fn test_algebra() {
-            test_extension_algebra::<BabyBear, 4>();
+            test_extension_algebra::<BabyBear, BABYBEAR_EXTENSION_FIELD_DEGREE>();
         }
     }
 }

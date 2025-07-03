@@ -87,6 +87,7 @@ mod tests {
     use super::*;
     use crate::polynomial::PolynomialCoeffs;
     use crate::types::{two_adic_subgroup, Sample};
+    use crate::GOLDILOCKS_EXTENSION_FIELD_DEGREE;
 
     #[test]
     fn interpolant_random() {
@@ -138,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_interpolate2() {
-        type F = BinomialExtensionField<Goldilocks, 2>;
+        type F = BinomialExtensionField<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>;
         let points = [(F::rand(), F::rand()), (F::rand(), F::rand())];
         let x = F::rand();
 

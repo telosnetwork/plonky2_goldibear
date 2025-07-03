@@ -137,11 +137,11 @@ pub mod default {
     /// A generator serializer that can be used to serialize all default generators supported
     /// by the `plonky2` library. It can simply be called as
     /// ```rust
-    /// use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
+    /// use plonky2_field::{GOLDILOCKS_NUM_HASH_OUT_ELTS, GOLDILOCKS_EXTENSION_FIELD_DEGREE};
     /// use plonky2::util::serialization::DefaultGeneratorSerializer;
     /// use plonky2::plonk::config::PoseidonGoldilocksConfig;
     ///
-    /// const D: usize = 2;
+    /// const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
     /// const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     /// type C = PoseidonGoldilocksConfig;
     /// let generator_serializer = DefaultGeneratorSerializer::<C, D, NUM_HASH_OUT_ELTS>::default();

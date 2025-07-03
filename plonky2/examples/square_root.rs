@@ -5,7 +5,7 @@ use p3_field::{PrimeField64, TwoAdicField};
 use plonky2::gates::arithmetic_base::ArithmeticBaseGenerator;
 use plonky2::gates::poseidon_goldilocks::PoseidonGenerator;
 use plonky2::gates::poseidon_goldilocks_mds::PoseidonMdsGenerator;
-use plonky2::hash::hash_types::{RichField, GOLDILOCKS_NUM_HASH_OUT_ELTS};
+use plonky2::hash::hash_types::RichField;
 use plonky2::iop::generator::{
     ConstantGenerator, GeneratedValues, RandomValueGenerator, SimpleGenerator,
 };
@@ -20,6 +20,7 @@ use plonky2::util::serialization::{
 };
 use plonky2::{get_generator_tag_impl, impl_generator_serializer, read_generator_impl};
 use plonky2_field::types::{HasExtension, Sample};
+use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 
 /// A generator used by the prover to calculate the square root (`x`) of a given value
 /// (`x_squared`), outside of the circuit, in order to supply it as an additional public input.
@@ -105,7 +106,7 @@ where
 /// An example of using Plonky2 to prove a statement of the form
 /// "I know the square root of this field element."
 fn main() -> Result<()> {
-    const D: usize = 2;
+    const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
     const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

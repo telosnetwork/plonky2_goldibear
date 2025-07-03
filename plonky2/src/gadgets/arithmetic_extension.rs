@@ -614,9 +614,9 @@ mod tests {
     use anyhow::Result;
     use plonky2_field::extension_algebra::ExtensionAlgebra;
     use plonky2_field::types::HasExtension;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 
     use crate::field::types::Sample;
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::ext_target::ExtensionAlgebraTarget;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_builder::CircuitBuilder;
@@ -626,7 +626,7 @@ mod tests {
 
     #[test]
     fn test_mul_many() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -663,7 +663,7 @@ mod tests {
 
     #[test]
     fn test_div_extension() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -691,7 +691,7 @@ mod tests {
 
     #[test]
     fn test_mul_algebra() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = KeccakGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

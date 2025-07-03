@@ -282,20 +282,25 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
     use crate::gates::reducing::ReducingGate;
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2, 4>(ReducingGate::new(22));
+        test_low_degree::<
+            Goldilocks,
+            _,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        >(ReducingGate::new(22));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

@@ -219,6 +219,10 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::{AbstractField, PrimeField64};
     use p3_goldilocks::Goldilocks;
+    use plonky2_field::{
+        BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS,
+        GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS,
+    };
     use wasm_bindgen_test::wasm_bindgen_test;
 
     use super::*;
@@ -230,7 +234,6 @@ mod tests {
     use crate::gates::noop::NoopGate;
     use crate::gates::poseidon2_babybear::Poseidon2BabyBearGate;
     use crate::gates::poseidon_goldilocks::PoseidonGate;
-    use crate::hash::hash_types::{BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::{CircuitConfig, VerifierOnlyCircuitData};
     use crate::plonk::config::{
@@ -249,7 +252,7 @@ mod tests {
     #[test]
     fn test_recursive_verifier_gl() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -277,7 +280,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn test_recursive_verifier_gl_regression() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -290,9 +293,11 @@ mod tests {
         .unwrap();
 
         // Deserialize verifier data
-        let verifier_data = VerifierOnlyCircuitData::<PoseidonGoldilocksConfig, 2, 4>::from_bytes(
-            RECURSIVE_VERIFIER_GL_VERIFIER_DATA.to_vec(),
-        )
+        let verifier_data = VerifierOnlyCircuitData::<
+            PoseidonGoldilocksConfig,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        >::from_bytes(RECURSIVE_VERIFIER_GL_VERIFIER_DATA.to_vec())
         .unwrap();
 
         // Deserialize the proof
@@ -311,7 +316,7 @@ mod tests {
     #[test]
     fn test_recursive_verifier_bb() -> Result<()> {
         init_logger();
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -335,7 +340,7 @@ mod tests {
     #[test]
     fn test_recursive_verifier_one_lookup() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -360,7 +365,7 @@ mod tests {
     #[test]
     fn test_recursive_verifier_two_luts() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -384,7 +389,7 @@ mod tests {
     #[test]
     fn test_recursive_verifier_too_many_rows() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -409,7 +414,7 @@ mod tests {
     #[test]
     fn test_recursive_recursive_verifier_gl() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -480,7 +485,7 @@ mod tests {
     #[test]
     fn test_recursive_recursive_verifier_bb() -> Result<()> {
         init_logger();
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -540,7 +545,7 @@ mod tests {
     #[ignore]
     fn test_size_optimized_recursion() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type KC = KeccakGoldilocksConfig;
@@ -617,7 +622,7 @@ mod tests {
     #[test]
     fn test_recursive_verifier_multi_hash() -> Result<()> {
         init_logger();
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type PC = PoseidonGoldilocksConfig;
         type KC = KeccakGoldilocksConfig;

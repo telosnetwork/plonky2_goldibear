@@ -94,7 +94,7 @@ pub struct LookupWire {
 ///
 /// ```rust
 /// use p3_field::AbstractField;
-/// use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
+/// use plonky2_field::{GOLDILOCKS_NUM_HASH_OUT_ELTS, GOLDILOCKS_EXTENSION_FIELD_DEGREE};
 /// use plonky2::plonk::circuit_data::CircuitConfig;
 /// use plonky2::iop::witness::PartialWitness;
 /// use plonky2::plonk::circuit_builder::CircuitBuilder;
@@ -102,7 +102,7 @@ pub struct LookupWire {
 ///
 ///
 /// // Define parameters for this circuit
-/// const D: usize = 2;
+/// const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
 /// const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 /// type C = PoseidonGoldilocksConfig;
 /// type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

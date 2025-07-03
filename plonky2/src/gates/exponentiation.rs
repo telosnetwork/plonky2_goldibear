@@ -342,13 +342,14 @@ mod tests {
     use anyhow::Result;
     use p3_field::Field;
     use p3_goldilocks::Goldilocks;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::{HashOut, GOLDILOCKS_NUM_HASH_OUT_ELTS};
+    use crate::hash::hash_types::HashOut;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use crate::util::log2_ceil;
 
@@ -356,7 +357,7 @@ mod tests {
 
     #[test]
     fn wire_indices() {
-        let gate = ExponentiationGate::<Goldilocks, 2> {
+        let gate = ExponentiationGate::<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> {
             num_power_bits: 5,
             _phantom: PhantomData,
         };
@@ -377,12 +378,17 @@ mod tests {
             ..CircuitConfig::standard_recursion_config_gl()
         };
 
-        test_low_degree::<Goldilocks, _, 2, 4>(ExponentiationGate::new_from_config(&config));
+        test_low_degree::<
+            Goldilocks,
+            _,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        >(ExponentiationGate::new_from_config(&config));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -393,7 +399,7 @@ mod tests {
 
     #[test]
     fn test_gate_constraint() {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -445,7 +451,12 @@ mod tests {
             _phantom: PhantomData,
         };
 
-        let vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
+        let vars: EvaluationVars<
+            '_,
+            Goldilocks,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        > = EvaluationVars {
             local_constants: &[],
             local_wires: &get_wires(base, power as u64),
             public_inputs_hash: &HashOut::rand(),
