@@ -27,6 +27,7 @@ pub trait RichField: PrimeField64 + Sample + TwoAdicField {
 }
 
 pub const GOLDILOCKS_NUM_HASH_OUT_ELTS: usize = 4;
+pub const GOLDILOCKS_EXTENSION_FIELD_DEGREE: usize = 2;
 
 impl RichField for Goldilocks {
     const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
@@ -63,6 +64,7 @@ const_assert!(
 );
 
 pub const BABYBEAR_NUM_HASH_OUT_ELTS: usize = 8;
+pub const BABYBEAR_EXTENSION_FIELD_DEGREE: usize = 4;
 
 impl RichField for BabyBear {
     const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
