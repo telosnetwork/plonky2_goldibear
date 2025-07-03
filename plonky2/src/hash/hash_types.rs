@@ -269,9 +269,16 @@ impl<F: RichField, const N: usize> GenericHashOut<F> for BytesHash<N> {
     }
 
     fn to_vec(&self) -> Vec<F> {
-        self.0
+        let chunk_size = match F::ORDER_U64 {
             // Chunks of 7 bytes since 8 bytes would allow collisions.
-            .chunks(7)
+            Goldilocks::ORDER_U64 => 7,
+            // Chunks of 3 bytes since 4 bytes would allow collisions.
+            BabyBear::ORDER_U64 => 3,
+            _ => panic!("Unsupported field"),
+        };
+
+        self.0
+            .chunks(chunk_size)
             .map(|bytes| {
                 let mut arr = [0; 8];
                 arr[..bytes.len()].copy_from_slice(bytes);
@@ -356,5 +363,18 @@ mod generic_arrays {
         T: Deserialize<'de>,
     {
         deserializer.deserialize_tuple(N, ArrayVisitor::<T, N>(PhantomData))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::hash::hash_types::{BabyBear, BytesHash};
+    use crate::plonk::config::GenericHashOut;
+
+    #[test]
+    fn test_non_canonical_vec_babybear() {
+        let bytes = u32::MAX.to_le_bytes();
+        let bh = BytesHash(bytes);
+        <BytesHash<4> as GenericHashOut<BabyBear>>::to_vec(&bh);
     }
 }

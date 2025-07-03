@@ -23,11 +23,8 @@ p3-monty-31 = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3
 p3-field-testing = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-field-testing", branch = "goldilocks_improvements"}
 p3-dft = { git="https://github.com/telosnetwork/Plonky3.git", package = "p3-dft", branch = "goldilocks_improvements"}
 
-##[profile.release]
-##opt-level = 3
-##incremental = true
-#lto = "fat"
-#codegen-units = 1
+[profile.test]
+opt-level = 3
 
 [profile.bench]
 opt-level = 3
