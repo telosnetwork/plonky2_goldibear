@@ -15,6 +15,10 @@ use p3_field::extension::BinomialExtensionField;
 use p3_field::{ExtensionField, Field, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use plonky2_field::types::HasExtension;
+use plonky2_field::{
+    BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+    GOLDILOCKS_NUM_HASH_OUT_ELTS,
+};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -179,7 +183,9 @@ pub trait GenericConfig<const D: usize, const NUM_HASH_OUT_ELTS: usize>:
 /// Configuration using Poseidon over the Goldilocks field.
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize)]
 pub struct PoseidonGoldilocksConfig;
-impl GenericConfig<2, 4> for PoseidonGoldilocksConfig {
+impl GenericConfig<GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS>
+    for PoseidonGoldilocksConfig
+{
     type F = Goldilocks;
     type FE = BinomialExtensionField<Self::F, 2>;
     type Hasher = Poseidon64Hash;
@@ -188,7 +194,9 @@ impl GenericConfig<2, 4> for PoseidonGoldilocksConfig {
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize)]
 pub struct Poseidon2BabyBearConfig;
-impl GenericConfig<4, 8> for Poseidon2BabyBearConfig {
+impl GenericConfig<BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS>
+    for Poseidon2BabyBearConfig
+{
     type F = BabyBear;
     type FE = BinomialExtensionField<Self::F, 4>;
     type Hasher = Poseidon2BabyBearHash;
@@ -198,9 +206,11 @@ impl GenericConfig<4, 8> for Poseidon2BabyBearConfig {
 /// Configuration using truncated Keccak over the Goldilocks field.
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct KeccakGoldilocksConfig;
-impl GenericConfig<2, 4> for KeccakGoldilocksConfig {
+impl GenericConfig<GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS>
+    for KeccakGoldilocksConfig
+{
     type F = Goldilocks;
-    type FE = BinomialExtensionField<Self::F, 2>;
+    type FE = BinomialExtensionField<Self::F, GOLDILOCKS_EXTENSION_FIELD_DEGREE>;
     type Hasher = KeccakHash<25>;
     type InnerHasher = Poseidon64Hash;
 }

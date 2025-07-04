@@ -17,6 +17,10 @@ use plonky2::plonk::proof::{ProofWithPublicInputs, ProofWithPublicInputsTarget};
 use plonky2::plonk::prover::prove;
 use plonky2::util::proving_process_info::ProvingProcessInfo;
 use plonky2_field::types::HasExtension;
+use plonky2_field::{
+    BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+    GOLDILOCKS_NUM_HASH_OUT_ELTS,
+};
 use tynm::type_name;
 
 mod allocator;
@@ -346,23 +350,31 @@ where
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    bench_recursion::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(
-        c,
-        &CircuitConfig::standard_recursion_config_gl(),
-    );
-    bench_recursion::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(
-        c,
-        &CircuitConfig::standard_recursion_config_bb_wide(),
-    );
+    bench_recursion::<
+        Goldilocks,
+        PoseidonGoldilocksConfig,
+        GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+        GOLDILOCKS_NUM_HASH_OUT_ELTS,
+    >(c, &CircuitConfig::standard_recursion_config_gl());
+    bench_recursion::<
+        BabyBear,
+        Poseidon2BabyBearConfig,
+        BABYBEAR_EXTENSION_FIELD_DEGREE,
+        BABYBEAR_NUM_HASH_OUT_ELTS,
+    >(c, &CircuitConfig::standard_recursion_config_bb_wide());
 
-    bench_merge::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(
-        c,
-        &CircuitConfig::standard_recursion_config_gl(),
-    );
-    bench_merge::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(
-        c,
-        &CircuitConfig::standard_recursion_config_bb_wide(),
-    );
+    bench_merge::<
+        Goldilocks,
+        PoseidonGoldilocksConfig,
+        GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+        GOLDILOCKS_NUM_HASH_OUT_ELTS,
+    >(c, &CircuitConfig::standard_recursion_config_gl());
+    bench_merge::<
+        BabyBear,
+        Poseidon2BabyBearConfig,
+        BABYBEAR_EXTENSION_FIELD_DEGREE,
+        BABYBEAR_NUM_HASH_OUT_ELTS,
+    >(c, &CircuitConfig::standard_recursion_config_bb_wide());
 }
 
 criterion_group!(benches, criterion_benchmark);

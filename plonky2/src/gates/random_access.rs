@@ -443,23 +443,29 @@ mod tests {
     use anyhow::Result;
     use p3_field::Field;
     use p3_goldilocks::Goldilocks;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::{HashOut, GOLDILOCKS_NUM_HASH_OUT_ELTS};
+    use crate::hash::hash_types::HashOut;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2, 4>(RandomAccessGate::new(4, 4, 1));
+        test_low_degree::<
+            Goldilocks,
+            _,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        >(RandomAccessGate::new(4, 4, 1));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -468,7 +474,7 @@ mod tests {
 
     #[test]
     fn test_gate_constraint() {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -530,7 +536,12 @@ mod tests {
             .zip(&access_indices)
             .map(|(l, &i)| l[i])
             .collect();
-        let good_vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
+        let good_vars: EvaluationVars<
+            '_,
+            Goldilocks,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        > = EvaluationVars {
             local_constants: &constants.iter().map(|&x| x.into()).collect::<Vec<_>>(),
             local_wires: &get_wires(
                 bits,
@@ -542,7 +553,12 @@ mod tests {
             public_inputs_hash: &HashOut::rand(),
         };
         let bad_claimed_elements = F::rand_vec(4);
-        let bad_vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
+        let bad_vars: EvaluationVars<
+            '_,
+            Goldilocks,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        > = EvaluationVars {
             local_constants: &constants.iter().map(|&x| x.into()).collect::<Vec<_>>(),
             local_wires: &get_wires(
                 bits,

@@ -144,10 +144,11 @@ mod tests {
 
     use crate::polynomial::PolynomialCoeffs;
     use crate::types::Sample;
+    use crate::GOLDILOCKS_EXTENSION_FIELD_DEGREE;
 
     #[test]
     fn test_division_by_linear() {
-        type F = BinomialExtensionField<Goldilocks, 2>;
+        type F = BinomialExtensionField<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>;
         let n = OsRng.gen_range(1..1000);
         let poly = PolynomialCoeffs::new(F::rand_vec(n));
         let z = F::rand();

@@ -4,6 +4,7 @@ use p3_field::extension::BinomialExtensionField;
 use p3_field::{batch_multiplicative_inverse, TwoAdicField};
 use p3_goldilocks::Goldilocks;
 use plonky2_field::types::Sample;
+use plonky2_field::{BABYBEAR_EXTENSION_FIELD_DEGREE, GOLDILOCKS_EXTENSION_FIELD_DEGREE};
 use tynm::type_name;
 
 mod allocator;
@@ -188,9 +189,9 @@ pub(crate) fn bench_field<F: TwoAdicField + Sample>(c: &mut Criterion) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     bench_field::<Goldilocks>(c);
-    bench_field::<BinomialExtensionField<Goldilocks, 2>>(c);
+    bench_field::<BinomialExtensionField<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>(c);
     bench_field::<BabyBear>(c);
-    bench_field::<BinomialExtensionField<BabyBear, 4>>(c);
+    bench_field::<BinomialExtensionField<BabyBear, BABYBEAR_EXTENSION_FIELD_DEGREE>>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

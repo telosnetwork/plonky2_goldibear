@@ -2,18 +2,18 @@ use std::fs;
 
 use anyhow::Result;
 use p3_field::AbstractField;
-use plonky2::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
 use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 
 /// An example of using Plonky2 to prove a statement of the form
 /// "I know the 100th element of the Fibonacci sequence, starting with constants a and b."
 /// When a == 0 and b == 1, this is proving knowledge of the 100th (standard) Fibonacci number.
 /// This example also serializes the circuit data and proof to JSON files.
 fn main() -> Result<()> {
-    const D: usize = 2;
+    const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
     const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

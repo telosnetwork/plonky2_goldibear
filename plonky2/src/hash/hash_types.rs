@@ -6,6 +6,7 @@ use anyhow::ensure;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, Field, PrimeField32, PrimeField64, TwoAdicField};
 use p3_goldilocks::Goldilocks;
+use plonky2_field::{BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use static_assertions::const_assert;
 
@@ -25,8 +26,6 @@ pub trait RichField: PrimeField64 + Sample + TwoAdicField {
     fn to_bytes(&self) -> Vec<u8>;
     fn hash_out_elements_from_bytes(bytes: &[u8]) -> Vec<Self>;
 }
-
-pub const GOLDILOCKS_NUM_HASH_OUT_ELTS: usize = 4;
 
 impl RichField for Goldilocks {
     const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
@@ -61,8 +60,6 @@ const_assert!(
     Goldilocks::ORDER_U64
         == ((1u128 << Goldilocks::EXP0) - (1u128 << Goldilocks::EXP1) + 1u128) as u64
 );
-
-pub const BABYBEAR_NUM_HASH_OUT_ELTS: usize = 8;
 
 impl RichField for BabyBear {
     const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;

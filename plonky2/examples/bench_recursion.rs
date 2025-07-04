@@ -33,6 +33,10 @@ use plonky2::plonk::prover::prove;
 use plonky2::util::proving_process_info::ProvingProcessInfo;
 use plonky2::util::serialization::DefaultGateSerializer;
 use plonky2_field::types::HasExtension;
+use plonky2_field::{
+    BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS, GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+    GOLDILOCKS_NUM_HASH_OUT_ELTS,
+};
 use plonky2_maybe_rayon::rayon;
 use rand::rngs::OsRng;
 use rand::{RngCore, SeedableRng};
@@ -400,12 +404,18 @@ fn main() -> Result<()> {
     };
     builder.try_init()?;
 
-    do_bench::<BabyBear, Poseidon2BabyBearConfig, 4, 8>(
-        CircuitConfig::standard_recursion_config_bb_wide(),
-    )?;
-    do_bench::<Goldilocks, PoseidonGoldilocksConfig, 2, 4>(
-        CircuitConfig::standard_recursion_config_gl(),
-    )
+    do_bench::<
+        BabyBear,
+        Poseidon2BabyBearConfig,
+        BABYBEAR_EXTENSION_FIELD_DEGREE,
+        BABYBEAR_NUM_HASH_OUT_ELTS,
+    >(CircuitConfig::standard_recursion_config_bb_wide())?;
+    do_bench::<
+        Goldilocks,
+        PoseidonGoldilocksConfig,
+        GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+        GOLDILOCKS_NUM_HASH_OUT_ELTS,
+    >(CircuitConfig::standard_recursion_config_gl())
 }
 fn do_bench<
     F: RichField + HasExtension<D>,

@@ -311,10 +311,10 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::AbstractField;
     use p3_symmetric::Permutation;
+    use plonky2_field::{BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS};
 
     use super::{poseidon2_r0, Poseidon2R0BabyBearHash, SPONGE_WIDTH};
     use crate::field::types::Sample;
-    use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
     use crate::plonk::circuit_builder::CircuitBuilder;
 
     #[test]
@@ -346,7 +346,7 @@ mod tests {
         use crate::plonk::circuit_data::{CircuitConfig, CircuitData};
         use crate::plonk::config::Poseidon2BabyBearConfig;
         type F = BabyBear;
-        const D: usize = 4;
+        const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type H = Poseidon2R0BabyBearHash;
         type C = Poseidon2BabyBearConfig;

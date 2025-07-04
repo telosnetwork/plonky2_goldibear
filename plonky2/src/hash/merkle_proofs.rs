@@ -189,11 +189,11 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 mod tests {
     use p3_field::{AbstractField, Field};
     use plonky2_field::types::Sample;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use rand::rngs::OsRng;
     use rand::Rng;
 
     use super::*;
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::hash::merkle_tree::MerkleTree;
     use crate::iop::witness::{PartialWitness, WitnessWrite};
     use crate::plonk::circuit_data::CircuitConfig;
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_recursive_merkle_proof() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

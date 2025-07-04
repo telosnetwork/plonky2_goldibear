@@ -560,10 +560,10 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
 mod tests {
     use anyhow::Result;
     use p3_goldilocks::Goldilocks;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 
     use super::*;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::generator::generate_partial_witness;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_data::CircuitConfig;
@@ -572,7 +572,7 @@ mod tests {
     #[test]
     fn wire_indices() {
         type F = Goldilocks;
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type Gate = PoseidonGate<F, D>;
 
         assert_eq!(Gate::wire_input(0), 0);
@@ -594,7 +594,7 @@ mod tests {
 
     #[test]
     fn generated_output() {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -647,17 +647,19 @@ mod tests {
     #[test]
     fn low_degree() {
         type F = Goldilocks;
-        let gate = PoseidonGate::<F, 2>::new();
-        test_low_degree::<F, PoseidonGate<F, 2>, 2, 4>(gate)
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
+        const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
+        let gate = PoseidonGate::<F, D>::new();
+        test_low_degree::<F, PoseidonGate<F, D>, D, NUM_HASH_OUT_ELTS>(gate)
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let gate = PoseidonGate::<F, 2>::new();
+        let gate = PoseidonGate::<F, D>::new();
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 }

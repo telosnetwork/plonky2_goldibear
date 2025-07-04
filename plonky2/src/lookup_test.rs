@@ -17,7 +17,7 @@ use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 use crate::plonk::prover::prove;
 use crate::util::timing::TimingTree;
 
-const D: usize = 2;
+const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
 type C = PoseidonGoldilocksConfig;
 type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
