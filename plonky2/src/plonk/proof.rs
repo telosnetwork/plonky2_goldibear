@@ -497,12 +497,12 @@ mod tests {
     use itertools::Itertools;
     use p3_field::AbstractField;
     use plonky2_field::types::Sample;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
 
     use super::*;
     use crate::fri::reduction_strategies::FriReductionStrategy;
     use crate::gates::lookup_table::LookupTable;
     use crate::gates::noop::NoopGate;
-    use crate::hash::hash_types::GOLDILOCKS_NUM_HASH_OUT_ELTS;
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_proof_compression() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn test_proof_compression_lookup() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
 
@@ -610,9 +610,9 @@ mod tests {
     mod tests_non_rand {
         use p3_field::AbstractField;
         use plonky2_field::types::tests_non_rand;
+        use plonky2_field::{BABYBEAR_EXTENSION_FIELD_DEGREE, BABYBEAR_NUM_HASH_OUT_ELTS};
 
         use crate::gates::noop::NoopGate;
-        use crate::hash::hash_types::BABYBEAR_NUM_HASH_OUT_ELTS;
         use crate::iop::witness::{PartialWitness, WitnessWrite};
         use crate::plonk::circuit_builder::CircuitBuilder;
         use crate::plonk::circuit_data::CircuitConfig;
@@ -622,7 +622,7 @@ mod tests {
 
         #[test]
         fn test_proof_permutation_argument_div_zero() {
-            const D: usize = 4;
+            const D: usize = BABYBEAR_EXTENSION_FIELD_DEGREE;
             type C = Poseidon2BabyBearConfig;
             const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
             type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;

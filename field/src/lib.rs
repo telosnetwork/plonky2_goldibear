@@ -10,6 +10,11 @@
     feature(stdarch_x86_avx512)
 )]
 
+pub const GOLDILOCKS_NUM_HASH_OUT_ELTS: usize = 4;
+pub const GOLDILOCKS_EXTENSION_FIELD_DEGREE: usize = 2;
+pub const BABYBEAR_NUM_HASH_OUT_ELTS: usize = 8;
+pub const BABYBEAR_EXTENSION_FIELD_DEGREE: usize = 4;
+
 extern crate alloc;
 
 pub mod batch_util;

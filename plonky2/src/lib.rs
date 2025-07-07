@@ -3,7 +3,8 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_debug_implementations)]
 #![cfg_attr(not(feature = "std"), no_std)]
-
+#![allow(stable_features)]
+#![feature(unsigned_is_multiple_of)]
 #[cfg(not(feature = "std"))]
 pub extern crate alloc;
 

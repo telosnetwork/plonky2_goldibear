@@ -713,63 +713,135 @@ mod tests {
     use p3_field::AbstractField;
     use p3_goldilocks::Goldilocks;
     use plonky2_field::polynomial::PolynomialValues;
+    use plonky2_field::{GOLDILOCKS_EXTENSION_FIELD_DEGREE, GOLDILOCKS_NUM_HASH_OUT_ELTS};
     use plonky2_util::log2_strict;
 
     use super::*;
     use crate::field::types::Sample;
     use crate::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use crate::hash::hash_types::{HashOut, GOLDILOCKS_NUM_HASH_OUT_ELTS};
+    use crate::hash::hash_types::HashOut;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
     #[test]
     fn test_degree_and_wires_minimized() {
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 2);
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
+        let gate = <CosetInterpolationGate<Goldilocks, D>>::with_max_degree(3, 2);
         assert_eq!(gate.num_intermediates(), 6);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 2);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            2
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 3);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(3, 3);
         assert_eq!(gate.num_intermediates(), 3);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 3);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            3
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 4);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(3, 4);
         assert_eq!(gate.num_intermediates(), 2);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 4);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            4
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 5);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(3, 5);
         assert_eq!(gate.num_intermediates(), 1);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 5);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            5
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 6);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(3, 6);
         assert_eq!(gate.num_intermediates(), 1);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 5);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            5
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 7);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(3, 7);
         assert_eq!(gate.num_intermediates(), 1);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 5);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            5
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 3);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(4, 3);
         assert_eq!(gate.num_intermediates(), 7);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 3);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            3
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 6);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(4, 6);
         assert_eq!(gate.num_intermediates(), 2);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 6);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            6
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 8);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(4, 8);
         assert_eq!(gate.num_intermediates(), 2);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 6);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            6
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 9);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(4, 9);
         assert_eq!(gate.num_intermediates(), 1);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::degree(&gate), 9);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::degree(&gate),
+            9
+        );
     }
 
     /*
     TODO Update tests with actual values for D=2
     #[test]
     fn wire_indices_degree2() {
-        let gate = CosetInterpolationGate::<Goldilocks, 2> {
+        let gate = CosetInterpolationGate::<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> {
             subgroup_bits: 2,
             degree: 2,
             barycentric_weights: barycentric_weights(
@@ -800,7 +872,7 @@ mod tests {
 
     #[test]
     fn wire_indices_degree_3() {
-        let gate = CosetInterpolationGate::<Goldilocks, 2> {
+        let gate = CosetInterpolationGate::<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> {
             subgroup_bits: 2,
             degree: 3,
             barycentric_weights: barycentric_weights(
@@ -829,7 +901,7 @@ mod tests {
 
     #[test]
     fn wire_indices_degree_n() {
-        let gate = CosetInterpolationGate::<Goldilocks, 2> {
+        let gate = CosetInterpolationGate::<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> {
             subgroup_bits: 2,
             degree: 4,
             barycentric_weights: barycentric_weights(
@@ -856,12 +928,17 @@ mod tests {
     */
     #[test]
     fn low_degree() {
-        test_low_degree::<Goldilocks, _, 2, 4>(CosetInterpolationGate::new(2));
+        test_low_degree::<
+            Goldilocks,
+            _,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        >(CosetInterpolationGate::new(2));
     }
 
     #[test]
     fn eval_fns() -> Result<()> {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -875,7 +952,7 @@ mod tests {
 
     #[test]
     fn test_gate_constraint() {
-        const D: usize = 2;
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
         type C = PoseidonGoldilocksConfig;
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
@@ -918,7 +995,12 @@ mod tests {
         let values = PolynomialValues::new(core::iter::repeat_with(FF::rand).take(4).collect());
         let eval_point = FF::rand();
         let gate = CosetInterpolationGate::<F, D>::with_max_degree(2, 3);
-        let vars: EvaluationVars<'_, Goldilocks, 2, 4> = EvaluationVars {
+        let vars: EvaluationVars<
+            '_,
+            Goldilocks,
+            GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+            GOLDILOCKS_NUM_HASH_OUT_ELTS,
+        > = EvaluationVars {
             local_constants: &[],
             local_wires: &get_wires(shift, values, eval_point),
             public_inputs_hash: &HashOut::rand(),
@@ -933,16 +1015,59 @@ mod tests {
     #[test]
     fn test_num_wires_constraints() {
         const NUM_HASH_OUT_ELTS: usize = GOLDILOCKS_NUM_HASH_OUT_ELTS;
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 8);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_wires(&gate), 47);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_constraints(&gate), 12);
+        const D: usize = GOLDILOCKS_EXTENSION_FIELD_DEGREE;
+        let gate = <CosetInterpolationGate<Goldilocks, D>>::with_max_degree(4, 8);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::num_wires(&gate),
+            47
+        );
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::num_constraints(&gate),
+            12
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(3, 8);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_wires(&gate), 23);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_constraints(&gate), 4);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(3, 8);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::num_wires(&gate),
+            23
+        );
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::num_constraints(&gate),
+            4
+        );
 
-        let gate = <CosetInterpolationGate<Goldilocks, 2>>::with_max_degree(4, 16);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_wires(&gate), 39);
-        assert_eq!(<CosetInterpolationGate<Goldilocks, 2> as Gate<Goldilocks, 2, NUM_HASH_OUT_ELTS>>::num_constraints(&gate), 4);
+        let gate = <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE>>::with_max_degree(4, 16);
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::num_wires(&gate),
+            39
+        );
+        assert_eq!(
+            <CosetInterpolationGate<Goldilocks, GOLDILOCKS_EXTENSION_FIELD_DEGREE> as Gate<
+                Goldilocks,
+                GOLDILOCKS_EXTENSION_FIELD_DEGREE,
+                NUM_HASH_OUT_ELTS,
+            >>::num_constraints(&gate),
+            4
+        );
     }
 }
