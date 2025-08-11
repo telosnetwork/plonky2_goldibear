@@ -246,7 +246,8 @@ impl<F: RichField> AlgebraicHasher<F, 8> for Poseidon2R0BabyBearHash {
         F: HasExtension<D>,
         <F as HasExtension<D>>::Extension: TwoAdicField,
     {
-        let gate_type: Poseidon2R0BabyBearGate<F, D> = Poseidon2R0BabyBearGate::<F, D>::new();
+        let gate_type: Poseidon2R0BabyBearGate<F, D> =
+            Poseidon2R0BabyBearGate::<F, D>::new_from_config(&builder.config);
         let (row, op) = builder.find_slot(gate_type.clone(), &[], &[]);
 
         let swap_wire = Poseidon2R0BabyBearGate::<F, D>::wire_swap(op);
@@ -351,7 +352,7 @@ mod tests {
         type H = Poseidon2R0BabyBearHash;
         type C = Poseidon2BabyBearConfig;
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(
-            CircuitConfig::standard_recursion_config_bb_wide(),
+            CircuitConfig::recursion_config_bb_wide(),
         );
         let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
         let vec_target = builder.add_virtual_targets(NUM_HASH_OUT_ELTS * 3);

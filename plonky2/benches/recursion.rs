@@ -361,7 +361,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         Poseidon2BabyBearConfig,
         BABYBEAR_EXTENSION_FIELD_DEGREE,
         BABYBEAR_NUM_HASH_OUT_ELTS,
-    >(c, &CircuitConfig::standard_recursion_config_bb_wide());
+    >(c, &CircuitConfig::standard_recursion_config_bb());
 
     bench_merge::<
         Goldilocks,
@@ -374,7 +374,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         Poseidon2BabyBearConfig,
         BABYBEAR_EXTENSION_FIELD_DEGREE,
         BABYBEAR_NUM_HASH_OUT_ELTS,
-    >(c, &CircuitConfig::standard_recursion_config_bb_wide());
+    >(c, &CircuitConfig::standard_recursion_config_bb());
 }
 
 criterion_group!(benches, criterion_benchmark);

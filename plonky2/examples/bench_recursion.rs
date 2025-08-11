@@ -409,7 +409,7 @@ fn main() -> Result<()> {
         Poseidon2BabyBearConfig,
         BABYBEAR_EXTENSION_FIELD_DEGREE,
         BABYBEAR_NUM_HASH_OUT_ELTS,
-    >(CircuitConfig::standard_recursion_config_bb_wide())?;
+    >(CircuitConfig::standard_recursion_config_bb())?;
     do_bench::<
         Goldilocks,
         PoseidonGoldilocksConfig,
