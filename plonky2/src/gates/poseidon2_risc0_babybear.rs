@@ -994,7 +994,7 @@ mod tests {
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
-        let config = CircuitConfig::standard_recursion_config_gl();
+        let config = CircuitConfig::standard_recursion_config_bb();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
