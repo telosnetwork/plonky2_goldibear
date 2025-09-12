@@ -31,6 +31,10 @@ use crate::plonk::config::AlgebraicHasher;
 use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
+// These flags are used to choose between using a custom gate for the internal and external permutation
+// in the circuit. These reduces the number of gates in the recursive verifier and it is helpful
+// if the recursive verifier circuit has a number of gates close to a power of two.
+// Otherwise is worthless and it just makes the circuit more complex.
 const USE_INTERNAL_PERMUTATION_GATE: bool = false;
 const USE_EXTERNAL_PERMUTATION_GATE: bool = false;
 const SBOX_EXP: u64 = 7;

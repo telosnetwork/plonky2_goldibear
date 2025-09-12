@@ -61,9 +61,7 @@ impl<F: RichField + HasExtension<D>, const D: usize> Poseidon2R0BabyBearGate<F, 
         if BabyBear::ORDER_U64 != F::ORDER_U64 {
             panic!("The Poseidon2 BabyBear gate can be used only for the BabyBear field!")
         }
-        let wires_per_op = ROUTED_WIRES_PER_OP + NON_ROUTED_WIRES_PER_OP;
-        let num_ops =
-            (config.num_wires / wires_per_op).min(config.num_routed_wires / ROUTED_WIRES_PER_OP);
+        let num_ops = Self::num_ops(config);
         Self {
             num_ops,
             _phantom: PhantomData,
