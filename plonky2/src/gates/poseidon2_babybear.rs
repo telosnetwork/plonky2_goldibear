@@ -31,8 +31,12 @@ use crate::plonk::config::AlgebraicHasher;
 use crate::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
 use crate::util::serialization::{Buffer, IoResult, Read, Write};
 
-const USE_INTERNAL_PERMUTATION_GATE: bool = true;
-const USE_EXTERNAL_PERMUTATION_GATE: bool = true;
+// These flags are used to choose between using a custom gate for the internal and external permutation
+// in the circuit. These reduces the number of gates in the recursive verifier and it is helpful
+// if the recursive verifier circuit has a number of gates close to a power of two.
+// Otherwise is worthless and it just makes the circuit more complex.
+const USE_INTERNAL_PERMUTATION_GATE: bool = false;
+const USE_EXTERNAL_PERMUTATION_GATE: bool = false;
 const SBOX_EXP: u64 = 7;
 pub(crate) const INTERNAL_DIAG_SHIFTS: [usize; SPONGE_WIDTH - 1] =
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15];
@@ -957,7 +961,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig::standard_recursion_config_bb_wide();
+        let config = CircuitConfig::standard_recursion_config_bb();
         let mut builder = CircuitBuilder::new(config.clone());
         type Gate = Poseidon2BabyBearGate<F, D>;
         let gate = Gate::new(&config);
@@ -1003,7 +1007,7 @@ mod tests {
     fn low_degree() {
         type F = BabyBear;
         let gate =
-            Poseidon2BabyBearGate::<F, 4>::new(&CircuitConfig::standard_recursion_config_bb_wide());
+            Poseidon2BabyBearGate::<F, 4>::new(&CircuitConfig::standard_recursion_config_bb());
         test_low_degree::<F, Poseidon2BabyBearGate<F, 4>, 4, 8>(gate)
     }
 
@@ -1014,7 +1018,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
         let gate =
-            Poseidon2BabyBearGate::<F, D>::new(&CircuitConfig::standard_recursion_config_bb_wide());
+            Poseidon2BabyBearGate::<F, D>::new(&CircuitConfig::standard_recursion_config_bb());
         test_eval_fns::<F, C, _, D, NUM_HASH_OUT_ELTS>(gate)
     }
 
@@ -1042,7 +1046,7 @@ mod tests {
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
-        let config = CircuitConfig::standard_recursion_config_bb_wide();
+        let config = CircuitConfig::standard_recursion_config_bb();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder
@@ -1066,7 +1070,7 @@ mod tests {
         type EF = <F as HasExtension<D>>::Extension;
 
         let mut state: [EF; SPONGE_WIDTH] = EF::rand_array();
-        let config = CircuitConfig::standard_recursion_config_gl();
+        let config = CircuitConfig::standard_recursion_config_bb();
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
         let mut pw = PartialWitness::<F>::new();
         let mut state_target: [ExtensionTarget<D>; SPONGE_WIDTH] = builder

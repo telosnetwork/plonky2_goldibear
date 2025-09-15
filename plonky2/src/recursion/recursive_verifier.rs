@@ -320,7 +320,7 @@ mod tests {
         type C = Poseidon2BabyBearConfig;
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
-        let config = CircuitConfig::standard_recursion_zk_config_bb();
+        let config = CircuitConfig::standard_recursion_config_bb();
 
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 4_000)?;
         let (proof, vd, common_data) = recursive_proof::<F, C, C, D, NUM_HASH_OUT_ELTS>(
@@ -490,7 +490,7 @@ mod tests {
         const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
         type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-        let config = CircuitConfig::standard_recursion_config_bb_wide();
+        let config = CircuitConfig::standard_recursion_config_bb();
         info!(" ****************  Generating Dummy Proof ****************");
         // Start with a degree 2^14 proof
         let (proof, vd, common_data) = dummy_proof::<F, C, D, NUM_HASH_OUT_ELTS>(&config, 16_000)?;
@@ -520,7 +520,7 @@ mod tests {
             true,
             true,
         )?;
-        assert_eq!(common_data.degree_bits(), 12);
+        assert_eq!(common_data.degree_bits(), 13);
 
         info!(" ****************  Generating 3rd Recursive Proof ****************");
         // Shrink it to 2^12.
@@ -533,7 +533,7 @@ mod tests {
             true,
             true,
         )?;
-        assert_eq!(common_data.degree_bits(), 12);
+        assert_eq!(common_data.degree_bits(), 13);
 
         test_serialization(&proof, &vd, &common_data)?;
 

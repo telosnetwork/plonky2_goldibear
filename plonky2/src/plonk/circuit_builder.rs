@@ -244,13 +244,13 @@ impl<F: RichField + HasExtension<D>, const D: usize, const NUM_HASH_OUT_ELTS: us
             verifier_data_public_input: None,
             random_wire: None,
         };
-        builder.check_config();
+        builder.check_fri_security_bits();
         builder
     }
 
     /// Assert that the configuration used to create this `CircuitBuilder` is consistent,
     /// i.e. that the different parameters meet the targeted security level.
-    fn check_config(&self) {
+    fn check_fri_security_bits(&self) {
         let &CircuitConfig {
             security_bits,
             fri_config:
@@ -1184,6 +1184,12 @@ where {
             fri_params.total_arities() <= degree_bits + rate_bits - cap_height,
             "FRI total reduction arity is too large.",
         );
+        assert!(
+            F::Extension::bits() - degree_bits >= self.config.security_bits,
+            "The degree of the extension is not enough for the soudness of the evaluation point!"
+        );
+        let soundness_bits = F::bits() - degree_bits;
+        assert!(soundness_bits * self.config.num_challenges >= self.config.security_bits, "The number of challenges is not sufficient for the soundness of permutation argument and combining constraints!");
 
         let quotient_degree_factor = self.config.max_quotient_degree_factor;
         let mut gates = self.gates.iter().cloned().collect::<Vec<_>>();

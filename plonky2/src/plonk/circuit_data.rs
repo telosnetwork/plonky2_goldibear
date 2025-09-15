@@ -100,24 +100,40 @@ impl CircuitConfig {
 
     /// A typical recursion config, without zero-knowledge, targeting ~100 bit security.
     pub fn standard_recursion_config_gl() -> Self {
+        let base = Self::standard_recursion_config();
         Self {
             num_wires: 135,
-            ..Self::standard_recursion_config()
+            num_challenges: 2,
+            fri_config: FriConfig {
+                reduction_strategy: FriReductionStrategy::ConstantArityBits(4, 5),
+                cap_height: base.fri_config.cap_height,
+                proof_of_work_bits: base.fri_config.proof_of_work_bits,
+                rate_bits: base.fri_config.rate_bits,
+                num_query_rounds: base.fri_config.num_query_rounds,
+            },
+            ..base
         }
     }
-    pub fn standard_recursion_config_bb_wide() -> Self {
+
+    pub fn standard_recursion_config_bb() -> Self {
+        Self::recursion_config_bb_narrow()
+    }
+
+    pub fn recursion_config_bb_wide() -> Self {
         Self {
             //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
             num_wires: 334,
             num_routed_wires: 160,
+            num_challenges: 6,
             ..Self::standard_recursion_config()
         }
     }
-    pub fn standard_recursion_config_bb_narrow() -> Self {
+    pub fn recursion_config_bb_narrow() -> Self {
         Self {
             //num_wires: Poseidon2BabyBearGate::<BabyBear,4>::end() + 1, num_routed_wires: 160,
             num_wires: 167,
-            num_routed_wires: 128,
+            num_routed_wires: 41,
+            num_challenges: 6,
             ..Self::standard_recursion_config()
         }
     }
@@ -129,14 +145,14 @@ impl CircuitConfig {
             num_constants: 2,
             use_base_arithmetic_gate: true,
             security_bits: 100,
-            num_challenges: 2,
+            num_challenges: 0,
             zero_knowledge: false,
             max_quotient_degree_factor: 8,
             fri_config: FriConfig {
                 rate_bits: 3,
                 cap_height: 4,
                 proof_of_work_bits: 16,
-                reduction_strategy: FriReductionStrategy::ConstantArityBits(4, 5),
+                reduction_strategy: FriReductionStrategy::ConstantArityBits(3, 5),
                 num_query_rounds: 28,
             },
         }
@@ -165,7 +181,7 @@ impl CircuitConfig {
     pub fn standard_recursion_zk_config_bb() -> Self {
         CircuitConfig {
             zero_knowledge: true,
-            ..Self::standard_recursion_config_bb_wide()
+            ..Self::standard_recursion_config_bb()
         }
     }
 }

@@ -149,7 +149,7 @@ where
     let constants = F::Extension::rand_vec(gate.num_constants());
 
     let config = match F::ORDER_U64 {
-        p3_baby_bear::BabyBear::ORDER_U64 => CircuitConfig::standard_recursion_config_bb_wide(),
+        p3_baby_bear::BabyBear::ORDER_U64 => CircuitConfig::recursion_config_bb_wide(),
         _ => CircuitConfig::standard_recursion_config_gl(),
     };
     let mut pw = PartialWitness::new();

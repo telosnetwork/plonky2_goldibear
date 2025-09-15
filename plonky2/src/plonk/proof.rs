@@ -627,7 +627,7 @@ mod tests {
             const NUM_HASH_OUT_ELTS: usize = BABYBEAR_NUM_HASH_OUT_ELTS;
             type F = <C as GenericConfig<D, NUM_HASH_OUT_ELTS>>::F;
 
-            let config = CircuitConfig::standard_recursion_config_bb_wide();
+            let config = CircuitConfig::standard_recursion_config_bb();
 
             let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(config);
             let xt = builder.add_virtual_target();

@@ -235,7 +235,7 @@ mod tests {
         type H = Poseidon2BabyBearHash;
         type C = Poseidon2BabyBearConfig;
         let mut builder = CircuitBuilder::<F, D, NUM_HASH_OUT_ELTS>::new(
-            CircuitConfig::standard_recursion_config_bb_wide(),
+            CircuitConfig::standard_recursion_config_bb(),
         );
         let vec = F::rand_vec(NUM_HASH_OUT_ELTS * 3);
         let res = H::hash_or_noop(&vec);
